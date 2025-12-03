@@ -13,12 +13,13 @@ from typing import Optional, Dict, Union
 from ..temperature_controller import TemperatureController
 
 class TC720(TemperatureController):
-    def __init__(self, name: str, port='COM12', baudrate=230400, timeout=1):
-        super().__init__(name)
+    def __init__(self, port='COM12', baudrate=230400, timeout=1, name: str = "TC720"):
+        self.name = name
         self.port = port
         self.baudrate = baudrate
         self.timeout = timeout
         self.ser: Optional[serial.Serial] = None
+        self._connected: bool = False
 
     # ---- Device lifecycle ----------------------------------------------------
 
@@ -120,11 +121,21 @@ class TC720(TemperatureController):
 
     # ---- Status monitoring ---------------------------------------------------
     def status(self) -> dict:
+        if not self._connected or not self.ser or not self.ser.is_open:
+            return {"ok": False, "code": "disconnected", "msg": "Not connected"}
+
         try:
-            t = self.read_temperature(1)
-            return {"ok": True, "code": "ok", "msg": f"T={t:.2f}C"}
+            current_temperature = self.get_temperature(sensor=1)
+            return {
+                "ok": True,
+                "code": "ok",
+                "msg": f"{current_temperature:.2f}",
+                "temperature_c": float(current_temperature),
+            }
         except Exception as e:
             return {"ok": False, "code": "no_response", "msg": str(e)}
+
+
 
 '''
 # ============================== USAGE EXAMPLE ==============================

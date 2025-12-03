@@ -1,0 +1,4 @@
+Timestamp,Elapsed_Time_s,Isametic_1,PhdUltraPump_1,Temperature_1
+2025-12-03 15:32:46,7.07,994.5,1000.0,name 'get_temperature' is not defined
+2025-12-03 15:33:47,67.64,994.5,1000.0,name 'get_temperature' is not defined
+2025-12-03 15:34:47,128.3,994.5,1000.0,name 'get_temperature' is not defined

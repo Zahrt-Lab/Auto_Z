@@ -17,6 +17,8 @@ import threading
 import sys
 from pathlib import Path
 
+from pumps.isametic_pump.isametic_pump import IsmaticPump
+
 sys.path.insert(0, str(Path.cwd().parent.parent))
 print(Path.cwd().parent)
 
@@ -32,6 +34,8 @@ from liquid_handlers.gx281.gx281 import GX281
 from liquid_handlers.ender3_liquid_handler.ender3_liquid_handler import Ender3LiquidHandler
 from liquid_handlers.bed_layout import BedLayout
 from pumps.vici_m6_pump.vici_m6_pump import VICI_M6_Pumps
+from pumps.isametic_pump.isametic_pump import IsmaticPump
+from syringe_pumps.phd_ultra.phd_ultra_pumps import PhdUltraPump  
 from valves.vici_valves.vici_valves import ViciValve
 from temperature_controller.tc720.tc720 import TC720
 # TODO can't find syringe pump and isamatic scripts and need to add this script later
@@ -47,6 +51,9 @@ class GeneralExperimentMethod:
         self.delay = delay  # Global delay parameter
         self.status_interval = status_interval  # Status check interval in seconds
         self.control_file = control_file  # File path to check for continue/stop signal
+
+        # Initialize control file to True at the start of each experiment run
+        self._initialize_control_file()
 
         # Dictionary to store bed layouts for each bed (1-6)
         self.bed_layouts = {}
@@ -98,6 +105,8 @@ class GeneralExperimentMethod:
         # Set status log filename
         self.status_log_filename = os.path.join(self.experiment_subdir,
                                                 f"{self.start_time.strftime('%Y_%m_%d_%H-%M-%S')}_Status_Log.csv")
+        
+        
 
     def load_instrument_config(self, config_file):
         """
@@ -140,11 +149,11 @@ class GeneralExperimentMethod:
                 obj = Ender3LiquidHandler(port=com_port, name=attr_name)
             elif instrument_type == "VICI_M6_Pump":
                 obj = VICI_M6_Pumps(port=com_port, name=attr_name)
-            # TODO: Uncomment when PhdUltraPump is available
-            # elif instrument_type == "HarvardPump":
-            #     obj = PhdUltraPump(port=com_port, name=attr_name)
-            # elif instrument_type == "Isametic":
-            #     obj = PhdUltraPump(port=com_port, name=attr_name)
+            elif instrument_type == "Isametic":
+                obj = IsmaticPump(port=com_port, name=attr_name)
+            elif instrument_type == "PhdUltraPump":
+                obj = PhdUltraPump(port=com_port, name=attr_name)
+            # TODO current code only supports Vici valves, add other valve types as needed and make necessary changes to code
             elif instrument_type in ("Valve6Way", "Valve10Way", "Valve24Way"):
                 # pick the right string for ViciValve
                 valve_type = {
@@ -164,6 +173,19 @@ class GeneralExperimentMethod:
             self.instrument_types[attr_name] = instrument_type
             setattr(self, attr_name, obj)
             print(f"Initialized {attr_name} ({instrument_type}) on COM Port {com_port if com_port else 'N/A'}")
+        
+        # Connect all instruments after initialization
+        self.connect_all_instruments()
+
+    def connect_all_instruments(self):
+        """Connect to all initialized instruments that have a connect() method."""
+        for name, device in self.instruments.items():
+            if hasattr(device, 'connect'):
+                try:
+                    device.connect()
+                    print(f"Connected to {name}")
+                except Exception as e:
+                    print(f"Failed to connect to {name}: {e}")
 
     # The role of this script is to log all the experimental data to a csv to be recorded and plotted out in the future.
     def log_to_csv(self, component, action, params, output, notes=""):
@@ -171,6 +193,18 @@ class GeneralExperimentMethod:
         with open(self.log_filename, mode='a', newline='', encoding='utf-8') as file:
             writer = csv.writer(file)
             writer.writerow([elapsed_time, component, action, params, output, notes])
+
+    def _initialize_control_file(self):
+        """
+        Initialize the control file to 'True' at the start of each experiment run.
+        This ensures experiments can run unless explicitly stopped.
+        """
+        try:
+            with open(self.control_file, 'w', encoding='utf-8') as f:
+                f.write('True')
+            print(f"Control file '{self.control_file}' initialized to True")
+        except Exception as e:
+            print(f"Warning: Could not initialize control file {self.control_file}: {e}")
 
     def _check_continue_flag(self):
         """
@@ -313,6 +347,8 @@ class GeneralExperimentMethod:
                 if isinstance(device, LiquidHandler):
                     self.execute_liquid_handler(action, params, component, device)
                 elif isinstance(device, Pump):
+                    self.execute_pump(action, params, component, device)
+                elif isinstance(device, SyringePump):
                     self.execute_pump(action, params, component, device)
                 elif isinstance(device, Valves):
                     self.execute_valve(action, params, component, device)
@@ -458,8 +494,90 @@ class GeneralExperimentMethod:
             current_temp = temp_ctrl.get_temperature()
             self.log_to_csv(component, action, params, f"Current temperature: {current_temp}°C")
 
+        elif action == 'wait_convergence':
+            # Extract parameters: target_temp, tolerance (default 2), duration (default 120)
+            param_dict = {key.strip(): float(value.strip()) for key, value in
+                          (param.split('=') for param in params.split(','))}
+            target_temp = param_dict['target_temp']
+            tolerance = param_dict.get('tolerance', 2.0)  # ±2°C default
+            duration = param_dict.get('duration', 120.0)  # 120 seconds (2 min) default
+            
+            self.log_to_csv(component, action, params, 
+                           f"Waiting for temperature to converge to {target_temp}±{tolerance}°C for {duration}s")
+            
+            # Wait for temperature convergence
+            converged = self._wait_temperature_convergence(
+                temp_ctrl, target_temp, tolerance, duration, component
+            )
+            
+            if converged:
+                self.log_to_csv(component, action, params, 
+                               f"Temperature converged to {target_temp}±{tolerance}°C")
+            else:
+                self.log_to_csv(component, action, params, 
+                               f"Warning: Temperature convergence interrupted or failed")
+
         else:
             self.log_to_csv(component, action, params, f"Error: Unknown action '{action}' for temperature controller")
+
+    def _wait_temperature_convergence(self, temp_ctrl: TemperatureController, 
+                                      target_temp: float, tolerance: float, 
+                                      duration: float, component: str) -> bool:
+        """
+        Wait until temperature stays within tolerance range for specified duration.
+        Checks every 5 seconds.
+        Returns True if converged, False if interrupted.
+        """
+        check_interval = 5.0  # seconds between temperature checks
+        stable_start_time = None
+        
+        while True:
+            # Check if experiment should continue
+            if not self._continue_experiment:
+                print(f"Temperature convergence wait interrupted by stop signal")
+                return False
+            
+            try:
+                current_temp = temp_ctrl.get_temperature()
+                temp_diff = abs(current_temp - target_temp)
+                in_range = temp_diff <= tolerance
+                
+                timestamp = datetime.now().strftime('%H:%M:%S')
+                print(f"[{timestamp}] {component}: Current={current_temp:.1f}°C, "
+                      f"Target={target_temp}±{tolerance}°C, Diff={temp_diff:.1f}°C")
+                
+                if in_range:
+                    # Temperature is in range
+                    if stable_start_time is None:
+                        # Just entered range
+                        stable_start_time = time.time()
+                        print(f"[{timestamp}] Temperature entered target range, "
+                              f"waiting {duration}s for stability...")
+                    else:
+                        # Check how long we've been stable
+                        elapsed_stable = time.time() - stable_start_time
+                        remaining = duration - elapsed_stable
+                        
+                        if elapsed_stable >= duration:
+                            # Converged!
+                            print(f"[{timestamp}] Temperature stable for {duration}s - CONVERGED")
+                            return True
+                        else:
+                            print(f"[{timestamp}] Temperature stable for {elapsed_stable:.1f}s "
+                                  f"(need {remaining:.1f}s more)")
+                else:
+                    # Temperature out of range
+                    if stable_start_time is not None:
+                        print(f"[{timestamp}] Temperature left target range, resetting timer")
+                    stable_start_time = None
+                
+                # Wait before next check
+                time.sleep(check_interval)
+                
+            except Exception as e:
+                print(f"Error reading temperature: {e}")
+                self.log_to_csv(component, "wait_convergence", "", f"Error: {e}")
+                time.sleep(check_interval)
 
     def set_bedlayout(self, bed, rack_layout):
         """Set the layout for a specific bed with the given rack_layout."""

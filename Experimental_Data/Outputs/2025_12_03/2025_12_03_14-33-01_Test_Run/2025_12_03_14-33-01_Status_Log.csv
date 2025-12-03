@@ -1,0 +1,3 @@
+Timestamp,Elapsed_Time_s,Isametic_1,PhdUltraPump_1
+2025-12-03 14:33:08,7.05,"Stopped: rpm=0.00, flow≈0.00 µL/min. Last message: Connected",Status: '16666666666 61213 20283971946 I..TI.\r\n>' | Last msg: Connected
+2025-12-03 14:34:11,69.56,"Running: rpm=11.70, flow≈994.50 µL/min. Last message: Connected",Status: '16666666666 118714 478644305830 I..TI.\r\n>' | Last msg: Infused 500.0 µL at 1000.00 µL/min (~32.0 s run)

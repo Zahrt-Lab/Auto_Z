@@ -10,9 +10,9 @@
 import serial
 import time
 from typing import Optional, Union
-from ..valves import Valve
+from ..valves import Valves
 
-class ViciValve(Valve):
+class ViciValve(Valves):
     """
     Unified driver for VICI selector valves (6-, 10-, 24-way or any even 2-40 positions).
 

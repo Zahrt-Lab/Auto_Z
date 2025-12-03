@@ -1,0 +1,3 @@
+Timestamp,Elapsed_Time_s,Isametic_1,PhdUltraPump_1,Temperature_1
+2025-12-03 15:20:46,7.06,994.5,1000.000 µL/min (infuse),'TC720' object has no attribute 'read_temperature'
+2025-12-03 15:21:47,67.73,994.5,1000.000 µL/min (infuse),'TC720' object has no attribute 'read_temperature'

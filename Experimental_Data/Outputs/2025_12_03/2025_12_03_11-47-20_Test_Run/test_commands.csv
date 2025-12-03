@@ -1,0 +1,3 @@
+Component,Action,Parameters,Notes,delay
+Isametic_1,aspirate,flow_rate=1000;volume=500,Test aspirate small volume,0.5
+Isametic_1,dispense,flow_rate=1000;volume=500,Test dispense small volume,0.5

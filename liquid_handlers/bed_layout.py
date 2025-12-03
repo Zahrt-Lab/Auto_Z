@@ -5,7 +5,7 @@
 # Contributions by graduate students Scott Laverty and David Polefrone are acknowledged.
 # All rights reserved.
 # ------------------------------------------------------------------------------
-from AUTO_ZAHRT.GILSON.Wells import Well
+from liquid_handlers.wells import Well
 
 class BedLayout():
 

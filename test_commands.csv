@@ -1,0 +1,6 @@
+Component,Action,Parameters,Notes,delay
+Isametic_1,aspirate,"flow_rate=1000,volume=500",Isametic aspirate 500µL,0.5
+PhdUltraPump_1,aspirate,"flow_rate=1000,volume=500",PhD Ultra aspirate 500µL,0.5
+SYNC,wait_for_pumps,,Wait for both aspirate operations to finish,0.5
+Isametic_1,dispense,"flow_rate=1000,volume=500",Isametic dispense 500µL,0.5
+PhdUltraPump_1,dispense,"flow_rate=1000,volume=500",PhD Ultra dispense 500µL,0.5

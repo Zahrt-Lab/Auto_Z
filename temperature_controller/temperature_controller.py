@@ -37,7 +37,7 @@ class TemperatureController(abc.ABC):
         """Stop any ongoing temperature control operation promptly."""
 
     @abc.abstractmethod
-    def status() -> str:
+    def status(self) -> str:
         """Return a string representing the current status of the temperature controller."""
 
     @abc.abstractmethod

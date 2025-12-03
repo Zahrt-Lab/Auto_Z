@@ -9,7 +9,7 @@
 import serial, time
 from typing import Optional
 
-from pumps import SyringePump  # <-- NEW: import your abstract base class
+from ..syringe_pumps import SyringePump  # import the abstract base class from parent package
 
 
 class PhdUltraPump(SyringePump):
@@ -32,8 +32,10 @@ class PhdUltraPump(SyringePump):
         timeout: float = 1.0,
         address: int = 0,
         pause: float = 0.10,
+        name: str = "PhdUltraPump",
     ):
         # Keep original behavior: open serial port immediately
+        self.name = name
         self.address, self.pause = address, pause
         self.ser = serial.Serial(
             port,
@@ -208,6 +210,74 @@ class PhdUltraPump(SyringePump):
 
     def get_version(self) -> str:
         return self.send("ver")
+    
+    def get_current_flow_rate_ul_min(self) -> Optional[float]:
+        """
+        Query the pump for its current flow rate (µL/min).
+
+        Uses the CRATE pump-chain command:
+            - 'crate' → "Infusing at # xl/xxx" or "Withdrawing at # xl/xxx"
+        We assume rates are configured in µL/min (ul/min) via set_rate().
+        Returns:
+            +flow (µL/min) for infuse
+            -flow (µL/min) for withdraw
+            None if pump is not moving or response is not parseable.
+        """
+        self._ensure_connected()
+
+        reply = self.send("crate")  # CRATE: current rate command
+
+        if not reply:
+            return None
+
+        # Take the first non-empty line
+        lines = [ln.strip() for ln in reply.splitlines() if ln.strip()]
+        if not lines:
+            return None
+
+        line = lines[0]
+
+        # Strip optional address prefix: "##:..."
+        if ":" in line:
+            _, line = line.split(":", 1)
+            line = line.strip()
+
+        direction = None
+        if line.lower().startswith("infusing at"):
+            direction = +1
+            payload = line[len("Infusing at"):].strip()
+        elif line.lower().startswith("withdrawing at"):
+            direction = -1
+            payload = line[len("Withdrawing at"):].strip()
+        else:
+            # Not in the documented format → treat as unknown / idle
+            return None
+
+        # payload should look like "3000 ul/min" or "0.05 ml/min"
+        parts = payload.split()
+        if len(parts) < 2:
+            return None
+
+        try:
+            rate_value = float(parts[0])
+        except ValueError:
+            return None
+
+        unit = parts[1].lower()
+
+        # Convert to µL/min
+        if unit in ("ul/min", "µl/min"):
+            rate_ul_min = rate_value
+        elif unit in ("ml/min",):
+            rate_ul_min = rate_value * 1000.0
+        elif unit in ("nl/min",):
+            rate_ul_min = rate_value / 1000.0
+        else:
+            # Unknown unit → don’t guess
+            return None
+
+        return direction * rate_ul_min
+
 
     def status(self) -> str:  # SyringePump ABC
         """Return a string representing the current status of the pump."""
@@ -215,10 +285,22 @@ class PhdUltraPump(SyringePump):
             return "Not connected"
 
         try:
-            raw = self.get_status()
-            return f"Status: {raw!r} | Last msg: {self._last_status_msg}"
+            raw_status = self.get_status().strip()
         except Exception as exc:
-            return f"Connected, status read error: {exc!r} | Last msg: {self._last_status_msg}"
+            raw_status = f"status read error: {exc!r}"
+
+        # Try to get current flow rate
+        try:
+            flow = self.get_current_flow_rate_ul_min()
+            if flow is None:
+                flow_str = "idle (no flow / no CRATE data)"
+            else:
+                direction = "infuse" if flow > 0 else "withdraw"
+                flow_str = f"{abs(flow):.3f} µL/min ({direction})"
+        except Exception as exc:
+            flow_str = f"unknown (CRATE error: {exc!r})"
+
+        return flow
 
     # ---------- housekeeping ----------
     def close(self) -> None:

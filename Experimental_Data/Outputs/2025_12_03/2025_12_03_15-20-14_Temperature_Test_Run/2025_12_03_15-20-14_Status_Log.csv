@@ -1,0 +1,2 @@
+Timestamp,Elapsed_Time_s,Isametic_1,PhdUltraPump_1,Temperature_1
+2025-12-03 15:20:22,7.09,"Running: rpm=11.70, flow≈994.50 µL/min. Last message: Connected",Status: '16666666666 119996 500024708692 i..TIT\r\nT*' | Last msg: Connected,'TC720' object has no attribute 'read_temperature'

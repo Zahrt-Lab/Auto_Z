@@ -1,3 +1,4 @@
+# auto_zahrt_gui.py (for example)
 # ------------------------------------------------------------------------------
 # Software: AUTO_ZAHRT
 # Copyright: (C) 2025 by Professor Andrew Zahrt
@@ -8,39 +9,53 @@
 # ------------------------------------------------------------------------------
 
 from __future__ import annotations
+
 import csv
+import glob
 import os
+import re
+import subprocess
+import sys
 import threading
 import tkinter as tk
 from datetime import datetime
 from pathlib import Path
 from tkinter import filedialog, messagebox, scrolledtext, ttk
-import sys
-import subprocess
-from typing import Optional, Callable
+from typing import Optional, Callable, Dict
 
-# If your project structure requires it, keeping this path tweak helps resolve AUTO_ZAHRT.*
+# Third-party
+import pandas as pd
+
+# AUTO_ZAHRT imports
+# Add project root to path for imports
 try:
-    sys.path.insert(0, str(Path.cwd().parent.parent))
+    # Get the project root (parent of methods/ directory)
+    project_root = Path(__file__).parent.parent.resolve()
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
 except Exception:
     pass
 
-# ── Experiment runner (required external; unchanged)
 try:
-    from AUTO_ZAHRT.Methods.General_Methods import GeneralExperimentMethod
+    from methods import GeneralExperimentMethod
 except ModuleNotFoundError:
-    messagebox.showerror("Import error", "Cannot import GeneralExperimentMethod.")
+    print("ERROR: Cannot import GeneralExperimentMethod. Check your PYTHONPATH.")
     raise
 
+# Import the separate status monitor GUI
+from utils.status_monitor_gui import open_status_monitor, group_for_instrument_type
+
 # ──────────────────────────────────────────────────────────────────────────────
-# Embedded Instrument CSV Builder (no external import needed)
+# Embedded Instrument CSV Builder (unchanged interface)
 
 COLUMNS = ("InstrumentType", "DeviceNumber", "Name", "COMPort", "OtherParams")
 
 INSTRUMENT_CHOICES = [
     "GX281",
-    "Pump",
-    "HarvardPump",
+    "Ender3_Liquid_Handler",
+    "VICI_M6_Pump",
+    "Isametic",
+    "PhdUltraPump",
     "Valve6Way",
     "Valve10Way",
     "Valve24Way",
@@ -48,20 +63,18 @@ INSTRUMENT_CHOICES = [
 ]
 
 DEFAULT_ROWS = [
-    ("GX281",       "1", "GX-281",      "COM2",  ""),
-    ("Pump",        "1", "Pump",        "COM17", ""),
-    ("HarvardPump", "1", "HarvardPump", "COM4", ""),
-    ("Valve6Way",   "1", "VICI-6Way",   "COM7",  ""),
-    ("Valve6Way",   "2", "VICI-6Way",   "COM11", ""),
-    ("Valve24Way",  "1", "VICI-24Way",  "COM13", ""),
-    ("Valve24Way",  "2", "VICI-24Way",  "COM14", ""),
-    ("Temperature", "1", "Temperature", "COM12", ""),
+    ("GX281",       "1", "GX-281",       "COM2",  ""),
+    ("VICI_M6_Pump","1", "Pump",         "COM17", ""),
+    ("Isametic",    "1", "IsameticPump", "COM4",  ""),
+    ("Valve6Way",   "1", "VICI-6Way",    "COM7",  ""),
+    ("Valve6Way",   "2", "VICI-6Way",    "COM11", ""),
+    ("Valve24Way",  "1", "VICI-24Way",   "COM13", ""),
+    ("Valve24Way",  "2", "VICI-24Way",   "COM14", ""),
+    ("Temperature", "1", "Temperature",  "COM12", ""),
 ]
 
 
 class InstrumentCSVBuilder(tk.Toplevel):
-    """Inline copy of instrument_csv_builder; opens as a modal Toplevel."""
-
     def __init__(self, master: tk.Misc | None, on_save: Optional[Callable[[str], None]] = None) -> None:
         super().__init__(master)
         self.title("Instrument CSV Builder")
@@ -72,11 +85,9 @@ class InstrumentCSVBuilder(tk.Toplevel):
         self._on_save = on_save
         self.last_path: Optional[str] = None
 
-        # Container
         wrap = ttk.Frame(self)
         wrap.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-        # Toolbar
         toolbar = ttk.Frame(wrap)
         toolbar.pack(fill=tk.X, pady=(0, 8))
 
@@ -86,10 +97,8 @@ class InstrumentCSVBuilder(tk.Toplevel):
         ttk.Button(toolbar, text="Add Row", command=self._add_row).pack(side=tk.LEFT)
         ttk.Button(toolbar, text="Duplicate Row", command=self._dup_row).pack(side=tk.LEFT, padx=6)
         ttk.Button(toolbar, text="Delete Row(s)", command=self._del_row).pack(side=tk.LEFT)
-
         ttk.Button(toolbar, text="Close", command=self.destroy).pack(side=tk.RIGHT)
 
-        # Tree (table)
         self.tree = ttk.Treeview(wrap, columns=COLUMNS, show="headings", height=16)
         for c in COLUMNS:
             self.tree.heading(c, text=c)
@@ -99,15 +108,13 @@ class InstrumentCSVBuilder(tk.Toplevel):
                 self.tree.column(c, anchor="center", width=160, stretch=False)
             elif c == "COMPort":
                 self.tree.column(c, anchor="center", width=120, stretch=False)
-            else:  # DeviceNumber
+            else:
                 self.tree.column(c, anchor="center", width=120, stretch=False)
         self.tree.pack(fill=tk.BOTH, expand=True)
 
-        # Populate defaults
         for row in DEFAULT_ROWS:
             self.tree.insert("", tk.END, values=row)
 
-        # Hints + status
         ttk.Label(
             wrap,
             text="Tip: Double-click a cell to edit. InstrumentType is a dropdown; DeviceNumber is numeric.",
@@ -115,22 +122,18 @@ class InstrumentCSVBuilder(tk.Toplevel):
         self.status = tk.StringVar(value="Ready.")
         ttk.Label(self, textvariable=self.status).pack(fill=tk.X, padx=10, pady=(0, 8))
 
-        # Editing bind
         self.tree.bind("<Double-1>", self._on_double_click)
 
-        # Theme
         try:
             ttk.Style().theme_use("clam")
         except tk.TclError:
             pass
 
-        # Modal-ish
         self.transient(master)
         self.grab_set()
         self.focus()
         self.protocol("WM_DELETE_WINDOW", self.destroy)
 
-    # ─────────────────────────── helpers
     def _selected_row(self) -> Optional[str]:
         sel = self.tree.selection()
         return sel[0] if sel else None
@@ -157,7 +160,6 @@ class InstrumentCSVBuilder(tk.Toplevel):
             self.tree.delete(iid)
         self.status.set("Deleted selected row(s).")
 
-    # ─────────────────────────── inline editing
     def _on_double_click(self, event) -> None:
         region = self.tree.identify("region", event.x, event.y)
         if region != "cell":
@@ -179,7 +181,6 @@ class InstrumentCSVBuilder(tk.Toplevel):
             self.tree.set(row_id, col_name, new_val)
             widget.destroy()
 
-        # Specialized editors
         if col_name == "InstrumentType":
             widget = ttk.Combobox(self.tree, values=INSTRUMENT_CHOICES, state="readonly")
             widget.place(x=x, y=y, width=w, height=h)
@@ -190,7 +191,6 @@ class InstrumentCSVBuilder(tk.Toplevel):
             widget.bind("<Escape>", lambda *_: widget.destroy())
 
         elif col_name == "DeviceNumber":
-            # Simple numeric spinbox
             sv = tk.StringVar(value=old_val if old_val.isdigit() else "1")
             widget = ttk.Spinbox(self.tree, from_=1, to=999, textvariable=sv, wrap=False)
             widget.place(x=x, y=y, width=w, height=h)
@@ -210,8 +210,7 @@ class InstrumentCSVBuilder(tk.Toplevel):
             widget.bind("<FocusOut>", lambda *_: finish(widget.get().strip()))
             widget.bind("<Escape>", lambda *_: widget.destroy())
 
-    # ─────────────────────────── CSV IO
-    def _validate_rows(self, rows: list[tuple[str, str, str, str, str]]) -> bool:
+    def _validate_rows(self, rows):
         for i, (itype, dev, name, com, other) in enumerate(rows, start=1):
             if itype.strip() == "" or itype not in INSTRUMENT_CHOICES:
                 messagebox.showerror("Validation error", f"Row {i}: invalid InstrumentType.")
@@ -227,8 +226,8 @@ class InstrumentCSVBuilder(tk.Toplevel):
                 return False
         return True
 
-    def _collect_rows(self) -> list[tuple[str, str, str, str, str]]:
-        return [tuple(self.tree.item(iid, "values")) for iid in self.tree.get_children("")]  # type: ignore[return-value]
+    def _collect_rows(self):
+        return [tuple(self.tree.item(iid, "values")) for iid in self.tree.get_children("")]
 
     def _save_csv(self) -> None:
         rows = self._collect_rows()
@@ -268,10 +267,8 @@ class InstrumentCSVBuilder(tk.Toplevel):
                         "CSV headers must be exactly:\n" + ", ".join(COLUMNS),
                     )
                     return
-                # Clear
                 for iid in self.tree.get_children(""):
                     self.tree.delete(iid)
-                # Load
                 for row in reader:
                     vals = tuple(row.get(c, "") for c in COLUMNS)
                     self.tree.insert("", tk.END, values=vals)
@@ -281,70 +278,85 @@ class InstrumentCSVBuilder(tk.Toplevel):
             messagebox.showerror("Open error", str(e))
 
 
-def launch_instrument_csv_builder(master: tk.Misc | None = None, on_save: Optional[Callable[[str], None]] = None) -> None:
-    """Built-in launcher; identical signature to the external helper."""
+def launch_instrument_csv_builder(
+    master: tk.Misc | None = None,
+    on_save: Optional[Callable[[str], None]] = None,
+) -> None:
     if master is None:
         root = tk.Tk()
         root.withdraw()
         dlg = InstrumentCSVBuilder(root, on_save=on_save)
-        root.update_idletasks()
-        dlg.update_idletasks()
-        dlg.deiconify()
         root.mainloop()
     else:
         InstrumentCSVBuilder(master, on_save=on_save)
 
-# ──────────────────────────────────────────────────────────────────────────────
-# AUTO_ZAHRT main GUI
 
-COMPONENT_ACTIONS: dict[str, list[str]] = {
-    "GX-281": ["set_bedlayout", "move_home", "move_z_height", "move_xy", "move_z"],
-    "Pump": ["aspirating", "dispensing"],
-    "HarvardPump": ["select_syringe", "infuse", "stop"],
-    "VICI-6Way": ["go_to_position", "move_home"],
-    "VICI-10Way": ["go_to_position", "move_home"],
-    "VICI-24Way": ["go_to_position", "move_home"],
-    "Temperature": ["set_temperature"],
+# ──────────────────────────────────────────────────────────────────────────────
+# Command/action mapping
+
+ACTIONS_BY_GROUP: dict[str, list[str]] = {
+    "LiquidHandler": ["set_bedlayout", "move_home", "move_z_height", "move_xy", "move_z"],
+    "Pump": ["aspirate", "dispense"],
+    "Valve": ["go_to_position", "move_home"],
+    "Temperature": ["set_temperature", "get_temperature", "wait_convergence"],
     "SYNC": ["wait_for_pumps"],
 }
 
-PARAMETERS_MAPPING: dict[tuple[str, str], list[tuple[str, str]]] = {
-    ("GX-281", "set_bedlayout"):       [("bed", "Bed"), ("rack_layout", "Rack Layout")],
-    ("GX-281", "move_z_height"):       [("height", "Height")],
-    ("GX-281", "move_xy"):             [("bed", "Bed"), ("well", "Well")],
-    ("GX-281", "move_z"):              [("bed", "Bed"), ("well", "Well")],
-    ("Pump", "aspirating"):            [("flow_rate", "Flow Rate"), ("volume", "Volume"), ("pump_id", "Pump ID")],
-    ("Pump", "dispensing"):            [("flow_rate", "Flow Rate"), ("volume", "Volume"), ("pump_id", "Pump ID")],
-    ("HarvardPump", "select_syringe"): [("syringe", "Syringe mL"), ("pump_id", "Pump ID")],
-    ("HarvardPump", "infuse"):         [("volume", "Volume"), ("rate", "Rate"), ("pump_id", "Pump ID")],
-    ("HarvardPump", "stop"):           [("pump_id", "Pump ID")],
-    ("VICI-6Way", "go_to_position"):   [("position", "Position"), ("valve_id", "Valve ID")],
-    ("VICI-6Way", "move_home"):        [("valve_id", "Valve ID")],
-    ("VICI-10Way", "go_to_position"):  [("position", "Position"), ("valve_id", "Valve ID")],
-    ("VICI-10Way", "move_home"):       [("valve_id", "Valve ID")],
-    ("VICI-24Way", "go_to_position"):  [("position", "Position"), ("valve_id", "Valve ID")],
-    ("VICI-24Way", "move_home"):       [("valve_id", "Valve ID")],
-    ("Temperature", "set_temperature"): [("temp", "Temperature"), ("temp_id", "Controller ID")],
+PARAM_FIELDS: dict[tuple[str, str], list[tuple[str, str]]] = {
+    ("LiquidHandler", "set_bedlayout"): [("bed", "Bed"), ("rack_layout", "Rack Layout")],
+    ("LiquidHandler", "move_z_height"): [("height", "Height (Z)")],
+    ("LiquidHandler", "move_xy"): [("bed", "Bed"), ("well", "Well")],
+    ("LiquidHandler", "move_z"): [("bed", "Bed"), ("well", "Well")],
+
+    ("Pump", "aspirate"): [("flow_rate", "Flow rate (µL/min)"), ("volume", "Volume (µL)")],
+    ("Pump", "dispense"): [("flow_rate", "Flow rate (µL/min)"), ("volume", "Volume (µL)")],
+
+    ("Valve", "go_to_position"): [("position", "Position")],
+    ("Valve", "move_home"): [],
+
+    ("Temperature", "set_temperature"): [("temp", "Temperature (°C)")],
+    ("Temperature", "get_temperature"): [],
+    ("Temperature", "wait_convergence"): [
+        ("target_temp", "Target (°C)"),
+        ("tolerance", "Tolerance (±°C)"),
+        ("duration", "Stable time (s)"),
+    ],
+
+    ("SYNC", "wait_for_pumps"): [],
 }
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Main GUI
 
 class AutoZahrtGUI(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
         self.title("AUTO_ZAHRT – Scheduler & Runner")
-        self.geometry("900x720")
+        self.geometry("1100x820")
 
-        self.commands: list[dict[str, str|float]] = []
+        self.commands: list[dict[str, str | float]] = []
         self.param_entries: dict[str, ttk.Entry] = {}
-        self.generated_csv_path: str|None = None
+        self.generated_csv_path: str | None = None
+
+        self.instrument_types: Dict[str, str] = {}  # component -> InstrumentType
+        self.components: list[str] = []
+
+        self.current_status_log_path: Optional[str] = None
+        self.current_control_file_path: str = "control.txt"
+
+        self.run_history: list[dict[str, str]] = []
+
+        self.status_window = None  # the separate monitor window
 
         self._build_file_selector()
         self._build_command_entry()
         self._build_command_tree()
         self._build_schedule_section()
+        self._build_control_bar()  # <-- buttons placed here
         self._build_log_panel()
+        self._build_history_panel()
 
-    # ─────────────────────────────────── FILE SELECTION
+    # ────────────────────────── FILE SELECTION
     def _build_file_selector(self) -> None:
         frame = ttk.LabelFrame(self, text="Files & Output")
         frame.pack(fill=tk.X, padx=10, pady=6)
@@ -357,9 +369,8 @@ class AutoZahrtGUI(tk.Tk):
         ttk.Button(frame, text="Browse…", command=self._browse_config) \
             .grid(row=0, column=2, padx=4)
 
-        # Build… button opens the embedded builder and fills the path on save.
         ttk.Button(
-            frame, text="Build…", command=self._open_instrument_builder, state="normal"
+            frame, text="Build…", command=self._open_instrument_builder
         ).grid(row=0, column=3, padx=(0, 4))
 
         ttk.Label(frame, text="Output Directory:") \
@@ -380,74 +391,119 @@ class AutoZahrtGUI(tk.Tk):
         if path:
             self.config_entry.delete(0, tk.END)
             self.config_entry.insert(0, path)
+            self._load_instrument_definitions(path)
 
     def _browse_output(self) -> None:
         d = filedialog.askdirectory()
         if d:
             self.output_entry.delete(0, tk.END)
             self.output_entry.insert(0, d)
+            self._refresh_history_from_fs()
 
     def _open_instrument_builder(self) -> None:
-        """Open the instrument CSV builder and auto-fill the config path on save."""
         def _on_save(path: str) -> None:
             self.config_entry.delete(0, tk.END)
             self.config_entry.insert(0, path)
+            self._load_instrument_definitions(path)
             try:
                 self.lift()
                 self.focus_force()
             except Exception:
                 pass
 
-        # Launch embedded builder as a modal-ish dialog attached to this window
         launch_instrument_csv_builder(master=self, on_save=_on_save)
 
-    # ─────────────────────────────────── COMMAND BUILDER
+    def _load_instrument_definitions(self, path: str) -> None:
+        try:
+            with open(path, newline="") as f:
+                reader = csv.DictReader(f)
+                if reader.fieldnames is None:
+                    raise ValueError("CSV has no headers.")
+                if "InstrumentType" not in reader.fieldnames or "DeviceNumber" not in reader.fieldnames:
+                    raise ValueError("InstrumentType and DeviceNumber headers required.")
+                self.instrument_types.clear()
+                self.components.clear()
+                for row in reader:
+                    inst_type = row.get("InstrumentType", "").strip()
+                    dev_num = str(row.get("DeviceNumber", "")).strip()
+                    if not inst_type or not dev_num:
+                        continue
+                    component_name = f"{inst_type}_{dev_num}"
+                    self.instrument_types[component_name] = inst_type
+                    self.components.append(component_name)
+
+                if "SYNC" not in self.components:
+                    self.components.append("SYNC")
+
+                self.components.sort()
+                self.comp_cb["values"] = self.components
+                if self.components:
+                    self.comp_cb.current(0)
+                    self._on_component_change()
+        except Exception as e:
+            messagebox.showerror("Instrument config error", str(e))
+
+    # ────────────────────────── COMMAND BUILDER
     def _build_command_entry(self) -> None:
         frame = ttk.LabelFrame(self, text="Add Command")
         frame.pack(fill=tk.X, padx=10, pady=6)
 
-        ttk.Label(frame, text="Component:")\
+        ttk.Label(frame, text="Component:") \
             .grid(row=0, column=0, sticky=tk.W)
         self.comp_var = tk.StringVar()
         self.comp_cb = ttk.Combobox(
             frame, textvariable=self.comp_var,
-            state="readonly", width=20
+            state="readonly", width=24
         )
-        self.comp_cb["values"] = sorted(COMPONENT_ACTIONS.keys())
         self.comp_cb.bind("<<ComboboxSelected>>", self._on_component_change)
         self.comp_cb.grid(row=0, column=1, padx=3)
 
-        ttk.Label(frame, text="Action:")\
-            .grid(row=0, column=2, sticky=tk.W, padx=(10,0))
+        ttk.Label(frame, text="Action:") \
+            .grid(row=0, column=2, sticky=tk.W, padx=(10, 0))
         self.act_var = tk.StringVar()
         self.act_cb = ttk.Combobox(
             frame, textvariable=self.act_var,
-            state="readonly", width=20
+            state="readonly", width=24
         )
         self.act_cb.bind("<<ComboboxSelected>>", self._rebuild_param_fields)
         self.act_cb.grid(row=0, column=3, padx=3)
 
         self.param_frame = ttk.Frame(frame)
-        self.param_frame.grid(row=1, column=0, columnspan=4, pady=(8,0), sticky=tk.W)
+        self.param_frame.grid(row=1, column=0, columnspan=4, pady=(8, 0), sticky=tk.W)
 
-        ttk.Label(frame, text="Delay (s):")\
+        ttk.Label(frame, text="Delay (s):") \
             .grid(row=2, column=0, sticky=tk.W)
         self.delay_entry = ttk.Entry(frame, width=10)
         self.delay_entry.insert(0, "0.5")
         self.delay_entry.grid(row=2, column=1, sticky=tk.W)
 
-        ttk.Label(frame, text="Notes:")\
+        ttk.Label(frame, text="Notes:") \
             .grid(row=3, column=0, sticky=tk.W)
         self.notes_entry = ttk.Entry(frame, width=60)
-        self.notes_entry.grid(row=3, column=1, columnspan=3, pady=(0,6), sticky=tk.W)
+        self.notes_entry.grid(row=3, column=1, columnspan=3, pady=(0, 6), sticky=tk.W)
 
-        ttk.Button(frame, text="Add Command", command=self._add_command)\
+        ttk.Button(frame, text="Add Command", command=self._add_command) \
             .grid(row=4, column=0, columnspan=4, pady=4)
+
+    def _group_for_component(self, comp: str) -> Optional[str]:
+        if comp == "SYNC":
+            return "SYNC"
+        inst_type = self.instrument_types.get(comp)
+        if inst_type is None:
+            return None
+        return group_for_instrument_type(inst_type)
 
     def _on_component_change(self, _=None) -> None:
         comp = self.comp_var.get()
-        self.act_cb["values"] = COMPONENT_ACTIONS.get(comp, [])
-        if self.act_cb["values"]:
+        grp = self._group_for_component(comp)
+        if grp is None:
+            self.act_cb["values"] = []
+            self.act_var.set("")
+            self._rebuild_param_fields()
+            return
+        actions = ACTIONS_BY_GROUP.get(grp, [])
+        self.act_cb["values"] = actions
+        if actions:
             self.act_cb.current(0)
         self._rebuild_param_fields()
 
@@ -456,10 +512,14 @@ class AutoZahrtGUI(tk.Tk):
             w.destroy()
         self.param_entries.clear()
         comp, act = self.comp_var.get(), self.act_var.get()
-        for row, (key, label) in enumerate(PARAMETERS_MAPPING.get((comp, act), [])):
-            ttk.Label(self.param_frame, text=f"{label}:")\
+        grp = self._group_for_component(comp)
+        if grp is None or not act:
+            return
+        fields = PARAM_FIELDS.get((grp, act), [])
+        for row, (key, label) in enumerate(fields):
+            ttk.Label(self.param_frame, text=f"{label}:") \
                 .grid(row=row, column=0, sticky=tk.W)
-            ent = ttk.Entry(self.param_frame, width=12)
+            ent = ttk.Entry(self.param_frame, width=16)
             ent.grid(row=row, column=1, padx=(4, 20), sticky=tk.W)
             self.param_entries[key] = ent
 
@@ -467,22 +527,27 @@ class AutoZahrtGUI(tk.Tk):
         comp, act = self.comp_var.get(), self.act_var.get()
         if not comp or not act:
             return messagebox.showerror("Input error", "Select component & action")
+
         try:
             delay = float(self.delay_entry.get())
         except ValueError:
             return messagebox.showerror("Input error", "Delay must be numeric")
-        params = ",".join(f"{k}={e.get().strip()}" for k, e in self.param_entries.items())
+
         if any(e.get().strip() == "" for e in self.param_entries.values()):
             return messagebox.showerror("Input error", "Fill all parameters")
+
+        params = ",".join(f"{k}={e.get().strip()}" for k, e in self.param_entries.items())
         notes = self.notes_entry.get().strip()
         cmd = {"Component": comp, "Action": act, "Parameters": params, "delay": delay, "Notes": notes}
         self.commands.append(cmd)
         self.tree.insert("", tk.END, values=(comp, act, params, delay, notes))
+
         for w in self.param_frame.winfo_children():
             w.destroy()
         self.param_entries.clear()
         self.notes_entry.delete(0, tk.END)
 
+    # ────────────────────────── COMMAND TABLE
     def _build_command_tree(self) -> None:
         cols = ("Component", "Action", "Parameters", "Delay", "Notes")
         self.tree = ttk.Treeview(self, columns=cols, show="headings", height=10)
@@ -490,6 +555,7 @@ class AutoZahrtGUI(tk.Tk):
             self.tree.heading(c, text=c)
             self.tree.column(c, anchor="center", stretch=True)
         self.tree.pack(fill=tk.BOTH, expand=True, padx=10, pady=6)
+
         bf = ttk.Frame(self)
         bf.pack(pady=4)
         ttk.Button(bf, text="Generate CSV", command=self._export_csv).pack(side=tk.LEFT, padx=5)
@@ -531,7 +597,10 @@ class AutoZahrtGUI(tk.Tk):
                 "Notes": r.get("Notes", ""),
             }
             self.commands.append(cmd)
-            self.tree.insert("", tk.END, values=(cmd["Component"], cmd["Action"], cmd["Parameters"], d, cmd["Notes"]))
+            self.tree.insert(
+                "", tk.END,
+                values=(cmd["Component"], cmd["Action"], cmd["Parameters"], d, cmd["Notes"])
+            )
         self.generated_csv_path = path
         messagebox.showinfo("Loaded", f"Loaded commands from {path}")
 
@@ -541,16 +610,17 @@ class AutoZahrtGUI(tk.Tk):
             self.tree.delete(iid)
         self.generated_csv_path = None
 
+    # ────────────────────────── SCHEDULE & RUN
     def _build_schedule_section(self) -> None:
         frame = ttk.LabelFrame(self, text="Schedule & Run")
         frame.pack(fill=tk.X, padx=10, pady=6)
-        ttk.Label(frame, text="Run at (YYYY-MM-DD HH:MM:SS):")\
+        ttk.Label(frame, text="Run at (YYYY-MM-DD HH:MM:SS):") \
             .grid(row=0, column=0, sticky=tk.W)
         self.datetime_entry = ttk.Entry(frame, width=25)
         self.datetime_entry.grid(row=0, column=1, padx=6)
-        ttk.Button(frame, text="Schedule experiment", command=self._schedule_run)\
+        ttk.Button(frame, text="Schedule experiment", command=self._schedule_run) \
             .grid(row=0, column=2, padx=6)
-        ttk.Button(frame, text="Run now", command=self._run_now)\
+        ttk.Button(frame, text="Run now", command=self._run_now) \
             .grid(row=0, column=3)
 
     def _schedule_run(self) -> None:
@@ -585,6 +655,10 @@ class AutoZahrtGUI(tk.Tk):
                 output_dir=out_dir,
                 output_file="AUTO_ZAHRT_Run",
             )
+
+            self.current_status_log_path = exp.status_log_filename
+            self.current_control_file_path = exp.control_file
+
             orig_log = exp.log_to_csv
 
             def patched(comp, act, params, output, notes=""):
@@ -593,16 +667,80 @@ class AutoZahrtGUI(tk.Tk):
 
             exp.log_to_csv = patched  # type: ignore
             exp.run_experiment()
+
+            self._register_run(exp)
+
             self._append_log("\nExperiment finished successfully.\n")
             messagebox.showinfo("Done", "Experiment finished")
         except Exception as e:
             self._append_log(f"\n[ERROR] {e}\n")
             messagebox.showerror("Error", str(e))
 
+    # ────────────────────────── CONTROL BAR (ABOVE LOG)
+    def _build_control_bar(self) -> None:
+        frame = ttk.Frame(self)
+        frame.pack(fill=tk.X, padx=10, pady=(4, 0))
+
+        # Big red emergency stop
+        self.emergency_button = tk.Button(
+            frame,
+            text="EMERGENCY STOP",
+            command=self._emergency_stop,
+            bg="#cc0000",
+            fg="white",
+            activebackground="#990000",
+            activeforeground="white",
+            relief=tk.RAISED,
+            padx=10,
+            pady=4,
+        )
+        self.emergency_button.pack(side=tk.LEFT, padx=(0, 10))
+
+        ttk.Button(frame, text="Open Status Monitor", command=self._open_status_monitor)\
+            .pack(side=tk.LEFT, padx=5)
+
+        ttk.Button(frame, text="Run History", command=self._show_run_history)\
+            .pack(side=tk.LEFT, padx=5)
+
+    def _emergency_stop(self) -> None:
+        path = self.current_control_file_path or "control.txt"
+        try:
+            with open(path, "w", encoding="utf-8") as f:
+                f.write("False")
+            self._append_log(f"[CONTROL] Wrote 'False' to {path} (emergency stop requested).\n")
+            messagebox.showinfo("Emergency stop", f"Stop signal written to:\n{path}")
+        except Exception as e:
+            messagebox.showerror("Stop error", f"Could not write to control file:\n{e}")
+
+    def _open_status_monitor(self) -> None:
+        if not self.current_status_log_path:
+            return messagebox.showwarning(
+                "No status log",
+                "No status log file available yet. Start an experiment first."
+            )
+        if self.status_window is None or not self.status_window.winfo_exists():
+            self.status_window = open_status_monitor(
+                self,
+                self.current_status_log_path,
+                self.instrument_types,
+                update_interval_ms=60_000,  # 1 min
+            )
+        else:
+            self.status_window.lift()
+            self.status_window.focus_force()
+
+    def _show_run_history(self) -> None:
+        self._refresh_history_from_fs()
+        try:
+            self.history_listbox.focus_set()
+        except Exception:
+            pass
+
+    # ────────────────────────── LOG PANEL
     def _build_log_panel(self) -> None:
         frame = ttk.LabelFrame(self, text="Log output")
         frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=6)
-        self.log_text = scrolledtext.ScrolledText(frame, state="disabled", wrap="word", height=12)
+        self.log_text = scrolledtext.ScrolledText(frame, state="disabled", wrap="word", height=8)
         self.log_text.pack(fill=tk.BOTH, expand=True)
 
     def _append_log(self, text: str) -> None:
@@ -613,6 +751,94 @@ class AutoZahrtGUI(tk.Tk):
             self.log_text.configure(state="disabled")
         self.log_text.after(0, write)
 
+    # ────────────────────────── RUN HISTORY
+    def _build_history_panel(self) -> None:
+        frame = ttk.LabelFrame(self, text="Run History")
+        frame.pack(fill=tk.BOTH, expand=False, padx=10, pady=6)
+
+        left = ttk.Frame(frame)
+        left.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        ttk.Label(left, text="Previous runs (this session & output folder):") \
+            .pack(anchor="w")
+
+        self.history_listbox = tk.Listbox(left, height=5)
+        self.history_listbox.pack(fill=tk.BOTH, expand=True, padx=(0, 4), pady=4)
+
+        right = ttk.Frame(frame)
+        right.pack(side=tk.LEFT, fill=tk.Y)
+
+        ttk.Button(right, text="Refresh from output dir", command=self._refresh_history_from_fs)\
+            .pack(fill=tk.X, padx=4, pady=2)
+        ttk.Button(right, text="Open selected folder", command=self._open_selected_history)\
+            .pack(fill=tk.X, padx=4, pady=2)
+
+    def _register_run(self, exp: GeneralExperimentMethod) -> None:
+        info = {
+            "experiment_dir": exp.experiment_subdir,
+            "status_log": exp.status_log_filename,
+            "log_csv": exp.log_filename,
+        }
+        self.run_history.append(info)
+
+        label = os.path.basename(exp.experiment_subdir)
+        ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        display = f"{ts} – {label}"
+
+        def _update():
+            self.history_listbox.insert(tk.END, display)
+
+        self.after(0, _update)
+
+    def _refresh_history_from_fs(self) -> None:
+        root = self.output_entry.get().strip() or os.getcwd()
+        if not os.path.isdir(root):
+            return
+
+        self.history_listbox.delete(0, tk.END)
+        self.run_history.clear()
+
+        for date_dir in sorted(os.listdir(root)):
+            full_date = os.path.join(root, date_dir)
+            if not os.path.isdir(full_date):
+                continue
+            for sub in sorted(os.listdir(full_date)):
+                exp_dir = os.path.join(full_date, sub)
+                if not os.path.isdir(exp_dir):
+                    continue
+                status_logs = glob.glob(os.path.join(exp_dir, "*_Status_Log.csv"))
+                main_logs = glob.glob(os.path.join(exp_dir, "*_AUTO_ZAHRT_Run.csv"))
+                info = {
+                    "experiment_dir": exp_dir,
+                    "status_log": status_logs[0] if status_logs else "",
+                    "log_csv": main_logs[0] if main_logs else "",
+                }
+                self.run_history.append(info)
+                display = f"{date_dir} / {sub}"
+                self.history_listbox.insert(tk.END, display)
+
+    def _open_selected_history(self) -> None:
+        idxs = self.history_listbox.curselection()
+        if not idxs:
+            return
+        idx = idxs[0]
+        if idx < 0 or idx >= len(self.run_history):
+            return
+        path = self.run_history[idx]["experiment_dir"]
+        if not os.path.isdir(path):
+            messagebox.showerror("Open error", f"Folder not found:\n{path}")
+            return
+        try:
+            if sys.platform.startswith("win"):
+                os.startfile(path)  # type: ignore[attr-defined]
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", path])
+            else:
+                subprocess.Popen(["xdg-open", path])
+        except Exception as e:
+            messagebox.showerror("Open error", f"Could not open folder:\n{e}")
+
+    # ────────────────────────── UV-VIS launcher
     def _open_uvvis_gui(self) -> None:
         try:
             root = Path(__file__).resolve().parents[1]
@@ -622,6 +848,7 @@ class AutoZahrtGUI(tk.Tk):
             subprocess.Popen([sys.executable, str(gui_script)])
         except Exception as e:
             messagebox.showerror("Launch error", f"Could not launch UV-Vis GUI:\n{e}")
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 

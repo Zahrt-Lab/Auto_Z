@@ -1,0 +1,11 @@
+Time,Component,Action,Parameters,Output,Notes
+7.05,0,load_method,input=c:\Users\zahrtlab\AutoZahrt\Auto_Zahrt_v3\test_temperature_commands.csv,Loading input file: c:\Users\zahrtlab\AutoZahrt\Auto_Zahrt_v3\test_temperature_commands.csv,
+7.21,Temperature_1,set_temperature,temp=10,Temperature controller set to 10.0°C,
+7.73,Temperature_1,wait_convergence,"target_temp=10,tolerance=2,duration=120",Waiting for temperature to converge to 10.0±2.0°C for 120.0s,
+131.67,Temperature_1,wait_convergence,"target_temp=10,tolerance=2,duration=120",Temperature converged to 10.0±2.0°C,
+132.35,Temperature_1,set_temperature,temp=25,Temperature controller set to 25.0°C,
+132.87,Temperature_1,wait_convergence,"target_temp=25,tolerance=2,duration=120",Waiting for temperature to converge to 25.0±2.0°C for 120.0s,
+308.64,Temperature_1,wait_convergence,"target_temp=25,tolerance=2,duration=120",Temperature converged to 25.0±2.0°C,
+309.31,Temperature_1,set_temperature,temp=20,Temperature controller set to 20.0°C,
+309.83,Temperature_1,wait_convergence,"target_temp=20,tolerance=2,duration=120",Waiting for temperature to converge to 20.0±2.0°C for 120.0s,
+412.44,,,,Error: Experiment failed stopping exerpimentand closing connections to all instruments,

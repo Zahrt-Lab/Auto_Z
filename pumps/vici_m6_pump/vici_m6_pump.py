@@ -182,12 +182,28 @@ class VICI_M6_Pumps():
         self.pump_solution(volume)  # <-- blocks here
         self.stop()
 
-    # TODO: Need to program a way to check the pump status, specifically the flow rate
-    def status(self) -> str:
-        """Return a string representing the current status of the pump."""
+    def status(self):
+        """Return current pump flow rate in uL/min, or a message if disconnected."""
         if not self.ser or not self.ser.is_open:
             return "VICI M6 Pump - Disconnected"
-        return "VICI M6 Pump - Connected and Operational"
+
+        # Ask pump for current velocity
+        self.ser.write(b"PR V\r")
+
+        # Read response line
+        resp = self.ser.readline().decode().strip()
+
+        # Make sure the response is a valid number
+        try:
+            steps_per_sec = float(resp)
+        except ValueError:
+            return f"Error: invalid velocity response '{resp}'"
+
+        # Convert steps/sec → uL/min
+        uL_per_min = (steps_per_sec / self.steps_per_ul) * 60.0
+
+        return uL_per_min
+
 
     def reset_parameters(self):
         self.send_command("FD")

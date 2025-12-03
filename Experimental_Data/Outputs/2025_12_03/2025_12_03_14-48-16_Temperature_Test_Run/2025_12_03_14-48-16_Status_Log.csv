@@ -1,0 +1,10 @@
+Timestamp,Elapsed_Time_s,Isametic_1,PhdUltraPump_1,Temperature_1
+2025-12-03 14:48:23,7.1,"Running: rpm=11.70, flow≈994.50 µL/min. Last message: Connected",Status: '16666666666 119996 500024708692 i..TIT\r\nT*' | Last msg: Connected,'TC720' object has no attribute 'read_temperature'
+2025-12-03 14:49:24,67.59,"Running: rpm=11.70, flow≈994.50 µL/min. Last message: Connected",Status: '16666666666 119996 500024708692 i..TIT\r\nT*' | Last msg: Connected,'TC720' object has no attribute 'read_temperature'
+2025-12-03 14:50:24,128.11,"Running: rpm=11.70, flow≈994.50 µL/min. Last message: Connected",Status: '16666666666 119996 500024708692 i..TIT\r\nT*' | Last msg: Connected,'TC720' object has no attribute 'read_temperature'
+2025-12-03 14:51:25,188.54,"Running: rpm=11.70, flow≈994.50 µL/min. Last message: Connected",Status: '16666666666 119996 500024708692 i..TIT\r\nT*' | Last msg: Connected,'TC720' object has no attribute 'read_temperature'
+2025-12-03 14:52:25,248.97,"Running: rpm=11.70, flow≈994.50 µL/min. Last message: Connected",Status: '16666666666 119996 500024708692 i..TIT\r\nT*' | Last msg: Connected,'TC720' object has no attribute 'read_temperature'
+2025-12-03 14:53:25,309.37,"Running: rpm=11.70, flow≈994.50 µL/min. Last message: Connected",Status: '16666666666 119996 500024708692 i..TIT\r\nT*' | Last msg: Connected,'TC720' object has no attribute 'read_temperature'
+2025-12-03 14:54:26,369.96,"Running: rpm=11.70, flow≈994.50 µL/min. Last message: Connected",Status: '16666666666 119996 500024708692 i..TIT\r\nT*' | Last msg: Connected,'TC720' object has no attribute 'read_temperature'
+2025-12-03 14:55:26,430.52,"Running: rpm=11.70, flow≈994.50 µL/min. Last message: Connected",Status: '16666666666 119996 500024708692 i..TIT\r\nT*' | Last msg: Connected,'TC720' object has no attribute 'read_temperature'
+2025-12-03 14:56:27,491.01,"Running: rpm=11.70, flow≈994.50 µL/min. Last message: Connected",Status: '16666666666 119996 500024708692 i..TIT\r\nT*' | Last msg: Connected,'TC720' object has no attribute 'read_temperature'

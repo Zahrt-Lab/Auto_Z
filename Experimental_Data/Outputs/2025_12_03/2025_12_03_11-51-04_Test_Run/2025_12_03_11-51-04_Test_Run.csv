@@ -1,0 +1,6 @@
+Time,Component,Action,Parameters,Output,Notes
+0.02,0,load_method,input=c:\Users\zahrtlab\AutoZahrt\Auto_Zahrt_v3\test_commands.csv,Loading input file: c:\Users\zahrtlab\AutoZahrt\Auto_Zahrt_v3\test_commands.csv,
+0.02,Isametic_1,aspirate,"flow_rate=1000,volume=500",Started async aspirate,exp. 30.0 s
+nnected. Call connect() first.,
+0.53,Isametic_1,dispense,"flow_rate=1000,volume=500",Error in pump thread: Pump is not connected. Call connect() first.,
+1.03,SYNC,wait_for_pumps,,All pumps finished,

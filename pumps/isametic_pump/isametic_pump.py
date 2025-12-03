@@ -13,7 +13,7 @@ import time
 import serial
 from typing import Optional
 
-from pumps import Pump   # assuming your abstract class is in pumps.py
+from ..pumps import Pump   # import the abstract Pump class from parent pumps package
 
 
 class IsmaticPump(Pump):
@@ -37,6 +37,7 @@ class IsmaticPump(Pump):
         wake_delay_s: float = 5.0,
         timeout_s: float = 1.0,
         aspirate_cw: bool = True,
+        name: str = "IsmaticPump",
     ) -> None:
         """
         Parameters
@@ -54,7 +55,10 @@ class IsmaticPump(Pump):
         aspirate_cw : bool
             If True: CW == aspirate, CCW == dispense.
             If False: CCW == aspirate, CW == dispense.
+        name : str
+            Optional name for the pump instance.
         """
+        self.name = name
         self.port = port
         self.addr = addr
         self.ml_per_rev = ml_per_rev
@@ -253,10 +257,7 @@ class IsmaticPump(Pump):
             flow_ml_min = rpm * self.ml_per_rev
             flow_ul_min = flow_ml_min * 1000.0
             state = "Running" if rpm > 0 else "Stopped"
-            return (
-                f"{state}: rpm={rpm:.2f}, flow≈{flow_ul_min:.2f} µL/min. "
-                f"Last message: {self._last_status_msg}"
-            )
+            return flow_ul_min
         except Exception as exc:
             return f"Connected, status read error: {exc!r}. Last message: {self._last_status_msg}"
 

@@ -1,0 +1,12 @@
+Time,Component,Action,Parameters,Output,Notes
+7.03,0,load_method,input=c:\Users\zahrtlab\AutoZahrt\Auto_Zahrt_v3\test_commands.csv,Loading input file: c:\Users\zahrtlab\AutoZahrt\Auto_Zahrt_v3\test_commands.csv,
+7.05,Isametic_1,aspirate,"flow_rate=1000,volume=500",Started async aspirate,exp. 30.0 s
+7.15,PhdUltraPump_1,aspirate,"flow_rate=1000,volume=500",Started async aspirate,exp. 30.0 s
+9.08,Isametic_1,aspirate,"flow_rate=1000,volume=500",Error in pump thread: Pump did not acknowledge speed command: '\x00',
+39.6,PhdUltraPump_1,aspirate,"flow_rate=1000,volume=500",aspirate 500.0 µL @ 1000.0 µL/min,≈30.0 s
+39.6,SYNC,wait_for_pumps,,All pumps finished,
+39.6,Isametic_1,dispense,"flow_rate=1000,volume=500",Started async dispense,exp. 30.0 s
+39.72,PhdUltraPump_1,dispense,"flow_rate=1000,volume=500",Started async dispense,exp. 30.0 s
+72.17,PhdUltraPump_1,dispense,"flow_rate=1000,volume=500",dispense 500.0 µL @ 1000.0 µL/min,≈30.0 s
+77.73,Isametic_1,dispense,"flow_rate=1000,volume=500",dispense 500.0 µL @ 1000.0 µL/min,≈30.0 s
+77.73,SYNC,wait_for_pumps,,All pumps finished,
