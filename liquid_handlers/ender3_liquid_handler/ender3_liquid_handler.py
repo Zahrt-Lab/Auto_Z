@@ -108,6 +108,10 @@ class Ender3LiquidHandler(ender3, LiquidHandler):
         self._ensure_conn()
         return self.location()["Z"]
     
+    def get_safe_z_height(self) -> float:
+        """Return the safe Z height (mm) for the liquid handler."""
+        return self.SAFE_Z
+    
     def status(self) -> str:
         """Return a string representing the current x, y and z status of the liquid handler."""
         try:

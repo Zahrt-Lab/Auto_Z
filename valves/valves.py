@@ -1,0 +1,49 @@
+# ------------------------------------------------------------------------------
+# Software: AUTO_ZAHRT
+# Copyright: (C) 2025 by Professor Andrew Zahrt
+# This software is the intellectual property of Professor Andrew Zahrt
+# Contributions by graduate students Scott Laverty are acknowledged.
+# All rights reserved.
+# ------------------------------------------------------------------------------
+
+# pumps.py
+from __future__ import annotations
+import abc
+
+class Valves(abc.ABC):
+    """Abstract high-level interface for TemperatureController used within the lab space.
+
+    Units:
+    - flow_rate: microliters per minute (µL/min)
+    - volume: microliters (µL)
+
+    Implementations must implement the Device lifecycle methods and set
+    `self._connected = True` on successful `connect()`.
+    """
+    @abc.abstractmethod
+    def connect(self) -> None:
+        """Connect to the valve device."""
+
+    @abc.abstractmethod
+    def go_to_position(self, position: int) -> None:
+        """Move to the specified position."""
+
+    @abc.abstractmethod
+    def get_position(self) -> int:
+        """Get the current position."""
+    
+    @abc.abstractmethod
+    def move_home(self) -> None:
+        """Move to the home position."""
+
+    @abc.abstractmethod
+    def stop(self) -> None:
+        """Stop any ongoing valve operation promptly."""
+
+    @abc.abstractmethod
+    def status(self) -> str:
+        """Return a string representing the current status of the valve."""
+
+    @abc.abstractmethod
+    def close(self) -> None:
+        """Convenience: shutdown the valve (default: call `disconnect()`)."""
