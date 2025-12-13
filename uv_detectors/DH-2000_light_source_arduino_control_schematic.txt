@@ -1,0 +1,39 @@
+Reference: 
+
+DH-2000 Installation & Operation Manual (pinout, remote control, troubleshooting):
+https://www.oceanoptics.com/wp-content/uploads/2024/05/dh-2000-installation-and-operation-manual.pdf
+
+                 ┌───────────────────────────┐
+                 │         Arduino           │
+                 │                           │
+                 │   D7  ────────────────┐   │ ← Shutter Control
+                 │   D8  ──────────────┐ │   │ ← Deuterium Toggle
+                 │   D9  ────────────┐ │ │   │ ← Halogen Toggle
+                 │   GND ──────────┐ │ │ │   │ ← Ground
+                 └─────────────────┼─┼─┼─┼───┘
+                                   │ │ │ │
+                                   │ │ │ │
+                     Jumper Wires  │ │ │ │
+                                   │ │ │ │
+                 ┌─────────────────┼─┼─┼─┼───┐
+                 │   FD2186 DB-15 Breakout   │
+                 │                           │
+                 │  Pin 13 ◄─────────┘ │     │  ← Shutter Control
+                 │  Pin  2 ◄───────────┘     │  ← Deuterium Toggle
+                 │  Pin  3 ◄────────────────┘|  ← Halogen Toggle
+                 │  Pin  4 ◄─────────────────|  ← Ground
+                 │ (Pin 10 optional ground)  │
+                 └──────────────┬────────────┘
+                                │
+                                │  DH2-HPX-CBL-DB15
+                                │
+                 ┌──────────────┴──────────────┐
+                 │     DH-2000-S-DUV-TTL        │
+                 │                              │
+                 │   DB-15 REMOTE I/O PORT      │
+                 │                              │
+                 │  Pin 13 → Shutter (TTL)      │
+                 │  Pin  2 → Deuterium Toggle   │
+                 │  Pin  3 → Halogen Toggle     │
+                 │  Pin  4 → Ground             │
+                 └──────────────────────────────┘
