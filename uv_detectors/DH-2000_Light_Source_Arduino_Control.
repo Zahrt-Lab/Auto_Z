@@ -1,3 +1,20 @@
+// ------------------------------------------------------------------------------
+// Software: AUTO_ZAHRT
+// Copyright: (C) 2025 by Professor Andrew Zahrt
+// This software is the intellectual property of Professor Andrew Zahrt
+// Contributions by graduate students Scott Laverty are acknowledged.
+// All rights reserved.
+// ------------------------------------------------------------------------------
+
+// The purpose of this script is to control the TTL of the light box
+// so we can turn the light source off on the UV detector
+// this is template code before we incorporate it into the AutoZahrt_v3 general methods.
+
+// This code will serve the following purposes
+// 1) This will be used to calibrate instruments between runs to ensure accuracy between runs
+// 2) Will be used as a fail/safe if the UV-detector is detecting unusual readings that aren't excepected it's likely an issue and the this will allow the equipment and light source to turn off
+// 3) In experiments that initially need the UV-detector but during the run doesn't need the use of the UV-detector for 30 minutes
+
 const int PIN_SHUTTER = 7;  // DB15 Pin 13 (level control)
 const int PIN_DEUT    = 8;  // DB15 Pin 2  (toggle)
 const int PIN_HAL     = 9;  // DB15 Pin 3  (toggle)
