@@ -1,0 +1,36 @@
+const int PIN_SHUTTER = 7;  // DB15 Pin 13 (level control)
+const int PIN_DEUT    = 8;  // DB15 Pin 2  (toggle)
+const int PIN_HAL     = 9;  // DB15 Pin 3  (toggle)
+
+void pulseToggle(int pin) {
+  digitalWrite(pin, LOW);
+  delay(5);
+  digitalWrite(pin, HIGH);   // rising edge toggles lamp state
+  delay(20);
+  digitalWrite(pin, LOW);
+  delay(5);
+}
+
+void setup() {
+  pinMode(PIN_SHUTTER, OUTPUT);
+  pinMode(PIN_DEUT, OUTPUT);
+  pinMode(PIN_HAL, OUTPUT);
+
+  // Close shutter first for safety
+  digitalWrite(PIN_SHUTTER, LOW);
+
+  // --- TURN BOTH LAMPS OFF ---
+  pulseToggle(PIN_DEUT);  // toggle Deuterium OFF
+  pulseToggle(PIN_HAL);   // toggle Halogen OFF
+}
+
+void loop() {
+  // Turn halogen ON
+  pulseToggle(PIN_HAL);
+  delay(5000);
+
+  // Turn halogen OFF
+  pulseToggle(PIN_HAL);
+  delay(5000);
+}
+
