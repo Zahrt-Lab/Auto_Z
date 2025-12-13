@@ -1,0 +1,4 @@
+Time,Component,Action,Parameters,Output,Notes
+7.78,0,load_method,input=C:\Users\zahrtlab\AutoZahrt\Auto_Zahrt_v3\ender3_test_commands.csv,Loading input file: C:\Users\zahrtlab\AutoZahrt\Auto_Zahrt_v3\ender3_test_commands.csv,
+7.78,Ender3_Liquid_Handler_1,set_bedlayout,"bed=1,rack_layout=301",Setting bed 1 to bed layout 301,
+579.36,,,,Error: Experiment failed stopping exerpimentand closing connections to all instruments,

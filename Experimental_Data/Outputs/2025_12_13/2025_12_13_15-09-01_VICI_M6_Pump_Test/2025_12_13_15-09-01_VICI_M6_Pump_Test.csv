@@ -1,0 +1,5 @@
+Time,Component,Action,Parameters,Output,Notes
+0.01,0,load_method,input=C:\Users\zahrtlab\AutoZahrt\Auto_Zahrt_v3\vici_test_commands.csv,Loading input file: C:\Users\zahrtlab\AutoZahrt\Auto_Zahrt_v3\vici_test_commands.csv,
+0.01,VICI_M6_Pump_1,aspirate,"flow_rate=1000,volume=100",Error: Unknown device type for 'VICI_M6_Pump_1',
+0.53,VICI_M6_Pump_1,dispense,"flow_rate=1000,volume=100",Error: Unknown device type for 'VICI_M6_Pump_1',
+1.03,SYNC,wait_for_pumps,,All pumps finished,

@@ -148,7 +148,13 @@ class GeneralExperimentMethod:
             elif instrument_type == "Ender3_Liquid_Handler":
                 obj = Ender3LiquidHandler(port=com_port, name=attr_name)
             elif instrument_type == "VICI_M6_Pump":
-                obj = VICI_M6_Pumps(port=com_port, name=attr_name)
+                # VICI_M6_Pumps __init__ does not accept a 'name' kwarg; pass port only
+                obj = VICI_M6_Pumps(port=com_port)
+                # Attach a friendly name attribute for consistency with other instruments
+                try:
+                    obj.name = attr_name
+                except Exception:
+                    pass
             elif instrument_type == "Isametic":
                 obj = IsmaticPump(port=com_port, name=attr_name)
             elif instrument_type == "PhdUltraPump":
@@ -373,7 +379,12 @@ class GeneralExperimentMethod:
         """Execute liquid handler actions using abstract interface methods."""
         if action == 'set_bedlayout':
             bed, rack_layout = self.extract_bed_rack_layout(params)
-            self.set_bedlayout(bed, rack_layout)
+            # Check if liquid handler has set_bedlayout method (Ender3 does, GX281 may not)
+            if hasattr(liquid_handler, 'set_bedlayout'):
+                liquid_handler.set_bedlayout(bed, rack_layout)
+            else:
+                # Fallback to GeneralExperimentMethod's bed_layouts for GX281
+                self.set_bedlayout(bed, rack_layout)
             self.log_to_csv(component, action, params, f"Setting bed {bed} to bed layout {rack_layout}")
 
         elif action == 'move_home':
@@ -396,14 +407,22 @@ class GeneralExperimentMethod:
             self.log_to_csv(component, action, params,
                             f"Moving liquid handler needle up before moving xy coordinates: {safe_z}")
 
-            x, y = self.get_coords_for_bed_well(bed, well)
-            liquid_handler.move_xy(x, y)
-            self.log_to_csv(component, action, params, f"Moving liquid handler to bed {bed} well {well}: coordinates: ({x}, {y})")
+            # Check if liquid handler has move_to_well (Ender3) or use coords (GX281)
+            if hasattr(liquid_handler, 'move_to_well'):
+                liquid_handler.move_to_well(bed, well)
+            else:
+                x, y = self.get_coords_for_bed_well(bed, well)
+                liquid_handler.move_xy(x, y)
+            self.log_to_csv(component, action, params, f"Moving liquid handler to bed {bed} well {well}")
 
         elif action == 'move_z':
             bed, well = self.extract_bed_well(params)
 
-            z = self.get_z_for_bed_well(bed, well)
+            # Check if liquid handler has get_well_z (Ender3) or use GeneralExperimentMethod's method
+            if hasattr(liquid_handler, 'get_well_z'):
+                z = liquid_handler.get_well_z(bed, well)
+            else:
+                z = self.get_z_for_bed_well(bed, well)
             liquid_handler.move_z(z)
             self.log_to_csv(component, action, params, f"Moving liquid handler needle on bed {bed} well {well}: z={z}")
 

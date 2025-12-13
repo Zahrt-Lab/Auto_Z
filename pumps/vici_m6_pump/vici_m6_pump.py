@@ -8,8 +8,9 @@
 
 import time
 import serial
+from pumps.pumps import Pump
 
-class VICI_M6_Pumps():
+class VICI_M6_Pumps(Pump):
 
     def __init__(self,  port='COM16', baud_rate=9600, timeout=1):
 
@@ -98,6 +99,10 @@ class VICI_M6_Pumps():
                 self.reset_parameters()
         except Exception as e:
             print(f'Error opening serial connection: {e}')
+
+    def connect(self):
+        """Compatibility wrapper to match the Pump abstract interface."""
+        self.start()
 
     def send_command(self, command):
         if not self.ser or not self.ser.is_open:

@@ -1,0 +1,7 @@
+Time,Component,Action,Parameters,Output,Notes
+0.01,0,load_method,input=C:\Users\zahrtlab\AutoZahrt\Auto_Zahrt_v3\vici_test_commands.csv,Loading input file: C:\Users\zahrtlab\AutoZahrt\Auto_Zahrt_v3\vici_test_commands.csv,
+0.02,VICI_M6_Pump_1,aspirate,"flow_rate=1000,volume=100",Started async aspirate,exp. 6.0 s
+0.53,VICI_M6_Pump_1,dispense,"flow_rate=1000,volume=100",Started async dispense,exp. 6.0 s
+9.23,VICI_M6_Pump_1,aspirate,"flow_rate=1000,volume=100",aspirate 100.0 µL @ 1000.0 µL/min,≈6.0 s
+9.75,VICI_M6_Pump_1,dispense,"flow_rate=1000,volume=100",dispense 100.0 µL @ 1000.0 µL/min,≈6.0 s
+9.75,SYNC,wait_for_pumps,,All pumps finished,

@@ -1,0 +1,3 @@
+Component,Action,Parameters,Notes,delay
+VICI_M6_Pump_1,aspirate,"flow_rate=2000,volume=4000",Aspirate 4000 µL (4 mL) at 2000 µL/min (2 mL/min) for 2 min,0.5
+VICI_M6_Pump_1,dispense,"flow_rate=2000,volume=4000",Dispense 4000 µL (4 mL) at 2000 µL/min (2 mL/min) for 2 min,0.5

@@ -62,17 +62,29 @@ class BedLayout():
                     else:
                         self.coordinates.append([x + self.x_offset[self.bed_number -1], y + self.stagger])
 
+        elif rack_layout == 301:
+            # 20-vial rack for Ender3 liquid handler
+            # 4 rows x 5 columns layout
+            # Spacing: 40mm between vials in X, 45mm in Y
+            # Starting position: X=20mm, Y=20mm
+            self.X = [20, 60, 100, 140, 180]  # 5 columns, 40mm apart
+            self.Y = [20, 65, 110, 155]        # 4 rows, 45mm apart
+            self.Z = 100  # Z height when pipette tip is at vial opening
+            self.num_wells = 20
+            self.x_offset = [0]  # Ender3 only has one bed position
+            [[self.coordinates.append([x, y]) for y in self.Y] for x in self.X]
+
         self.set_wells()
 
     # Can just fold this method into class initialization later on.
     def set_wells(self):
 
         # Assigns the bed layout as well as the x, y, and z positions of the liquid handler.
-        if self.rack_layout == 204 or self.rack_layout == 207 or self.rack_layout == 209:
+        if self.rack_layout in [204, 207, 209, 301]:
             print(f"Bed {self.bed_number} set to bed layout {self.rack_layout}")
 
         else:
-            raise ValueError(f"Invalid bed layout type {self.rack_layout}. Currently supported types: 204, 207, and 209.")
+            raise ValueError(f"Invalid bed layout type {self.rack_layout}. Currently supported types: 204, 207, 209, and 301.")
 
 
         

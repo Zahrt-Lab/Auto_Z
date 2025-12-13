@@ -1,0 +1,14 @@
+Timestamp,Elapsed_Time_s,VICI_M6_Pump_1
+2025-12-13 15:11:38,0.02,Error: invalid velocity response 'A=1000000P'
+2025-12-13 15:11:48,10.13,Error: invalid velocity response ''
+2025-12-13 15:11:58,20.2,Error: invalid velocity response 'D4 = 0'
+2025-12-13 15:12:08,30.26,Error: invalid velocity response 'D5 = 0'
+2025-12-13 15:12:18,40.32,Error: invalid velocity response 'D = 1000000'
+2025-12-13 15:12:28,50.4,Error: invalid velocity response 'DE = 1'
+2025-12-13 15:12:39,60.49,Error: invalid velocity response 'DG = 1'
+2025-12-13 15:12:49,70.56,"Error: invalid velocity response 'DN = ""!""'"
+2025-12-13 15:12:59,80.66,Error: invalid velocity response 'EF = 0'
+2025-12-13 15:13:09,90.74,Error: invalid velocity response 'EM = 0'
+2025-12-13 15:13:19,100.83,Error: invalid velocity response 'ER = 0'
+2025-12-13 15:13:29,110.9,Error: invalid velocity response 'ES = 1'
+2025-12-13 15:13:39,120.96,Error: invalid velocity response 'FM = 2'

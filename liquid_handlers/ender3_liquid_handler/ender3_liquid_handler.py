@@ -13,19 +13,32 @@ which we can use as a 3D printer to control the xyz coordinates of our 3D printe
 
 from components.ender3 import ender3
 from ..liquid_handlers import LiquidHandler
+from ..bed_layout import BedLayout
 
 class Ender3LiquidHandler(ender3, LiquidHandler):
-    def __init__(self, port="COM14", baud=115200, timeout=2, verbose=False, name="ender3"):
-        super().__init__(port=port, baud=baud, timeout=timeout, verbose=verbose)
-        from ..devices import Device
-        Device.__init__(self, name)  # invokes Device.__init__ in the MRO
-        # If the low-level driver already opened the port in __init__, reflect that:
+    def __init__(self, port="COM26", baud=115200, timeout=2, verbose=False, name="Ender3_LH"):
+        # Initialize the ender3 base class (opens serial connection)
+        ender3.__init__(self, port=port, baud=baud, timeout=timeout, verbose=verbose)
+        
+        # Store name for identification
+        self.name = name
+        
+        # Track connection state
         self._connected = bool(getattr(self, "s", None) and self.s.is_open)
 
-        self.XMIN, self.XMAX = 0, 225
-        self.YMIN, self.YMAX = 0, 225
+        # Define physical limits for Ender3
+        self.XMIN, self.XMAX = 0, 235
+        self.YMIN, self.YMAX = 0, 235
         self.ZMIN, self.ZMAX = 0, 250
-        self.SAFE_Z = 245  # a little below hard max
+        self.SAFE_Z = 245  # safe travel height
+        
+        # Bed layout storage
+        self.bed_layouts = {}  # bed_number -> BedLayout instance
+    
+    @property
+    def connected(self) -> bool:
+        """Return True if connected to the Ender3."""
+        return self._connected
 
     # optional logging wrappers; base flips the flag
     def connect(self) -> None:
@@ -65,8 +78,11 @@ class Ender3LiquidHandler(ender3, LiquidHandler):
         super().stop()  # parent should e-stop/close
 
     # --- Core movement commands --------------------------------------------------
-    def home(self, lift_mm: float = 130.0) -> None:
+    def home(self, lift_mm: float = None) -> None:
         self._ensure_conn()
+        # Use SAFE_Z if no lift height specified
+        if lift_mm is None:
+            lift_mm = self.SAFE_Z
         # Home first (guard in case parent lacks home())
         try:
             super().home("XYZ")
@@ -101,7 +117,7 @@ class Ender3LiquidHandler(ender3, LiquidHandler):
         self._ensure_conn()
         if z < self.ZMIN: z = self.ZMIN
         if z > self.ZMAX: z = self.ZMAX
-        return self.move(x=None, y=None, z=z, feed=300)
+        return self.move(x=None, y=None, z=z, feed=1000)
 
     def get_z(self) -> float:
         """Return current Z coordinate in mm."""
@@ -111,6 +127,45 @@ class Ender3LiquidHandler(ender3, LiquidHandler):
     def get_safe_z_height(self) -> float:
         """Return the safe Z height (mm) for the liquid handler."""
         return self.SAFE_Z
+    
+    def set_bedlayout(self, bed: int, rack_layout: int) -> None:
+        """
+        Set up a bed layout for a specific bed position.
+        
+        Args:
+            bed: Bed number (position identifier)
+            rack_layout: Layout type (e.g., 301 for 20-vial rack)
+        """
+        self._ensure_conn()
+        print(f"Setting bed {bed} to layout {rack_layout}")
+        self.bed_layouts[bed] = BedLayout(bed, rack_layout)
+    
+    def move_to_well(self, bed: int, well: int) -> None:
+        """
+        Move XY to hover over a specific well in a bed.
+        Z remains at SAFE_Z.
+        
+        Args:
+            bed: Bed number
+            well: Well number (1-indexed)
+        """
+        self._ensure_conn()
+        if bed not in self.bed_layouts:
+            raise ValueError(f"Bed {bed} not configured. Call set_bedlayout() first.")
+        
+        bed_layout = self.bed_layouts[bed]
+        well_obj = bed_layout.get_well(well)
+        x = well_obj.get_x()
+        y = well_obj.get_y()
+        
+        print(f"Moving to Bed {bed}, Well {well} at X={x:.2f}, Y={y:.2f}")
+        self.move_xy(x, y)
+    
+    def get_well_z(self, bed: int, well: int) -> float:
+        """Get the Z coordinate for a specific well."""
+        if bed not in self.bed_layouts:
+            raise ValueError(f"Bed {bed} not configured.")
+        return self.bed_layouts[bed].get_well(well).get_z()
     
     def status(self) -> str:
         """Return a string representing the current x, y and z status of the liquid handler."""

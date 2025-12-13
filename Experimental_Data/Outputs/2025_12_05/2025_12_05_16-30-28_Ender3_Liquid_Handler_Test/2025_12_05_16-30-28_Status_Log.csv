@@ -1,0 +1,3 @@
+Timestamp,Elapsed_Time_s,Ender3_Liquid_Handler_1
+2025-12-05 16:30:36,7.79,"Ender3 Status - X: 0.00, Y: 0.00, Z: 0.00"
+2025-12-05 16:31:36,68.28,"Ender3 Status - Error: byref() argument must be a ctypes instance, not 'NoneType'"

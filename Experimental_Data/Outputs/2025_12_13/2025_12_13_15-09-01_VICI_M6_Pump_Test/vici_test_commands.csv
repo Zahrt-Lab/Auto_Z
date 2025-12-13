@@ -1,0 +1,3 @@
+Component,Action,Parameters,Notes,delay
+VICI_M6_Pump_1,aspirate,"flow_rate=1000,volume=100",Aspirate 100 µL at 1000 µL/min,0.5
+VICI_M6_Pump_1,dispense,"flow_rate=1000,volume=100",Dispense 100 µL at 1000 µL/min,0.5

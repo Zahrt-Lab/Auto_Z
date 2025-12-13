@@ -1,0 +1,4 @@
+Time,Component,Action,Parameters,Output,Notes
+7.79,0,load_method,input=ender3_test_commands.csv,Loading input file: ender3_test_commands.csv,
+7.79,Ender3_Liquid_Handler_1,set_bedlayout,"bed=1,rack_layout=301",Setting bed 1 to bed layout 301,
+2945.98,,,,"Error: Experiment failed - SerialException: ClearCommError failed (PermissionError(13, 'Access is denied.', None, 5))",

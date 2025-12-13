@@ -1,0 +1,4 @@
+Component,Action,Parameters,Notes,delay
+VICI_M6_Pump_1,dispense,"flow_rate=2000,volume=2000",Pump 1: Dispense 2000 µL at 2000 µL/min (2 mL/min),0.5
+VICI_M6_Pump_2,dispense,"flow_rate=1000,volume=2000",Pump 2: Dispense 2000 µL at 1000 µL/min (1 mL/min),0.5
+SYNC,wait_for_pumps,,Wait for both pumps to finish dispensing,0.5

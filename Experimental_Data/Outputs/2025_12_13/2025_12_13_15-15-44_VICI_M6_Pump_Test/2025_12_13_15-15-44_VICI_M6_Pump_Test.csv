@@ -1,0 +1,7 @@
+Time,Component,Action,Parameters,Output,Notes
+0.04,0,load_method,input=C:\Users\zahrtlab\AutoZahrt\Auto_Zahrt_v3\vici_test_commands.csv,Loading input file: C:\Users\zahrtlab\AutoZahrt\Auto_Zahrt_v3\vici_test_commands.csv,
+0.04,VICI_M6_Pump_1,aspirate,"flow_rate=2000,volume=2000",Started async aspirate,exp. 60.0 s
+0.55,VICI_M6_Pump_2,aspirate,"flow_rate=1000,volume=2000",Started async aspirate,exp. 120.0 s
+63.29,VICI_M6_Pump_1,aspirate,"flow_rate=2000,volume=2000",aspirate 2000.0 µL @ 2000.0 µL/min,≈60.0 s
+123.77,VICI_M6_Pump_2,aspirate,"flow_rate=1000,volume=2000",aspirate 2000.0 µL @ 1000.0 µL/min,≈120.0 s
+123.77,,,,Error: Experiment failed stopping exerpimentand closing connections to all instruments,
