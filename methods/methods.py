@@ -35,7 +35,7 @@ from liquid_handlers.ender3_liquid_handler.ender3_liquid_handler import Ender3Li
 from liquid_handlers.bed_layout import BedLayout
 from pumps.vici_m6_pump.vici_m6_pump import VICI_M6_Pumps
 from pumps.isametic_pump.isametic_pump import IsmaticPump
-from syringe_pumps.phd_ultra.phd_ultra_pumps import PhdUltraPump  
+from syringe_pumps.phd_ultra_pumps.phd_ultra_pumps import PhdUltraPump  
 from valves.vici_valves.vici_valves import ViciValve
 from temperature_controller.tc720.tc720 import TC720
 # TODO can't find syringe pump and isamatic scripts and need to add this script later
@@ -167,7 +167,13 @@ class GeneralExperimentMethod:
                     "Valve10Way": "10-way",
                     "Valve24Way": "24-way"
                 }[instrument_type]
-                obj = ViciValve(port=com_port, valve_type=valve_type, name=attr_name)
+                # ViciValve __init__ does not accept a 'name' kwarg
+                obj = ViciValve(port=com_port, valve_type=valve_type)
+                # Attach a friendly name attribute for consistency with other instruments
+                try:
+                    obj.name = attr_name
+                except Exception:
+                    pass
             elif instrument_type == "Temperature":
                 obj = TC720(port=com_port, name=attr_name)
             else:

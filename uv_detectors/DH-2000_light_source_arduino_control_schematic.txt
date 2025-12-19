@@ -1,39 +1,37 @@
-Reference: 
+                 ┌───────────────────────────────┐
+                 │            Arduino UNO        │
+                 │                               │
+                 │   D3   ────────────────┐      │  Shutter (LEVEL)
+                 │   D5   ──────────────┐ │      │  Halogen (PULSE)
+                 │   D6   ────────────┐ │ │      │  Deuterium (PULSE)
+                 │   GND  ──────────┐ │ │ │      │  Ground reference
+                 │                  │ │ │ │      │
+                 │   D9  ──[R]─>|───┘ │ │ │      │  RED LED  (optional)
+                 │  D10  ──[R]─>|─────┘ │ │      │  YEL LED  (optional)
+                 │  D11  ──[R]─>|───────┘ │      │  GRN LED  (optional)
+                 └────────────────────────┼──────┘
+                                          │
+                                   jumper wires
+                                          │
+                 ┌────────────────────────┴─────────────┐
+                 │           DB15 Breakout / Cable      │
+                 │                                      │
+                 │  Pin 13  ◄────────── Arduino D3      │  Shutter TTL input
+                 │  Pin  3  ◄────────── Arduino D5      │  Halogen toggle input
+                 │  Pin  2  ◄────────── Arduino D6      │  Deuterium toggle input
+                 │  Pin 10  ◄────────── Arduino GND     │  Shutter ground
+                 │  Pin  4  ◄────────── Arduino GND     │  Signal ground
+                 └────────────────────────┬─────────────┘
+                                          │
+                                          │  DH-2000 Remote I/O (DB15)
+                                          │
+                 ┌────────────────────────┴───────────────┐
+                 │              DH-2000 Light Source      │
+                 │                                        │
+                 │  DB15 Pin 13: Shutter (TTL level)      │
+                 │  DB15 Pin  3: Halogen toggle (pulse)   │
+                 │  DB15 Pin  2: Deuterium toggle (pulse) │
+                 │  DB15 Pin 10: Shutter ground           │
+                 │  DB15 Pin  4: Signal ground            │
+                 └────────────────────────────────────────┘
 
-DH-2000 Installation & Operation Manual (pinout, remote control, troubleshooting):
-https://www.oceanoptics.com/wp-content/uploads/2024/05/dh-2000-installation-and-operation-manual.pdf
-
-                 ┌───────────────────────────┐
-                 │         Arduino           │
-                 │                           │
-                 │   D7  ────────────────┐   │ ← Shutter Control
-                 │   D8  ──────────────┐ │   │ ← Deuterium Toggle
-                 │   D9  ────────────┐ │ │   │ ← Halogen Toggle
-                 │   GND ──────────┐ │ │ │   │ ← Ground
-                 └─────────────────┼─┼─┼─┼───┘
-                                   │ │ │ │
-                                   │ │ │ │
-                     Jumper Wires  │ │ │ │
-                                   │ │ │ │
-                 ┌─────────────────┼─┼─┼─┼───┐
-                 │   FD2186 DB-15 Breakout   │
-                 │                           │
-                 │  Pin 13 ◄─────────┘ │     │  ← Shutter Control
-                 │  Pin  2 ◄───────────┘     │  ← Deuterium Toggle
-                 │  Pin  3 ◄────────────────┘|  ← Halogen Toggle
-                 │  Pin  4 ◄─────────────────|  ← Ground
-                 │ (Pin 10 optional ground)  │
-                 └──────────────┬────────────┘
-                                │
-                                │  DH2-HPX-CBL-DB15
-                                │
-                 ┌──────────────┴──────────────┐
-                 │     DH-2000-S-DUV-TTL        │
-                 │                              │
-                 │   DB-15 REMOTE I/O PORT      │
-                 │                              │
-                 │  Pin 13 → Shutter (TTL)      │
-                 │  Pin  2 → Deuterium Toggle   │
-                 │  Pin  3 → Halogen Toggle     │
-                 │  Pin  4 → Ground             │
-                 └──────────────────────────────┘

@@ -87,6 +87,9 @@ class IsmaticPump(Pump):
                 timeout=self.timeout_s,
             )
             time.sleep(self.wake_delay_s)
+            # Flush any residual data in the buffer after wake delay
+            self._ser.reset_input_buffer()
+            self._ser.reset_output_buffer()
 
     def _send(self, cmd: str) -> str:
         """Send ASCII command (without CR) and return reply as string."""
@@ -154,7 +157,12 @@ class IsmaticPump(Pump):
     def connect(self) -> None:
         """Connect to the pump device."""
         self._open_serial()
-        # Optionally set a default direction (doesn't matter much here).
+        # Query current RPM to verify pump is responsive
+        try:
+            _ = self._get_rpm()
+        except Exception as e:
+            print(f"Warning: Initial pump query failed: {e}")
+        # Set default direction
         self._set_direction_cw()
         self._connected = True
         self._last_status_msg = "Connected"

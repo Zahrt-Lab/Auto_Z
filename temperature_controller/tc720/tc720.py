@@ -34,7 +34,11 @@ class TC720(TemperatureController):
     def stop(self):
         """Stop the temperature controller device."""
         set_temp = 25.0  # Default safe temperature
-        print(f"Stopping TC-720, setting temperature to {set_temp} °C")
+        print(f"Stopping TC-720, setting temperature to {set_temp}°C")
+        try:
+            self.set_temperature(set_temp)
+        except Exception as e:
+            print(f"Warning: Failed to set safe temperature during stop: {e}")
         self.close()
 
     # ---- TemperatureController interface --------------------------------------
@@ -75,16 +79,17 @@ class TC720(TemperatureController):
             raise ValueError(f"Temperature must be between 0°C and 100°C, got {temp_celsius}°C")
             
         bstc = self.convert_temp_to_bstc(temp_celsius)
-        print(f"Setting temperature to {temp_celsius} °C with command: {''.join(bstc)}")
+        cmd_str = ''.join(bstc)
+        print(f"[TC720 {self.name}] Setting temperature to {temp_celsius}°C with command: {repr(cmd_str)}")
 
         if not self.ser or not self.ser.is_open:
             raise RuntimeError("Device is not connected")
 
-        for char in bstc:
-            self.ser.write(char.encode())
-            time.sleep(0.01)  # Short delay for proper command transmission
-
-        print("Temperature set successfully!")
+        # Write command as a single string
+        self.ser.write(cmd_str.encode('ascii'))
+        self.ser.flush()
+        
+        print(f"[TC720 {self.name}] Temperature set command sent successfully!")
 
     def _build_query(self, cc):  # cc: '01' (INPUT1) or '04' (INPUT2)
         return self.calculate_checksum(['*'] + list(cc) + list('0000') + ['XX', 'XX', '\r'])
@@ -93,20 +98,34 @@ class TC720(TemperatureController):
         cc = '01' if sensor == 1 else '04'
         cmd = self._build_query(cc)
         self.ser.reset_input_buffer()
-        for ch in cmd:
-            self.ser.write(ch.encode())
-            time.sleep(0.005)
+        
+        # Send command as single string
+        cmd_str = ''.join(cmd)
+        self.ser.write(cmd_str.encode('ascii'))
+        self.ser.flush()
+        time.sleep(0.05)  # Give device time to respond
 
         resp = self.ser.read(8)  # expects: * D D D D S S ^
         if len(resp) < 8 or resp[0:1] != b'*':
-            raise IOError(f"Unexpected response: {resp!r}")
+            raise IOError(f"[TC720] Unexpected response length or format: {resp!r}")
 
-        dddd = resp[1:5].decode('ascii')   # hex value in hundredths °C (signed 16-bit)
+        dddd = resp[1:5].decode('ascii', errors='replace')   # hex value in hundredths °C (signed 16-bit)
+        
+        # Check if response contains placeholder 'XXXX' (device not ready)
+        if 'X' in dddd:
+            raise IOError(f"[TC720] Device returned placeholder data: {dddd}")
+        
         # optional checksum verify for the 4 data chars:
-        if resp[5:7].decode('ascii') != format(sum(ord(c) for c in dddd) & 0xFF, '02x'):
-            raise IOError("Checksum mismatch")
+        expected_checksum = format(sum(ord(c) for c in dddd) & 0xFF, '02x')
+        actual_checksum = resp[5:7].decode('ascii', errors='replace')
+        if actual_checksum != expected_checksum:
+            raise IOError(f"[TC720] Checksum mismatch: expected {expected_checksum}, got {actual_checksum}")
 
-        val = int(dddd, 16)
+        try:
+            val = int(dddd, 16)
+        except ValueError as e:
+            raise IOError(f"[TC720] Cannot parse temperature hex value '{dddd}': {e}")
+            
         if val >= 0x8000:  # handle negatives (two's complement, 16-bit)
             val -= 0x10000
         return val / 100.0  # °C
@@ -137,17 +156,16 @@ class TC720(TemperatureController):
 
 
 
-'''
+
 # ============================== USAGE EXAMPLE ==============================
 if __name__ == "__main__":
-    controller = TC720(name="TC-720 Temperature Controller", port='COM19', baudrate=230400, timeout=1)
+    controller = TC720(name="TC-720 Temperature Controller", port='COM12', baudrate=230400, timeout=1)
     controller.connect()
     try:
-        controller.set_temperature(37.5)
-        current_temp = controller.read_temperature(sensor=1)   
-        print(f"Current Temperature (Sensor 1): {current_temp:.2f} °C")
-        status = controller.status()
-        print(f"Status: {status}")
+        controller.set_temperature(15)
+        #current_temp = controller.read_temperature(sensor=1)   
+        #print(f"Current Temperature (Sensor 1): {current_temp:.2f} °C")
+        #status = controller.status()
+        #print(f"Status: {status}")
     finally:
         controller.stop()
-'''
