@@ -23,7 +23,7 @@ import pandas as pd
 import matplotlib
 matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 
 
 class UVDataPlotWindow(tk.Toplevel):
@@ -47,6 +47,10 @@ class UVDataPlotWindow(tk.Toplevel):
         self._auto_update_active = False
         self._auto_update_job = None
         
+        # Time range filtering
+        self.time_min = None  # None means no limit
+        self.time_max = None
+        
         self._build_ui()
         self._build_plot()
         
@@ -58,6 +62,7 @@ class UVDataPlotWindow(tk.Toplevel):
     
     def _build_ui(self):
         """Build the control panel UI."""
+        # Top control frame
         control_frame = ttk.Frame(self, padding=10)
         control_frame.pack(side=tk.TOP, fill=tk.X)
         
@@ -78,6 +83,34 @@ class UVDataPlotWindow(tk.Toplevel):
         # Status label
         self.status_label = ttk.Label(control_frame, text="", foreground="green")
         self.status_label.pack(side=tk.LEFT, padx=10)
+        
+        # Time range control frame
+        range_frame = ttk.Frame(self, padding=(10, 0, 10, 5))
+        range_frame.pack(side=tk.TOP, fill=tk.X)
+        
+        ttk.Label(range_frame, text="Time Range:").pack(side=tk.LEFT, padx=(0, 5))
+        
+        # Quick range buttons
+        ttk.Button(range_frame, text="Last 10 min", 
+                  command=lambda: self.set_time_range_minutes(10)).pack(side=tk.LEFT, padx=2)
+        ttk.Button(range_frame, text="Last 30 min", 
+                  command=lambda: self.set_time_range_minutes(30)).pack(side=tk.LEFT, padx=2)
+        ttk.Button(range_frame, text="Full Range", 
+                  command=self.reset_time_range).pack(side=tk.LEFT, padx=2)
+        
+        # Min/Max time entry fields
+        ttk.Label(range_frame, text="  Min (s):").pack(side=tk.LEFT, padx=(10, 2))
+        self.time_min_var = tk.StringVar()
+        self.time_min_entry = ttk.Entry(range_frame, textvariable=self.time_min_var, width=8)
+        self.time_min_entry.pack(side=tk.LEFT, padx=2)
+        
+        ttk.Label(range_frame, text="Max (s):").pack(side=tk.LEFT, padx=(5, 2))
+        self.time_max_var = tk.StringVar()
+        self.time_max_entry = ttk.Entry(range_frame, textvariable=self.time_max_var, width=8)
+        self.time_max_entry.pack(side=tk.LEFT, padx=2)
+        
+        ttk.Button(range_frame, text="Apply", 
+                  command=self.apply_custom_time_range).pack(side=tk.LEFT, padx=5)
     
     def _build_plot(self):
         """Build the matplotlib figure and canvas."""
@@ -97,7 +130,13 @@ class UVDataPlotWindow(tk.Toplevel):
         self.ax_time.grid(True, alpha=0.3)
         
         self.canvas = FigureCanvasTkAgg(self.fig, master=self)
-        self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True, padx=10, pady=(5, 10))
+        
+        # Add matplotlib navigation toolbar at top
+        toolbar_frame = ttk.Frame(self)
+        toolbar_frame.pack(side=tk.TOP, fill=tk.X, before=self.canvas.get_tk_widget())
+        self.toolbar = NavigationToolbar2Tk(self.canvas, toolbar_frame)
+        self.toolbar.update()
         
         self.fig.tight_layout()
     
@@ -140,9 +179,30 @@ class UVDataPlotWindow(tk.Toplevel):
         """Update the time-course plot (right side)."""
         self.ax_time.clear()
         
-        # Plot each wavelength column (all columns except Time(s))
+        # Apply time range filtering
         time_col = df["Time(s)"]
-        wavelength_cols = [col for col in df.columns if col != "Time(s)"]
+        mask = pd.Series([True] * len(df))
+        
+        if self.time_min is not None:
+            mask &= (time_col >= self.time_min)
+        if self.time_max is not None:
+            mask &= (time_col <= self.time_max)
+        
+        df_filtered = df[mask]
+        
+        if df_filtered.empty:
+            self.ax_time.text(0.5, 0.5, "No data in selected time range", 
+                             ha='center', va='center', transform=self.ax_time.transAxes,
+                             fontsize=10, color='orange')
+            self.ax_time.set_xlabel("Time (s)", fontsize=11)
+            self.ax_time.set_ylabel("Absorbance", fontsize=11)
+            self.ax_time.set_title("Time Course at Target Wavelengths", fontsize=12)
+            self.ax_time.grid(True, alpha=0.3)
+            return
+        
+        # Plot each wavelength column (all columns except Time(s))
+        time_col_filtered = df_filtered["Time(s)"]
+        wavelength_cols = [col for col in df_filtered.columns if col != "Time(s)"]
         
         if not wavelength_cols:
             self.ax_time.text(0.5, 0.5, "No wavelength data", 
@@ -157,7 +217,7 @@ class UVDataPlotWindow(tk.Toplevel):
             except ValueError:
                 label = wl_col
             
-            self.ax_time.plot(time_col, df[wl_col], marker='o', markersize=4, 
+            self.ax_time.plot(time_col_filtered, df_filtered[wl_col], marker='o', markersize=4, 
                              label=label, linewidth=1.5)
         
         self.ax_time.set_xlabel("Time (s)", fontsize=11)
@@ -276,6 +336,55 @@ class UVDataPlotWindow(tk.Toplevel):
         if self._auto_update_active:
             self.update_plot()
             self._auto_update_job = self.after(self.update_interval_ms, self._schedule_next_update)
+    
+    def set_time_range_minutes(self, minutes):
+        """Set time range to show last N minutes from the most recent data point."""
+        try:
+            if not self.csv_path.exists():
+                return
+            
+            df = pd.read_csv(self.csv_path)
+            if df.empty or "Time(s)" not in df.columns:
+                return
+            
+            max_time = df["Time(s)"].max()
+            self.time_min = max(0, max_time - minutes * 60)
+            self.time_max = None  # No upper limit
+            
+            # Update entry fields
+            self.time_min_var.set(f"{self.time_min:.1f}")
+            self.time_max_var.set("")
+            
+            self.update_plot()
+        except Exception as e:
+            self.status_label.config(text=f"Error setting range: {str(e)}", foreground="red")
+    
+    def reset_time_range(self):
+        """Reset to show full time range."""
+        self.time_min = None
+        self.time_max = None
+        self.time_min_var.set("")
+        self.time_max_var.set("")
+        self.update_plot()
+    
+    def apply_custom_time_range(self):
+        """Apply custom min/max time range from entry fields."""
+        try:
+            min_str = self.time_min_var.get().strip()
+            max_str = self.time_max_var.get().strip()
+            
+            self.time_min = float(min_str) if min_str else None
+            self.time_max = float(max_str) if max_str else None
+            
+            # Validate range
+            if self.time_min is not None and self.time_max is not None:
+                if self.time_min >= self.time_max:
+                    self.status_label.config(text="Min must be less than Max", foreground="red")
+                    return
+            
+            self.update_plot()
+        except ValueError:
+            self.status_label.config(text="Invalid time range values", foreground="red")
 
 
 def open_uv_plot_monitor(master, csv_path, spectrum_path=None, update_interval_ms=10000):
