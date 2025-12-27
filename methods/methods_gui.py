@@ -42,8 +42,10 @@ except ModuleNotFoundError:
     print("ERROR: Cannot import GeneralExperimentMethod. Check your PYTHONPATH.")
     raise
 
-# Import the separate status monitor GUI
-from utils.status_monitor_gui import open_status_monitor, group_for_instrument_type
+# Import the CSV plotting status monitor
+from utils.status import open_status_monitor as open_csv_status_monitor, group_for_instrument_type
+# Import the text-based live instrument monitor
+from utils.status_monitor_gui import open_status_monitor as open_live_status_monitor
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Embedded Instrument CSV Builder (unchanged interface)
@@ -343,10 +345,12 @@ class AutoZahrtGUI(tk.Tk):
 
         self.current_status_log_path: Optional[str] = None
         self.current_control_file_path: str = "control.txt"
+        self.current_experiment_instruments: Optional[Dict[str, Any]] = None
 
         self.run_history: list[dict[str, str]] = []
 
-        self.status_window = None  # the separate monitor window
+        self.status_window = None  # the CSV plotting monitor window
+        self.live_status_window = None  # the text-based live instrument monitor window
 
         self._build_file_selector()
         self._build_command_entry()
@@ -658,6 +662,7 @@ class AutoZahrtGUI(tk.Tk):
 
             self.current_status_log_path = exp.status_log_filename
             self.current_control_file_path = exp.control_file
+            self.current_experiment_instruments = exp.instruments  # Store reference to instruments
 
             orig_log = exp.log_to_csv
 
@@ -696,7 +701,10 @@ class AutoZahrtGUI(tk.Tk):
         )
         self.emergency_button.pack(side=tk.LEFT, padx=(0, 10))
 
-        ttk.Button(frame, text="Open Status Monitor", command=self._open_status_monitor)\
+        ttk.Button(frame, text="Open Status Log Plots", command=self._open_status_monitor)\
+            .pack(side=tk.LEFT, padx=5)
+
+        ttk.Button(frame, text="Open Live Device Status", command=self._open_live_device_status)\
             .pack(side=tk.LEFT, padx=5)
 
         ttk.Button(frame, text="Run History", command=self._show_run_history)\
@@ -713,13 +721,14 @@ class AutoZahrtGUI(tk.Tk):
             messagebox.showerror("Stop error", f"Could not write to control file:\n{e}")
 
     def _open_status_monitor(self) -> None:
+        """Open CSV plotting status monitor (graphs of flow rate & temperature over time)"""
         if not self.current_status_log_path:
             return messagebox.showwarning(
                 "No status log",
                 "No status log file available yet. Start an experiment first."
             )
         if self.status_window is None or not self.status_window.winfo_exists():
-            self.status_window = open_status_monitor(
+            self.status_window = open_csv_status_monitor(
                 self,
                 self.current_status_log_path,
                 self.instrument_types,
@@ -728,6 +737,22 @@ class AutoZahrtGUI(tk.Tk):
         else:
             self.status_window.lift()
             self.status_window.focus_force()
+
+    def _open_live_device_status(self) -> None:
+        """Open text-based live instrument status monitor"""
+        if not self.current_experiment_instruments:
+            return messagebox.showwarning(
+                "No instruments",
+                "No active experiment with instruments. Start an experiment first."
+            )
+        if self.live_status_window is None or not self.live_status_window.winfo_exists():
+            self.live_status_window = open_live_status_monitor(
+                self.current_experiment_instruments,
+                interval=5  # Update every 5 seconds
+            )
+        else:
+            self.live_status_window.lift()
+            self.live_status_window.focus_force()
 
     def _show_run_history(self) -> None:
         self._refresh_history_from_fs()
