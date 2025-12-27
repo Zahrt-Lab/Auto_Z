@@ -58,4 +58,6 @@ Thumbs.db
 
 # Project specific
 *.csv
+simulated_uv_data.csv
+demo_uv_data.csv
 !README.md
