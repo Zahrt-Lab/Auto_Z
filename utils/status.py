@@ -58,14 +58,15 @@ class StatusMonitorWindow(tk.Toplevel):
         self.update_interval_ms = update_interval_ms
 
         self._auto_update_job: Optional[str] = None
+        self._auto_update_active: bool = False
 
         self._build_ui()
 
-        # Optional: start auto-update immediately
-        self.start_auto_update()
-
         # Ensure proper cleanup
         self.protocol("WM_DELETE_WINDOW", self._on_close)
+
+        # Start auto-update after window is fully ready (delay until mainloop starts)
+        self.after(500, self.start_auto_update)
 
     # ────────────────────────── UI setup
     def _build_ui(self) -> None:
@@ -191,16 +192,23 @@ class StatusMonitorWindow(tk.Toplevel):
 
     # ────────────────────────── auto-update
     def start_auto_update(self) -> None:
-        if self._auto_update_job is not None:
-            return
+        # Stop any existing auto-update first
+        self.stop_auto_update()
+        
+        self._auto_update_active = True
 
         def tick():
+            if not self._auto_update_active:
+                self._auto_update_job = None
+                return
             self.update_plot()
-            self._auto_update_job = self.after(self.update_interval_ms, tick)
+            if self._auto_update_active:  # Check again after update
+                self._auto_update_job = self.after(self.update_interval_ms, tick)
 
-        self._auto_update_job = self.after(0, tick)
+        self._auto_update_job = self.after(100, tick)  # Small delay to let UI settle
 
     def stop_auto_update(self) -> None:
+        self._auto_update_active = False
         if self._auto_update_job is not None:
             try:
                 self.after_cancel(self._auto_update_job)
