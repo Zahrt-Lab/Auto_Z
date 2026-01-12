@@ -296,7 +296,7 @@ def launch_instrument_csv_builder(
 
 ACTIONS_BY_GROUP: dict[str, list[str]] = {
     "LiquidHandler": ["set_bedlayout", "move_home", "move_z_height", "move_xy", "move_z"],
-    "Pump": ["aspirate", "dispense"],
+    "Pump": ["aspirate", "dispense", "select_syringe"],
     "Valve": ["go_to_position", "move_home"],
     "Temperature": ["set_temperature", "get_temperature", "wait_convergence"],
     "SYNC": ["wait_for_pumps"],
@@ -310,6 +310,7 @@ PARAM_FIELDS: dict[tuple[str, str], list[tuple[str, str]]] = {
 
     ("Pump", "aspirate"): [("flow_rate", "Flow rate (µL/min)"), ("volume", "Volume (µL)")],
     ("Pump", "dispense"): [("flow_rate", "Flow rate (µL/min)"), ("volume", "Volume (µL)")],
+    ("Pump", "select_syringe"): [("volume_ml", "Syringe Volume (mL)")],
 
     ("Valve", "go_to_position"): [("position", "Position")],
     ("Valve", "move_home"): [],

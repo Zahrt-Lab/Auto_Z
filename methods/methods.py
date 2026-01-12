@@ -437,7 +437,20 @@ class GeneralExperimentMethod:
 
     def execute_pump(self, action, params, component, pump: Pump):
         """Execute pump actions using abstract interface methods."""
-        # Extract parameters
+        # Handle select_syringe for SyringePump instances
+        if action == "select_syringe":
+            if not isinstance(pump, SyringePump):
+                self.log_to_csv(component, action, params, f"Error: select_syringe is only available for SyringePump devices")
+                return
+            try:
+                volume_ml = self.extract_syringe_volume(params)
+                pump.select_syringe(volume_ml)
+                self.log_to_csv(component, action, params, f"Selected syringe: {volume_ml} mL")
+            except Exception as e:
+                self.log_to_csv(component, action, params, f"Error selecting syringe: {e}")
+            return
+
+        # Extract parameters for aspirate/dispense
         flow_rate, volume = self.extract_flow_rate_and_volume(params)
 
         # Validate the action
@@ -646,6 +659,12 @@ class GeneralExperimentMethod:
         param_dict = {key.strip(): float(value.strip()) for key, value in
                       (param.split('=') for param in params.split(','))}
         return param_dict['temp']
+
+    def extract_syringe_volume(self, params):
+        """Extract syringe volume (mL) from params."""
+        param_dict = {key.strip(): float(value.strip()) for key, value in
+                      (param.split('=') for param in params.split(','))}
+        return param_dict['volume_ml']
 
     def get_coords_for_bed_well(self, bed, well):
         x = self.bed_layouts[bed].get_well(well).get_x()
