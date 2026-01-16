@@ -7,6 +7,11 @@
 # All rights reserved.
 # ------------------------------------------------------------------------------
 
+# TODO : Need to program light source within methods so it stays on regardless of whether the light turns on and off again.
+# TODO : Need to program methods so light source stays on at the end of each of method
+# TODO : Need to incorporate the new tricontinental code as part of these commands
+# TODO : Need to incorporate new light source with tunable parameters to the AutoZahrt
+
 import os
 import pandas as pd
 import shutil

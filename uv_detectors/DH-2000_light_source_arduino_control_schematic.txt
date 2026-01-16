@@ -1,37 +1,24 @@
-                 ┌───────────────────────────────┐
-                 │            Arduino UNO        │
-                 │                               │
-                 │   D3   ────────────────┐      │  Shutter (LEVEL)
-                 │   D5   ──────────────┐ │      │  Halogen (PULSE)
-                 │   D6   ────────────┐ │ │      │  Deuterium (PULSE)
-                 │   GND  ──────────┐ │ │ │      │  Ground reference
-                 │                  │ │ │ │      │
-                 │   D9  ──[R]─>|───┘ │ │ │      │  RED LED  (optional)
-                 │  D10  ──[R]─>|─────┘ │ │      │  YEL LED  (optional)
-                 │  D11  ──[R]─>|───────┘ │      │  GRN LED  (optional)
-                 └────────────────────────┼──────┘
-                                          │
-                                   jumper wires
-                                          │
-                 ┌────────────────────────┴─────────────┐
-                 │           DB15 Breakout / Cable      │
-                 │                                      │
-                 │  Pin 13  ◄────────── Arduino D3      │  Shutter TTL input
-                 │  Pin  3  ◄────────── Arduino D5      │  Halogen toggle input
-                 │  Pin  2  ◄────────── Arduino D6      │  Deuterium toggle input
-                 │  Pin 10  ◄────────── Arduino GND     │  Shutter ground
-                 │  Pin  4  ◄────────── Arduino GND     │  Signal ground
-                 └────────────────────────┬─────────────┘
-                                          │
-                                          │  DH-2000 Remote I/O (DB15)
-                                          │
-                 ┌────────────────────────┴───────────────┐
-                 │              DH-2000 Light Source      │
-                 │                                        │
-                 │  DB15 Pin 13: Shutter (TTL level)      │
-                 │  DB15 Pin  3: Halogen toggle (pulse)   │
-                 │  DB15 Pin  2: Deuterium toggle (pulse) │
-                 │  DB15 Pin 10: Shutter ground           │
-                 │  DB15 Pin  4: Signal ground            │
-                 └────────────────────────────────────────┘
-
+┌───────────────────────────────┐
+│           Arduino UNO         │
+│                               │
+│   D3   ────────────────┐      │  Shutter (LEVEL)
+│   D5   ──────────────┐ │      │  Halogen (PULSE / EDGE)
+│   D6   ────────────┐ │ │      │  Deuterium (PULSE / EDGE)
+│   GND  ──────────┐ │ │ │      │  Common ground
+│                  │ │ │ │      │
+└────────────────────────┼──────┘
+                         │
+┌────────────────────────┴─────────────┐
+│        DB15 Breakout / Cable         │
+│                                      │
+│  Pin 13  ◄────────── Arduino D3      │  Shutter control
+│  Pin  3  ◄────────── Arduino D5      │  Halogen toggle
+│  Pin  2  ◄────────── Arduino D6      │  Deuterium toggle
+│                                      │
+│  Pin 10  ◄────────── Arduino GND     │  Shutter ground
+│  Pin  4  ◄────────── Arduino GND     │  Signal ground
+└────────────────────────┬─────────────┘
+                         │
+┌────────────────────────┴───────────────┐
+│              DH-2000 Light Source      │
+└────────────────────────────────────────┘
