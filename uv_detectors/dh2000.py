@@ -17,6 +17,8 @@ This code will serve the following purposes
 3) In experiments that initially need the UV-detector but during the run doesn't need the use of the UV-detector for 30 minutes
 '''
 
+# TODO : Need to incorporate the on and off light switch to the the AutoZahrt methods
+
 import time
 import serial
 class DH2000:
