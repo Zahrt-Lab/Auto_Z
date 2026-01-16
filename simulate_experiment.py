@@ -1,3 +1,5 @@
+# TODO: Should delete this file for future use
+
 """
 Simulates a running experiment with constant pump flow and temperature.
 This script writes to a status log CSV file continuously, mimicking real equipment.
