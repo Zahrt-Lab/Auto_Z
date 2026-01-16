@@ -1,3 +1,5 @@
+#TODO: We should decide if we want to merge this with the current UV_VIS GUI or move it to project dead man's fingers
+
 """
 Standalone UV Detector Data Plotter
 
