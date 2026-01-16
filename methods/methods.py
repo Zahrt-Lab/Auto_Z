@@ -11,6 +11,7 @@
 # TODO : Need to program methods so light source stays on at the end of each of method
 # TODO : Need to incorporate the new tricontinental code as part of these commands
 # TODO : Need to incorporate new light source with tunable parameters to the AutoZahrt
+# TODO : Need to incorporate the UV-detector into the methods code so that this calibration step can also be automated as well. 
 
 import os
 import pandas as pd
