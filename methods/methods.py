@@ -7,6 +7,10 @@
 # All rights reserved.
 # ------------------------------------------------------------------------------
 
+# TODO : Need to program light source so it 
+# TODO : Need to program methods so light source stays on at the end of each of method
+# TODO : Need to incorporate the new tricontinental code as part of these commands
+
 import os
 import pandas as pd
 import shutil
