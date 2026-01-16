@@ -1,0 +1,289 @@
+#------------------------------------------------------------------------------
+# Software: AUTO_ZAHRT
+# Copyright: (C) 2025 by Professor Andrew Zahrt
+# This software is the intellectual property of Professor Andrew Zahrt
+# Contributions by graduate students Scott Laverty are acknowledged.
+# All rights reserved.
+# ------------------------------------------------------------------------------
+
+"""
+DH-2000 TTL control via Arduino 
+
+Works with the Arduino sketch you confirmed:
+- Serial baud: 9600
+- Commands:
+    o = shutter open
+    c = shutter close
+    d = toggle deuterium
+    h = toggle halogen
+    x = demo sequence (prints a lot; ends with "Demo done.")
+    s = status (prints 3 lines; no OK)
+
+Windows notes:
+- Arduino appears as COM port (e.g., COM3, COM4).
+- This script can list/guess ports using pyserial's list_ports.
+"""
+
+import time
+from typing import Optional, List
+
+import serial
+
+try:
+    from serial.tools import list_ports
+except Exception:
+    list_ports = None
+
+
+# ---------------------------- Device Class ----------------------------
+
+class DH2000:
+    def __init__(self, port: str, baudrate: int = 9600, timeout: float = 2.0):
+        self.port = port
+        self.baudrate = baudrate
+        self.timeout = timeout
+
+        self.ser = serial.Serial(port, baudrate=baudrate, timeout=timeout)
+
+        # Arduino UNO resets on connect; wait for boot + banner
+        time.sleep(2.0)
+        self._drain()
+
+    def _drain(self, seconds: float = 0.75) -> None:
+        """Discard any pending serial output."""
+        end = time.time() + seconds
+        while time.time() < end:
+            while self.ser.in_waiting:
+                try:
+                    self.ser.readline()
+                except Exception:
+                    break
+            time.sleep(0.01)
+
+    def _readline_str(self) -> str:
+        raw = self.ser.readline()
+        if not raw:
+            return ""
+        return raw.decode("utf-8", errors="ignore").strip()
+
+    def _cmd_char(self, c: str, expect_ok: bool = True) -> None:
+        if not isinstance(c, str) or len(c) != 1:
+            raise ValueError("Command must be a single character like 'o', 'c', 'h', 'd', 'x', 's'")
+
+        self.ser.write((c + "\n").encode("ascii", errors="ignore"))
+        self.ser.flush()
+
+        if not expect_ok:
+            return
+
+        deadline = time.time() + (self.timeout or 2.0)
+        while time.time() < deadline:
+            line = self._readline_str()
+            if not line:
+                continue
+            if line == "OK":
+                return
+        raise RuntimeError(f"Timed out waiting for OK after sending '{c}'")
+
+    # Public API
+    def shutter_open(self) -> None:
+        self._cmd_char("o", expect_ok=True)
+
+    def shutter_close(self) -> None:
+        self._cmd_char("c", expect_ok=True)
+
+    def halogen_toggle(self) -> None:
+        self._cmd_char("h", expect_ok=True)
+
+    def deuterium_toggle(self) -> None:
+        self._cmd_char("d", expect_ok=True)
+
+    def status(self) -> List[str]:
+        # Arduino prints 3 lines, no OK
+        self._cmd_char("s", expect_ok=False)
+        lines: List[str] = []
+        deadline = time.time() + (self.timeout or 2.0)
+        while time.time() < deadline and len(lines) < 3:
+            line = self._readline_str()
+            if not line:
+                continue
+            lines.append(line)
+        return lines
+
+    def demo_sequence(self, max_seconds: float = 40.0) -> None:
+        # Arduino prints many lines, no OK; ends with "Demo done."
+        self._cmd_char("x", expect_ok=False)
+        deadline = time.time() + max_seconds
+        while time.time() < deadline:
+            line = self._readline_str()
+            if line:
+                print(f"[ARDUINO] {line}")
+            if "Demo done." in line:
+                return
+        print("Warning: did not see 'Demo done.' line (demo may still have run).")
+
+    def close(self) -> None:
+        try:
+            self.ser.close()
+        except Exception:
+            pass
+
+
+# ---------------------------- Port Helpers ----------------------------
+
+def list_com_ports() -> List[str]:
+    if list_ports is None:
+        return []
+    return [p.device for p in list_ports.comports()]
+
+
+def guess_arduino_port() -> Optional[str]:
+    if list_ports is None:
+        return None
+
+    preferred = ["Arduino", "CH340", "USB-SERIAL", "Silicon Labs", "CP210", "FTDI"]
+
+    ports = list_ports.comports()
+    for p in ports:
+        desc = (p.description or "")
+        manuf = (p.manufacturer or "")
+        hay = f"{desc} {manuf}".lower()
+        if any(s.lower() in hay for s in preferred):
+            return p.device
+
+    if len(ports) == 1:
+        return ports[0].device
+
+    return None
+
+
+# ---------------------------- Modes ----------------------------
+
+def run_timed_sequence(dh: DH2000) -> None:
+    """A simple example sequence similar to your earlier script."""
+    print("Ensuring shutter is closed...")
+    dh.shutter_close()
+    time.sleep(0.5)
+
+    print("Turning BOTH lamps ON...")
+    dh.halogen_toggle()
+    time.sleep(0.2)
+    dh.deuterium_toggle()
+
+    print("Waiting 15 seconds with lamps ON, shutter CLOSED...")
+    time.sleep(15)
+
+    print("Opening shutter...")
+    dh.shutter_open()
+    print("Waiting 15 seconds with lamps ON, shutter OPEN...")
+    time.sleep(15)
+
+    print("Closing shutter...")
+    dh.shutter_close()
+    time.sleep(0.2)
+
+    print("Turning BOTH lamps OFF...")
+    dh.halogen_toggle()
+    time.sleep(0.2)
+    dh.deuterium_toggle()
+
+    print("Sequence complete.")
+
+
+def interactive_cli(dh: DH2000) -> None:
+    """
+    Interactive command loop.
+    Type:
+      o, c, d, h, s, x
+    Or:
+      seq  -> run timed sequence
+      help -> show help
+      quit -> exit
+    """
+    help_text = (
+        "\nDH-2000 CLI commands:\n"
+        "  o     shutter open\n"
+        "  c     shutter close\n"
+        "  d     toggle deuterium\n"
+        "  h     toggle halogen\n"
+        "  s     status\n"
+        "  x     demo sequence (Arduino prints messages)\n"
+        "  seq   run timed sequence (Python-controlled)\n"
+        "  help  show this\n"
+        "  quit  exit\n"
+    )
+    print(help_text)
+
+    while True:
+        cmd = input("dh2000> ").strip().lower()
+        if not cmd:
+            continue
+
+        try:
+            if cmd in ("quit", "exit", "q"):
+                return
+            if cmd in ("help", "?"):
+                print(help_text)
+                continue
+            if cmd == "seq":
+                run_timed_sequence(dh)
+                continue
+
+            if cmd == "o":
+                dh.shutter_open()
+                print("OK")
+            elif cmd == "c":
+                dh.shutter_close()
+                print("OK")
+            elif cmd == "d":
+                dh.deuterium_toggle()
+                print("OK")
+            elif cmd == "h":
+                dh.halogen_toggle()
+                print("OK")
+            elif cmd == "s":
+                lines = dh.status()
+                print("Status:")
+                for ln in lines:
+                    print(" ", ln)
+            elif cmd == "x":
+                dh.demo_sequence()
+            else:
+                print("Unknown command. Type 'help' for options.")
+        except Exception as e:
+            print(f"Error: {e}")
+
+
+# ---------------------------- Main ----------------------------
+
+def main() -> None:
+    # Set to "COM3" etc. if you want to hardcode.
+    port: Optional[str] = "COM27"
+
+    ports = list_com_ports()
+    if ports:
+        print("Detected serial ports:", ", ".join(ports))
+
+    if port is None:
+        port = guess_arduino_port()
+
+    if not port:
+        raise RuntimeError(
+            "Could not auto-detect Arduino COM port.\n"
+            "Edit this script and set `port = 'COM3'` (or similar),\n"
+            "or check Device Manager -> Ports (COM & LPT)."
+        )
+
+    print(f"Connecting to {port} @ 9600...")
+    dh = DH2000(port=port, baudrate=9600, timeout=2.0)
+    print("Connected.")
+
+    try:
+        interactive_cli(dh)
+    finally:
+        dh.close()
+        print("Connection closed.")
+
+
+if __name__ == "__main__":
+    main()
