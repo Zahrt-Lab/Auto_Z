@@ -2,6 +2,8 @@
 // DH-2000 Arduino Control Code
 // ================================
 
+// This code is temporary as a referenece and will be deleted once code is finished
+
 // ---- Pin assignments ----
 const uint8_t PIN_DEUTERIUM = 3;   // DB15 Pin 2
 const uint8_t PIN_HALOGEN   = 5;   // DB15 Pin 3
