@@ -1,3 +1,5 @@
+# TODO : Delete this file in the future
+
 """
 Quick viewer for simulated UV data.
 Opens the UV plot GUI with the simulated data file.
