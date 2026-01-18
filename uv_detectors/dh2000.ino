@@ -1,25 +1,27 @@
 // ------------------------------------------------------------------------------
 // Software: AUTO_ZAHRT
-// Copyright: (C) 2025 by Professor Andrew Zahrt
+// Copyright: (C) 2026 by Professor Andrew Zahrt
 // This software is the intellectual property of Professor Andrew Zahrt
 // Contributions by graduate students Scott Laverty are acknowledged.
 // All rights reserved.
 // ------------------------------------------------------------------------------
-//
+
 // DH-2000 TTL controller (UPDATED for your NEW wiring — NO LEDs)
-//
+
 // New wiring (confirmed):
 //   Arduino D3  -> DB15 Pin 13  (Shutter, LEVEL: HIGH=OPEN, LOW=CLOSE)
 //   Arduino D5  -> DB15 Pin 3   (Halogen toggle, EDGE pulse)
 //   Arduino D6  -> DB15 Pin 2   (Deuterium toggle, EDGE pulse)
 //   Arduino GND -> DB15 Pin 10  (Shutter ground)
 //   Arduino GND -> DB15 Pin 4   (Signal ground)
-//
+
 // Notes:
 // - Halogen/Deuterium inputs are RISING-EDGE toggles (pulse HIGH then return LOW).
 // - Shutter is a LEVEL input (hold HIGH to keep open).
 // - LEDs are removed, so all LED logic is stripped.
-//
+
+// References:
+// https://www.oceanoptics.com/wp-content/uploads/2024/05/dh-2000-installation-and-operation-manual.pdf
 
 class DH2000Controller {
 public:

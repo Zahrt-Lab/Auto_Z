@@ -1,4 +1,4 @@
-# auto_zahrt_gui.py (for example)
+# auto_zahrt_gui.py
 # ------------------------------------------------------------------------------
 # Software: AUTO_ZAHRT
 # Copyright: (C) 2025 by Professor Andrew Zahrt
@@ -13,7 +13,6 @@ from __future__ import annotations
 import csv
 import glob
 import os
-import re
 import subprocess
 import sys
 import threading
@@ -21,15 +20,10 @@ import tkinter as tk
 from datetime import datetime
 from pathlib import Path
 from tkinter import filedialog, messagebox, scrolledtext, ttk
-from typing import Optional, Callable, Dict
+from typing import Optional, Callable, Dict, Any
 
-# Third-party
-import pandas as pd
-
-# AUTO_ZAHRT imports
 # Add project root to path for imports
 try:
-    # Get the project root (parent of methods/ directory)
     project_root = Path(__file__).parent.parent.resolve()
     if str(project_root) not in sys.path:
         sys.path.insert(0, str(project_root))
@@ -37,18 +31,42 @@ except Exception:
     pass
 
 try:
-    from methods import GeneralExperimentMethod
+    # If your methods.py sits in a package/folder, adjust this import accordingly.
+    # e.g. from methods.methods import GeneralExperimentMethod
+    from methods import GeneralExperimentMethod  # type: ignore
 except ModuleNotFoundError:
-    print("ERROR: Cannot import GeneralExperimentMethod. Check your PYTHONPATH.")
+    print("ERROR: Cannot import GeneralExperimentMethod. Check your PYTHONPATH / project layout.")
     raise
 
-# Import the CSV plotting status monitor
-from utils.status import open_status_monitor as open_csv_status_monitor, group_for_instrument_type
-# Import the text-based live instrument monitor
-from utils.status_monitor_gui import open_status_monitor as open_live_status_monitor
+# Optional: existing status utilities (if you have them)
+try:
+    from utils.status import open_status_monitor as open_csv_status_monitor, group_for_instrument_type  # type: ignore
+except Exception:
+    open_csv_status_monitor = None
+    def group_for_instrument_type(inst_type: str) -> str:
+        # Fallback grouping if utils.status is unavailable
+        if inst_type in ("GX281", "Ender3_Liquid_Handler"):
+            return "LiquidHandler"
+        if inst_type in ("VICI_M6_Pump", "Isametic", "PhdUltraPump"):
+            return "Pump"
+        if inst_type in ("Valve6Way", "Valve10Way", "Valve24Way"):
+            return "Valve"
+        if inst_type in ("Temperature",):
+            return "Temperature"
+        if inst_type in ("DH2000",):
+            return "DH2000"
+        if inst_type in ("OceanOptics_UVVis",):
+            return "OceanOptics"
+        return "Other"
+
+try:
+    from utils.status_monitor_gui import open_status_monitor as open_live_status_monitor  # type: ignore
+except Exception:
+    open_live_status_monitor = None
+
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Embedded Instrument CSV Builder (unchanged interface)
+# Embedded Instrument CSV Builder
 
 COLUMNS = ("InstrumentType", "DeviceNumber", "Name", "COMPort", "OtherParams")
 
@@ -62,6 +80,8 @@ INSTRUMENT_CHOICES = [
     "Valve10Way",
     "Valve24Way",
     "Temperature",
+    "DH2000",
+    "OceanOptics_UVVis",
 ]
 
 DEFAULT_ROWS = [
@@ -73,6 +93,8 @@ DEFAULT_ROWS = [
     ("Valve24Way",  "1", "VICI-24Way",   "COM13", ""),
     ("Valve24Way",  "2", "VICI-24Way",   "COM14", ""),
     ("Temperature", "1", "Temperature",  "COM12", ""),
+    ("DH2000",       "1", "DH2000",        "COM9",  ""),
+    ("OceanOptics_UVVis", "1", "OceanOptics", "",   ""),
 ]
 
 
@@ -107,7 +129,7 @@ class InstrumentCSVBuilder(tk.Toplevel):
             if c in ("OtherParams", "Name"):
                 self.tree.column(c, anchor="w", width=260, stretch=True)
             elif c == "InstrumentType":
-                self.tree.column(c, anchor="center", width=160, stretch=False)
+                self.tree.column(c, anchor="center", width=180, stretch=False)
             elif c == "COMPort":
                 self.tree.column(c, anchor="center", width=120, stretch=False)
             else:
@@ -193,7 +215,7 @@ class InstrumentCSVBuilder(tk.Toplevel):
             widget.bind("<Escape>", lambda *_: widget.destroy())
 
         elif col_name == "DeviceNumber":
-            sv = tk.StringVar(value=old_val if old_val.isdigit() else "1")
+            sv = tk.StringVar(value=old_val if str(old_val).isdigit() else "1")
             widget = ttk.Spinbox(self.tree, from_=1, to=999, textvariable=sv, wrap=False)
             widget.place(x=x, y=y, width=w, height=h)
             widget.focus_set()
@@ -223,7 +245,8 @@ class InstrumentCSVBuilder(tk.Toplevel):
             if name.strip() == "":
                 messagebox.showerror("Validation error", f"Row {i}: Name cannot be empty.")
                 return False
-            if com.strip() == "":
+            # COMPort may be blank for OceanOptics_UVVis if it's USB auto-detect; allow it
+            if itype != "OceanOptics_UVVis" and com.strip() == "":
                 messagebox.showerror("Validation error", f"Row {i}: COMPort cannot be empty.")
                 return False
         return True
@@ -287,7 +310,7 @@ def launch_instrument_csv_builder(
     if master is None:
         root = tk.Tk()
         root.withdraw()
-        dlg = InstrumentCSVBuilder(root, on_save=on_save)
+        InstrumentCSVBuilder(root, on_save=on_save)
         root.mainloop()
     else:
         InstrumentCSVBuilder(master, on_save=on_save)
@@ -301,6 +324,9 @@ ACTIONS_BY_GROUP: dict[str, list[str]] = {
     "Pump": ["aspirate", "dispense", "select_syringe"],
     "Valve": ["go_to_position", "move_home"],
     "Temperature": ["set_temperature", "get_temperature", "wait_convergence"],
+    "DH2000": ["shutter_open", "shutter_close", "halogen_toggle", "deuterium_toggle", "status", "safe_shutdown"],
+    "OceanOptics": ["init", "record_blank", "record_dark", "load_blank_csv", "load_dark_csv",
+                    "measure_absorbance", "start_continuous", "stop_continuous", "set_params", "status"],
     "SYNC": ["wait_for_pumps"],
 }
 
@@ -325,8 +351,32 @@ PARAM_FIELDS: dict[tuple[str, str], list[tuple[str, str]]] = {
         ("duration", "Stable time (s)"),
     ],
 
+    ("DH2000", "shutter_open"): [],
+    ("DH2000", "shutter_close"): [],
+    ("DH2000", "halogen_toggle"): [],
+    ("DH2000", "deuterium_toggle"): [],
+    ("DH2000", "status"): [],
+    ("DH2000", "safe_shutdown"): [],
+
+    ("OceanOptics", "init"): [],
+    ("OceanOptics", "record_blank"): [],
+    ("OceanOptics", "record_dark"): [],
+    ("OceanOptics", "load_blank_csv"): [("path", "Blank CSV Path")],
+    ("OceanOptics", "load_dark_csv"): [("path", "Dark CSV Path"), ("apply_to_device", "Apply to device (True/False)")],
+    ("OceanOptics", "measure_absorbance"): [],
+    ("OceanOptics", "start_continuous"): [("name", "Name (optional)"), ("stop_upon_convergence", "Stop on convergence (True/False)")],
+    ("OceanOptics", "stop_continuous"): [],
+    ("OceanOptics", "set_params"): [
+        ("integration_time", "Integration time (µs)"),
+        ("num_scans", "Num scans"),
+        ("measurement_interval", "Interval (s)"),
+        ("target_wavelengths", "Targets (e.g., 409;450)"),
+    ],
+    ("OceanOptics", "status"): [],
+
     ("SYNC", "wait_for_pumps"): [],
 }
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Main GUI
@@ -335,29 +385,31 @@ class AutoZahrtGUI(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
         self.title("AUTO_ZAHRT – Scheduler & Runner")
-        self.geometry("1100x820")
+        self.geometry("1100x860")
 
         self.commands: list[dict[str, str | float]] = []
         self.param_entries: dict[str, ttk.Entry] = {}
         self.generated_csv_path: str | None = None
 
-        self.instrument_types: Dict[str, str] = {}  # component -> InstrumentType
+        self.instrument_types: Dict[str, str] = {}   # component -> InstrumentType
         self.components: list[str] = []
 
         self.current_status_log_path: Optional[str] = None
-        self.current_control_file_path: str = "control.txt"
+        self.current_instrument_control_file_path: str = "instrument_control.txt"
+        self.current_dh2000_control_file_path: str = "dh2000_light_source_control.txt"
         self.current_experiment_instruments: Optional[Dict[str, Any]] = None
 
         self.run_history: list[dict[str, str]] = []
 
-        self.status_window = None  # the CSV plotting monitor window
-        self.live_status_window = None  # the text-based live instrument monitor window
+        self.status_window = None
+        self.live_status_window = None
 
         self._build_file_selector()
+        self._build_control_files_row()
         self._build_command_entry()
         self._build_command_tree()
         self._build_schedule_section()
-        self._build_control_bar()  # <-- buttons placed here
+        self._build_control_bar()
         self._build_log_panel()
         self._build_history_panel()
 
@@ -366,30 +418,40 @@ class AutoZahrtGUI(tk.Tk):
         frame = ttk.LabelFrame(self, text="Files & Output")
         frame.pack(fill=tk.X, padx=10, pady=6)
 
-        ttk.Label(frame, text="Instrument Config CSV:") \
-            .grid(row=0, column=0, sticky=tk.W)
+        ttk.Label(frame, text="Instrument Config CSV:").grid(row=0, column=0, sticky=tk.W)
         self.config_entry = ttk.Entry(frame, width=60)
         self.config_entry.grid(row=0, column=1, padx=6, pady=2)
 
-        ttk.Button(frame, text="Browse…", command=self._browse_config) \
-            .grid(row=0, column=2, padx=4)
+        ttk.Button(frame, text="Browse…", command=self._browse_config).grid(row=0, column=2, padx=4)
+        ttk.Button(frame, text="Build…", command=self._open_instrument_builder).grid(row=0, column=3, padx=(0, 4))
 
-        ttk.Button(
-            frame, text="Build…", command=self._open_instrument_builder
-        ).grid(row=0, column=3, padx=(0, 4))
-
-        ttk.Label(frame, text="Output Directory:") \
-            .grid(row=1, column=0, sticky=tk.W)
+        ttk.Label(frame, text="Output Directory:").grid(row=1, column=0, sticky=tk.W)
         self.output_entry = ttk.Entry(frame, width=60)
         self.output_entry.grid(row=1, column=1, padx=6, pady=2)
-        ttk.Button(frame, text="Browse…", command=self._browse_output) \
-            .grid(row=1, column=2, padx=4)
+        ttk.Button(frame, text="Browse…", command=self._browse_output).grid(row=1, column=2, padx=4)
 
-        ttk.Button(
-            frame,
-            text="Open UV-Vis Detector…",
-            command=self._open_uvvis_gui
-        ).grid(row=0, column=4, rowspan=2, padx=(16, 4))
+        ttk.Label(frame, text="Status interval (s):").grid(row=0, column=4, sticky=tk.W, padx=(16, 0))
+        self.status_interval_entry = ttk.Entry(frame, width=10)
+        self.status_interval_entry.insert(0, "60")
+        self.status_interval_entry.grid(row=0, column=5, padx=(6, 0))
+
+    def _build_control_files_row(self) -> None:
+        frame = ttk.LabelFrame(self, text="Control files (for STOP behavior)")
+        frame.pack(fill=tk.X, padx=10, pady=6)
+
+        ttk.Label(frame, text="Instrument control file:").grid(row=0, column=0, sticky=tk.W)
+        self.instrument_control_entry = ttk.Entry(frame, width=60)
+        self.instrument_control_entry.insert(0, "instrument_control.txt")
+        self.instrument_control_entry.grid(row=0, column=1, padx=6, pady=2, sticky=tk.W)
+
+        ttk.Label(frame, text="DH2000 control file:").grid(row=1, column=0, sticky=tk.W)
+        self.dh2000_control_entry = ttk.Entry(frame, width=60)
+        self.dh2000_control_entry.insert(0, "dh2000_light_source_control.txt")
+        self.dh2000_control_entry.grid(row=1, column=1, padx=6, pady=2, sticky=tk.W)
+
+        ttk.Label(frame, text="(Write False to instrument control file to request stop.)").grid(
+            row=0, column=2, rowspan=2, padx=(16, 0), sticky=tk.W
+        )
 
     def _browse_config(self) -> None:
         path = filedialog.askopenfilename(filetypes=[("CSV", "*.csv")])
@@ -426,8 +488,10 @@ class AutoZahrtGUI(tk.Tk):
                     raise ValueError("CSV has no headers.")
                 if "InstrumentType" not in reader.fieldnames or "DeviceNumber" not in reader.fieldnames:
                     raise ValueError("InstrumentType and DeviceNumber headers required.")
+
                 self.instrument_types.clear()
                 self.components.clear()
+
                 for row in reader:
                     inst_type = row.get("InstrumentType", "").strip()
                     dev_num = str(row.get("DeviceNumber", "")).strip()
@@ -453,42 +517,31 @@ class AutoZahrtGUI(tk.Tk):
         frame = ttk.LabelFrame(self, text="Add Command")
         frame.pack(fill=tk.X, padx=10, pady=6)
 
-        ttk.Label(frame, text="Component:") \
-            .grid(row=0, column=0, sticky=tk.W)
+        ttk.Label(frame, text="Component:").grid(row=0, column=0, sticky=tk.W)
         self.comp_var = tk.StringVar()
-        self.comp_cb = ttk.Combobox(
-            frame, textvariable=self.comp_var,
-            state="readonly", width=24
-        )
+        self.comp_cb = ttk.Combobox(frame, textvariable=self.comp_var, state="readonly", width=24)
         self.comp_cb.bind("<<ComboboxSelected>>", self._on_component_change)
         self.comp_cb.grid(row=0, column=1, padx=3)
 
-        ttk.Label(frame, text="Action:") \
-            .grid(row=0, column=2, sticky=tk.W, padx=(10, 0))
+        ttk.Label(frame, text="Action:").grid(row=0, column=2, sticky=tk.W, padx=(10, 0))
         self.act_var = tk.StringVar()
-        self.act_cb = ttk.Combobox(
-            frame, textvariable=self.act_var,
-            state="readonly", width=24
-        )
+        self.act_cb = ttk.Combobox(frame, textvariable=self.act_var, state="readonly", width=28)
         self.act_cb.bind("<<ComboboxSelected>>", self._rebuild_param_fields)
         self.act_cb.grid(row=0, column=3, padx=3)
 
         self.param_frame = ttk.Frame(frame)
         self.param_frame.grid(row=1, column=0, columnspan=4, pady=(8, 0), sticky=tk.W)
 
-        ttk.Label(frame, text="Delay (s):") \
-            .grid(row=2, column=0, sticky=tk.W)
+        ttk.Label(frame, text="Delay (s):").grid(row=2, column=0, sticky=tk.W)
         self.delay_entry = ttk.Entry(frame, width=10)
         self.delay_entry.insert(0, "0.5")
         self.delay_entry.grid(row=2, column=1, sticky=tk.W)
 
-        ttk.Label(frame, text="Notes:") \
-            .grid(row=3, column=0, sticky=tk.W)
-        self.notes_entry = ttk.Entry(frame, width=60)
+        ttk.Label(frame, text="Notes:").grid(row=3, column=0, sticky=tk.W)
+        self.notes_entry = ttk.Entry(frame, width=72)
         self.notes_entry.grid(row=3, column=1, columnspan=3, pady=(0, 6), sticky=tk.W)
 
-        ttk.Button(frame, text="Add Command", command=self._add_command) \
-            .grid(row=4, column=0, columnspan=4, pady=4)
+        ttk.Button(frame, text="Add Command", command=self._add_command).grid(row=4, column=0, columnspan=4, pady=4)
 
     def _group_for_component(self, comp: str) -> Optional[str]:
         if comp == "SYNC":
@@ -516,17 +569,22 @@ class AutoZahrtGUI(tk.Tk):
         for w in self.param_frame.winfo_children():
             w.destroy()
         self.param_entries.clear()
+
         comp, act = self.comp_var.get(), self.act_var.get()
         grp = self._group_for_component(comp)
         if grp is None or not act:
             return
+
         fields = PARAM_FIELDS.get((grp, act), [])
         for row, (key, label) in enumerate(fields):
-            ttk.Label(self.param_frame, text=f"{label}:") \
-                .grid(row=row, column=0, sticky=tk.W)
-            ent = ttk.Entry(self.param_frame, width=16)
-            ent.grid(row=row, column=1, padx=(4, 20), sticky=tk.W)
+            ttk.Label(self.param_frame, text=f"{label}:").grid(row=row, column=0, sticky=tk.W)
+            ent = ttk.Entry(self.param_frame, width=28)
+            ent.grid(row=row, column=1, padx=(6, 20), sticky=tk.W)
             self.param_entries[key] = ent
+
+            # Some reasonable defaults
+            if key in ("apply_to_device", "stop_upon_convergence"):
+                ent.insert(0, "True" if key == "apply_to_device" else "False")
 
     def _add_command(self) -> None:
         comp, act = self.comp_var.get(), self.act_var.get()
@@ -538,15 +596,24 @@ class AutoZahrtGUI(tk.Tk):
         except ValueError:
             return messagebox.showerror("Input error", "Delay must be numeric")
 
-        if any(e.get().strip() == "" for e in self.param_entries.values()):
-            return messagebox.showerror("Input error", "Fill all parameters")
+        # allow optional blanks for some fields like OceanOptics name
+        required_missing = []
+        for k, ent in self.param_entries.items():
+            if k == "name":  # optional
+                continue
+            if ent.get().strip() == "":
+                required_missing.append(k)
+        if required_missing:
+            return messagebox.showerror("Input error", f"Fill all required parameters: {', '.join(required_missing)}")
 
-        params = ",".join(f"{k}={e.get().strip()}" for k, e in self.param_entries.items())
+        params = ",".join(f"{k}={e.get().strip()}" for k, e in self.param_entries.items() if e.get().strip() != "")
         notes = self.notes_entry.get().strip()
-        cmd = {"Component": comp, "Action": act, "Parameters": params, "delay": delay, "Notes": notes}
+
+        cmd = {"Component": comp, "Action": act, "Parameters": params, "Notes": notes, "delay": delay}
         self.commands.append(cmd)
         self.tree.insert("", tk.END, values=(comp, act, params, delay, notes))
 
+        # clear param widgets
         for w in self.param_frame.winfo_children():
             w.destroy()
         self.param_entries.clear()
@@ -578,7 +645,7 @@ class AutoZahrtGUI(tk.Tk):
             writer.writeheader()
             writer.writerows(self.commands)
         self.generated_csv_path = path
-        messagebox.showinfo("Saved", f"Saved commands to {path}")
+        messagebox.showinfo("Saved", f"Saved commands to:\n{path}")
 
     def _load_csv(self) -> None:
         path = filedialog.askopenfilename(filetypes=[("CSV", "*.csv")])
@@ -586,9 +653,11 @@ class AutoZahrtGUI(tk.Tk):
             return
         with open(path, newline="") as f:
             rows = list(csv.DictReader(f))
+
         self.commands.clear()
         for iid in self.tree.get_children():
             self.tree.delete(iid)
+
         for r in rows:
             try:
                 d = float(r.get("delay", 0.5))
@@ -602,12 +671,10 @@ class AutoZahrtGUI(tk.Tk):
                 "Notes": r.get("Notes", ""),
             }
             self.commands.append(cmd)
-            self.tree.insert(
-                "", tk.END,
-                values=(cmd["Component"], cmd["Action"], cmd["Parameters"], d, cmd["Notes"])
-            )
+            self.tree.insert("", tk.END, values=(cmd["Component"], cmd["Action"], cmd["Parameters"], d, cmd["Notes"]))
+
         self.generated_csv_path = path
-        messagebox.showinfo("Loaded", f"Loaded commands from {path}")
+        messagebox.showinfo("Loaded", f"Loaded commands from:\n{path}")
 
     def _clear_commands(self) -> None:
         self.commands.clear()
@@ -619,14 +686,13 @@ class AutoZahrtGUI(tk.Tk):
     def _build_schedule_section(self) -> None:
         frame = ttk.LabelFrame(self, text="Schedule & Run")
         frame.pack(fill=tk.X, padx=10, pady=6)
-        ttk.Label(frame, text="Run at (YYYY-MM-DD HH:MM:SS):") \
-            .grid(row=0, column=0, sticky=tk.W)
+
+        ttk.Label(frame, text="Run at (YYYY-MM-DD HH:MM:SS):").grid(row=0, column=0, sticky=tk.W)
         self.datetime_entry = ttk.Entry(frame, width=25)
         self.datetime_entry.grid(row=0, column=1, padx=6)
-        ttk.Button(frame, text="Schedule experiment", command=self._schedule_run) \
-            .grid(row=0, column=2, padx=6)
-        ttk.Button(frame, text="Run now", command=self._run_now) \
-            .grid(row=0, column=3)
+
+        ttk.Button(frame, text="Schedule experiment", command=self._schedule_run).grid(row=0, column=2, padx=6)
+        ttk.Button(frame, text="Run now", command=self._run_now).grid(row=0, column=3)
 
     def _schedule_run(self) -> None:
         s = self.datetime_entry.get().strip()
@@ -639,55 +705,67 @@ class AutoZahrtGUI(tk.Tk):
         delta = (dt - datetime.now()).total_seconds()
         if delta < 0:
             return messagebox.showerror("Input error", "Time is in the past")
-        messagebox.showinfo("Scheduled", f"Starts in {delta:.1f}s")
+        messagebox.showinfo("Scheduled", f"Starts in {delta:.1f} s")
         self.after(int(delta * 1000), self._run_now)
 
     def _run_now(self) -> None:
         if not self.generated_csv_path:
-            return messagebox.showerror("Missing file", "Generate or load a CSV first")
+            return messagebox.showerror("Missing file", "Generate or load a method CSV first")
         if not self.config_entry.get().strip():
             return messagebox.showerror("Missing file", "Select instrument-config CSV")
+
         out = self.output_entry.get().strip() or os.getcwd()
         Path(out).mkdir(parents=True, exist_ok=True)
+
         threading.Thread(target=self._run_experiment_thread, args=(out,), daemon=True).start()
 
     def _run_experiment_thread(self, out_dir: str) -> None:
         self._append_log("Starting experiment…\n")
         try:
+            try:
+                status_interval = int(float(self.status_interval_entry.get().strip()))
+            except Exception:
+                status_interval = 60
+
             exp = GeneralExperimentMethod(
                 input_file=self.generated_csv_path,
                 instrument_config_file=self.config_entry.get(),
                 output_dir=out_dir,
                 output_file="AUTO_ZAHRT_Run",
+                status_interval=status_interval,
+                instrument_control_file=self.instrument_control_entry.get().strip() or "instrument_control.txt",
+                dh2000_light_source_control_file=self.dh2000_control_entry.get().strip() or "dh2000_light_source_control.txt",
             )
 
-            self.current_status_log_path = exp.status_log_filename
-            self.current_control_file_path = exp.control_file
-            self.current_experiment_instruments = exp.instruments  # Store reference to instruments
+            # Keep paths for the control buttons / monitors
+            self.current_status_log_path = getattr(exp, "status_log_filename", None)
+            self.current_instrument_control_file_path = getattr(exp, "instrument_control_file", "instrument_control.txt")
+            self.current_dh2000_control_file_path = getattr(exp, "dh2000_light_source_control_file", "dh2000_light_source_control.txt")
+            self.current_experiment_instruments = getattr(exp, "instruments", None)
 
             orig_log = exp.log_to_csv
 
             def patched(comp, act, params, output, notes=""):
                 orig_log(comp, act, params, output, notes)
-                self._append_log(f"[{comp}] {act} – {output} ({notes})\n")
+                # Keep GUI log readable
+                self._append_log(f"[{comp}] {act} – {output}" + (f" ({notes})" if notes else "") + "\n")
 
-            exp.log_to_csv = patched  # type: ignore
+            exp.log_to_csv = patched  # type: ignore[attr-defined]
             exp.run_experiment()
 
             self._register_run(exp)
 
-            self._append_log("\nExperiment finished successfully.\n")
+            self._append_log("\nExperiment finished.\n")
             messagebox.showinfo("Done", "Experiment finished")
         except Exception as e:
             self._append_log(f"\n[ERROR] {e}\n")
             messagebox.showerror("Error", str(e))
 
-    # ────────────────────────── CONTROL BAR (ABOVE LOG)
+    # ────────────────────────── CONTROL BAR
     def _build_control_bar(self) -> None:
         frame = ttk.Frame(self)
         frame.pack(fill=tk.X, padx=10, pady=(4, 0))
 
-        # Big red emergency stop
         self.emergency_button = tk.Button(
             frame,
             text="EMERGENCY STOP",
@@ -702,55 +780,43 @@ class AutoZahrtGUI(tk.Tk):
         )
         self.emergency_button.pack(side=tk.LEFT, padx=(0, 10))
 
-        ttk.Button(frame, text="Open Status Log Plots", command=self._open_status_monitor)\
-            .pack(side=tk.LEFT, padx=5)
-
-        ttk.Button(frame, text="Open Live Device Status", command=self._open_live_device_status)\
-            .pack(side=tk.LEFT, padx=5)
-
-        ttk.Button(frame, text="Run History", command=self._show_run_history)\
-            .pack(side=tk.LEFT, padx=5)
+        ttk.Button(frame, text="Open Status Log Plots", command=self._open_status_monitor).pack(side=tk.LEFT, padx=5)
+        ttk.Button(frame, text="Open Live Device Status", command=self._open_live_device_status).pack(side=tk.LEFT, padx=5)
+        ttk.Button(frame, text="Run History", command=self._show_run_history).pack(side=tk.LEFT, padx=5)
 
     def _emergency_stop(self) -> None:
-        path = self.current_control_file_path or "control.txt"
+        path = self.current_instrument_control_file_path or self.instrument_control_entry.get().strip() or "instrument_control.txt"
         try:
             with open(path, "w", encoding="utf-8") as f:
                 f.write("False")
-            self._append_log(f"[CONTROL] Wrote 'False' to {path} (emergency stop requested).\n")
+            self._append_log(f"[CONTROL] Wrote 'False' to {path} (stop requested).\n")
             messagebox.showinfo("Emergency stop", f"Stop signal written to:\n{path}")
         except Exception as e:
             messagebox.showerror("Stop error", f"Could not write to control file:\n{e}")
 
     def _open_status_monitor(self) -> None:
-        """Open CSV plotting status monitor (graphs of flow rate & temperature over time)"""
         if not self.current_status_log_path:
-            return messagebox.showwarning(
-                "No status log",
-                "No status log file available yet. Start an experiment first."
-            )
+            return messagebox.showwarning("No status log", "No status log file available yet. Start an experiment first.")
+        if open_csv_status_monitor is None:
+            return messagebox.showwarning("Unavailable", "utils.status.open_status_monitor not found in this environment.")
         if self.status_window is None or not self.status_window.winfo_exists():
             self.status_window = open_csv_status_monitor(
                 self,
                 self.current_status_log_path,
                 self.instrument_types,
-                update_interval_ms=60_000,  # 1 min
+                update_interval_ms=60_000,
             )
         else:
             self.status_window.lift()
             self.status_window.focus_force()
 
     def _open_live_device_status(self) -> None:
-        """Open text-based live instrument status monitor"""
         if not self.current_experiment_instruments:
-            return messagebox.showwarning(
-                "No instruments",
-                "No active experiment with instruments. Start an experiment first."
-            )
+            return messagebox.showwarning("No instruments", "No active experiment with instruments. Start an experiment first.")
+        if open_live_status_monitor is None:
+            return messagebox.showwarning("Unavailable", "utils.status_monitor_gui.open_status_monitor not found.")
         if self.live_status_window is None or not self.live_status_window.winfo_exists():
-            self.live_status_window = open_live_status_monitor(
-                self.current_experiment_instruments,
-                interval=5  # Update every 5 seconds
-            )
+            self.live_status_window = open_live_status_monitor(self.current_experiment_instruments, interval=5)
         else:
             self.live_status_window.lift()
             self.live_status_window.focus_force()
@@ -766,7 +832,7 @@ class AutoZahrtGUI(tk.Tk):
     def _build_log_panel(self) -> None:
         frame = ttk.LabelFrame(self, text="Log output")
         frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=6)
-        self.log_text = scrolledtext.ScrolledText(frame, state="disabled", wrap="word", height=8)
+        self.log_text = scrolledtext.ScrolledText(frame, state="disabled", wrap="word", height=10)
         self.log_text.pack(fill=tk.BOTH, expand=True)
 
     def _append_log(self, text: str) -> None:
@@ -785,36 +851,30 @@ class AutoZahrtGUI(tk.Tk):
         left = ttk.Frame(frame)
         left.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        ttk.Label(left, text="Previous runs (this session & output folder):") \
-            .pack(anchor="w")
-
-        self.history_listbox = tk.Listbox(left, height=5)
+        ttk.Label(left, text="Previous runs (this session & output folder):").pack(anchor="w")
+        self.history_listbox = tk.Listbox(left, height=6)
         self.history_listbox.pack(fill=tk.BOTH, expand=True, padx=(0, 4), pady=4)
 
         right = ttk.Frame(frame)
         right.pack(side=tk.LEFT, fill=tk.Y)
 
-        ttk.Button(right, text="Refresh from output dir", command=self._refresh_history_from_fs)\
-            .pack(fill=tk.X, padx=4, pady=2)
-        ttk.Button(right, text="Open selected folder", command=self._open_selected_history)\
-            .pack(fill=tk.X, padx=4, pady=2)
+        ttk.Button(right, text="Refresh from output dir", command=self._refresh_history_from_fs).pack(fill=tk.X, padx=4, pady=2)
+        ttk.Button(right, text="Open selected folder", command=self._open_selected_history).pack(fill=tk.X, padx=4, pady=2)
 
-    def _register_run(self, exp: GeneralExperimentMethod) -> None:
+    def _register_run(self, exp: Any) -> None:
+        exp_dir = getattr(exp, "experiment_subdir", "")
         info = {
-            "experiment_dir": exp.experiment_subdir,
-            "status_log": exp.status_log_filename,
-            "log_csv": exp.log_filename,
+            "experiment_dir": exp_dir,
+            "status_log": getattr(exp, "status_log_filename", ""),
+            "log_csv": getattr(exp, "log_filename", ""),
         }
         self.run_history.append(info)
 
-        label = os.path.basename(exp.experiment_subdir)
+        label = os.path.basename(exp_dir) if exp_dir else "Run"
         ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         display = f"{ts} – {label}"
 
-        def _update():
-            self.history_listbox.insert(tk.END, display)
-
-        self.after(0, _update)
+        self.after(0, lambda: self.history_listbox.insert(tk.END, display))
 
     def _refresh_history_from_fs(self) -> None:
         root = self.output_entry.get().strip() or os.getcwd()
@@ -833,7 +893,7 @@ class AutoZahrtGUI(tk.Tk):
                 if not os.path.isdir(exp_dir):
                     continue
                 status_logs = glob.glob(os.path.join(exp_dir, "*_Status_Log.csv"))
-                main_logs = glob.glob(os.path.join(exp_dir, "*_AUTO_ZAHRT_Run.csv"))
+                main_logs = glob.glob(os.path.join(exp_dir, "*_AUTO_ZAHRT_Run*.csv"))
                 info = {
                     "experiment_dir": exp_dir,
                     "status_log": status_logs[0] if status_logs else "",
@@ -864,24 +924,16 @@ class AutoZahrtGUI(tk.Tk):
         except Exception as e:
             messagebox.showerror("Open error", f"Could not open folder:\n{e}")
 
-    # ────────────────────────── UV-VIS launcher
-    def _open_uvvis_gui(self) -> None:
-        try:
-            root = Path(__file__).resolve().parents[1]
-            gui_script = root / "UV_VIS_Detector" / "UV_VIS_platform_GUI.py"
-            if not gui_script.exists():
-                raise FileNotFoundError(f"{gui_script} not found")
-            subprocess.Popen([sys.executable, str(gui_script)])
-        except Exception as e:
-            messagebox.showerror("Launch error", f"Could not launch UV-Vis GUI:\n{e}")
 
-
-# ──────────────────────────────────────────────────────────────────────────────
-
-if __name__ == "__main__":
-    app = AutoZahrtGUI()
+def main():
+    """Main entry point for the AUTO_ZAHRT GUI application."""
     try:
         ttk.Style().theme_use("clam")
     except tk.TclError:
         pass
+    app = AutoZahrtGUI()
     app.mainloop()
+
+
+if __name__ == "__main__":
+    main()

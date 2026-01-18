@@ -1,3 +1,0 @@
-Time,Component,Action,Parameters,Output,Notes
-0.0,0,load_method,input=c:\Users\zahrtlab\AutoZahrt\Auto_Zahrt_v3\test_commands.csv,Loading input file: c:\Users\zahrtlab\AutoZahrt\Auto_Zahrt_v3\test_commands.csv,
-0.01,,,,Error: Experiment failed stopping exerpimentand closing connections to all instruments,

@@ -1,7 +1,0 @@
-Component,Action,Parameters,Notes,delay
-Temperature_1,set_temperature,"temp=10",Set temperature to 10°C,0.5
-Temperature_1,wait_convergence,"target_temp=10,tolerance=2,duration=120",Wait for 10°C ±2°C for 2min,0.5
-Temperature_1,set_temperature,"temp=25",Set temperature to 25°C,0.5
-Temperature_1,wait_convergence,"target_temp=25,tolerance=2,duration=120",Wait for 25°C ±2°C for 2min,0.5
-Temperature_1,set_temperature,"temp=20",Set temperature to 20°C,0.5
-Temperature_1,wait_convergence,"target_temp=20,tolerance=2,duration=120",Wait for 20°C ±2°C for 2min,0.5

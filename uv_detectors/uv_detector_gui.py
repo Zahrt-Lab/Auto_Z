@@ -1,3 +1,11 @@
+# ------------------------------------------------------------------------------
+# Software: AUTO_ZAHRT
+# Copyright: (C) 2026 by Professor Andrew Zahrt
+# This software is the intellectual property of Professor Andrew Zahrt
+# Contributions by graduate students Scott Laverty are acknowledged.
+# All rights reserved.
+# ------------------------------------------------------------------------------
+
 """
 Ocean Optics UV-Vis GUI (Tkinter)
 

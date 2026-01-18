@@ -1,7 +1,0 @@
-Time,Component,Action,Parameters,Output,Notes
-7.79,0,load_method,input=ender3_test_commands.csv,Loading input file: ender3_test_commands.csv,
-7.79,Ender3_Liquid_Handler_1,set_bedlayout,"bed=1,rack_layout=301",Setting bed 1 to bed layout 301,
-63.14,Ender3_Liquid_Handler_1,move_home,,Homing liquid handler,
-65.15,Ender3_Liquid_Handler_1,move_xy,"bed=1,well=1",Moving liquid handler needle up before moving xy coordinates: 245,
-65.54,Ender3_Liquid_Handler_1,move_xy,"bed=1,well=1",Moving liquid handler to bed 1 well 1,
-127.8,,,,Error: Experiment failed stopping exerpimentand closing connections to all instruments,

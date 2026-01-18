@@ -1,5 +1,0 @@
-Time,Component,Action,Parameters,Output,Notes
-0.01,0,load_method,input=c:\Users\zahrtlab\AutoZahrt\Auto_Zahrt_v3\test_commands.csv,Loading input file: c:\Users\zahrtlab\AutoZahrt\Auto_Zahrt_v3\test_commands.csv,
-0.01,Isametic_1,aspirate,flow_rate=1000;volume=500,Error: Device 'Isametic_1' not found,
-0.01,Isametic_1,dispense,flow_rate=1000;volume=500,Error: Device 'Isametic_1' not found,
-0.01,SYNC,wait_for_pumps,,All pumps finished,

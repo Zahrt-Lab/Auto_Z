@@ -31,6 +31,7 @@ import matplotlib.pyplot as plt
 is_py64 = sys.maxsize > 2**32
 
 # Candidate SDK paths (64-bit first if Python is 64-bit, else 32-bit first)
+# TODO : Need to update this to be more dynamic in the future for different computers
 candidates = [
     Path(r"C:\Program Files\Ocean Optics\OceanDirect SDK\Python"),
     Path(r"C:\Program Files (x86)\Ocean Optics\OceanDirect SDK\Python"),
@@ -38,15 +39,28 @@ candidates = [
 if not is_py64:
     candidates.reverse()
 
-for p in candidates:
-    if p.exists():
-        sys.path.append(str(p))
-        break
-else:
-    raise FileNotFoundError("OceanDirect SDK Python folder not found in Program Files or Program Files (x86).")
-
-from oceandirect.OceanDirectAPI import OceanDirectAPI, OceanDirectError
-
+# TODO : Need to make Ocean Optics SDK more dynamic in the future for different computers, should include it in the UV detector scripts
+'''
+'''
+#####################################################################################################################################
+# Try to import OceanDirect SDK - make it optional
+OceanDirectAPI = None
+OceanDirectError = None
+try:
+    for p in candidates:
+        if p.exists():
+            sys.path.append(str(p))
+            from oceandirect.OceanDirectAPI import OceanDirectAPI as _OceanDirectAPI
+            from oceandirect.OceanDirectAPI import OceanDirectError as _OceanDirectError
+            OceanDirectAPI = _OceanDirectAPI
+            OceanDirectError = _OceanDirectError
+            break
+    else:
+        # SDK not found - this is okay for systems without Ocean Optics hardware
+        print("Warning: OceanDirect SDK not found. Ocean Optics UV-Vis functionality will be limited.")
+except ImportError as e:
+    print(f"Warning: Could not import OceanDirect SDK: {e}. Ocean Optics UV-Vis functionality will be limited.")
+####################################################################################################################################
 #Object for Ocean Optics to connect to the rest of the platform
 class Ocean_Optics_UV_vis:
 
@@ -63,6 +77,10 @@ class Ocean_Optics_UV_vis:
         Wavelength to record during all the scans:param target_wavelength:
         Which file path to save it all to:param save_file_path:
         '''
+        # Check if SDK is available
+        if OceanDirectAPI is None:
+            raise RuntimeError("OceanDirect SDK is not available. Cannot initialize Ocean_Optics_UV_vis.")
+        
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.integration_time = int(integration_time)
@@ -145,6 +163,25 @@ class Ocean_Optics_UV_vis:
               - "averaged_spectrum": the averaged intensity spectrum,
 
     """
+
+    def connect(self):
+        self.initialize_Ocean_Optics_UV_VIS()
+        self.retrieve_Ocean_Optics_Model()
+        # Apply configured acquisition settings
+        self.set_number_of_scans(self.num_scans)
+        self.set_integration_time()
+
+    def status(self):
+        return {
+            "initialized": self.initialized,
+            "model": self.model,
+            "serial": self.serial,
+            "integration_time_us": self.integration_time,
+            "num_scans": self.num_scans,
+            "targets_nm": self.target_wavelengths,
+            "interval_s": self.measurement_interval,
+        }
+
     # Initialize and open the device
     def initialize_Ocean_Optics_UV_VIS(self):
         # Creates the instance of our ocean optics instance object
@@ -681,6 +718,10 @@ class Ocean_Optics_UV_vis:
         except Exception as e:
             print(f"Error checking convergence: {e}")
             return False
+        
+    def close(self):
+        self.close_device()
+
 
 '''
 od = OceanDirectAPI()

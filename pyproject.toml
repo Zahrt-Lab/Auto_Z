@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools>=65.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "auto-zahrt"
+version = "3.0.0"
+description = "Automated laboratory instrumentation control system for chemical experiments"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "Proprietary - All Rights Reserved"}
+authors = [
+    {name = "Professor Andrew Zahrt"},
+]
+keywords = ["automation", "chemistry", "laboratory", "instrumentation"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Chemistry",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+dependencies = [
+    "pandas>=2.0.0",
+    "pyserial>=3.5",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+]
+
+[project.scripts]
+auto-zahrt-gui = "methods.methods_gui:main"
+
+[tool.setuptools]
+packages = [
+    "components",
+    "liquid_handlers",
+    "liquid_handlers.ender3_liquid_handler",
+    "liquid_handlers.gx281",
+    "methods",
+    "pumps",
+    "pumps.isametic_pump",
+    "pumps.vici_m6_pump",
+    "syringe_pumps",
+    "syringe_pumps.phd_ultra_pumps",
+    "temperature_controller",
+    "temperature_controller.tc720",
+    "utils",
+    "uv_detectors",
+    "valves",
+    "valves.vici_valves",
+]
+
+[tool.setuptools.package-data]
+"*" = ["*.txt", "*.md"]

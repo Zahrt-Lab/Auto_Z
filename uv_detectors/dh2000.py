@@ -1,3 +1,17 @@
+# ------------------------------------------------------------------------------
+# Software: AUTO_ZAHRT
+# Copyright: (C) 2026 by Professor Andrew Zahrt
+# This software is the intellectual property of Professor Andrew Zahrt
+# Contributions by graduate students Scott Laverty are acknowledged.
+# All rights reserved.
+# ------------------------------------------------------------------------------
+
+'''
+Commands to control the DH2000 light source via Arduino TTL controller.
+- Enables calibration to be performed between experimental runs.
+- Allows us to turn on and off lamps to extend their lifetimes if any failures occur during the experiment. 
+'''
+
 import serial
 import time
 
@@ -69,7 +83,7 @@ class DH2000LightSource:
             line = self._readline_str()
             if line == "OK":
                 return
-        raise RuntimeError(f"Timed out waiting for OK after '{c}'")
+        raise RuntimeError(f"Timed out waiting for OK after '{command}' command")
 
     # --- public control ---
     def shutter_open(self):   self.dh2000_command("o", expect_ok=True)
@@ -110,38 +124,6 @@ class DH2000LightSource:
                 deut = _parse_bool(dh2000_component_status, "Deuterium")
 
         return {"shutter_open": shutter, "halogen_on": hal, "deuterium_on": deut, "arduino_output": dh2000_components_status}
-
-    # --- safety policies you requested ---
-    def ensure_success_state(self):
-        """
-        Success end-state: Halogen ON + Deuterium ON + Shutter OPEN.
-        Uses status lines to avoid wrong-direction toggles.
-        Retries up to self.retries.
-        """
-        last_error = None
-        for _ in range(self.retries):
-            try:
-                status = self.status()
-                # If parsing failed, it will try again for self.retries times
-                if status["halogen_on"] is None or status["deuterium_on"] is None or status["shutter_open"] is None:
-                    raise RuntimeError(f"Unparseable status: {status    ['arduino_output']}")
-
-                if not status["halogen_on"]:
-                    self.halogen_toggle()
-                if not status["deuterium_on"]:
-                    self.deuterium_toggle()
-                if not status["shutter_open"]:
-                    self.shutter_open()
-
-                # verify
-                st2 = self.status()
-                if st2["halogen_on"] and st2["deuterium_on"] and st2["shutter_open"]:
-                    return
-                raise RuntimeError(f"Did not reach success state. status={st2}")
-            except Exception as e:
-                last_err = e
-                time.sleep(0.25)
-        raise RuntimeError(f"ensure_success_state failed after {self.retries} attempts: {last_err}")
 
     def safe_shutdown(self):
         """

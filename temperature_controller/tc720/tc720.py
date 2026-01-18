@@ -156,7 +156,7 @@ class TC720(TemperatureController):
 
 
 
-
+'''
 # ============================== USAGE EXAMPLE ==============================
 if __name__ == "__main__":
     controller = TC720(name="TC-720 Temperature Controller", port='COM12', baudrate=230400, timeout=1)
@@ -169,3 +169,4 @@ if __name__ == "__main__":
         #print(f"Status: {status}")
     finally:
         controller.stop()
+'''
