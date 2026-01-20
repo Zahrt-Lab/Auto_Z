@@ -393,6 +393,8 @@ class AutoZahrtGUI(tk.Tk):
 
         self.instrument_types: Dict[str, str] = {}   # component -> InstrumentType
         self.components: list[str] = []
+        
+        self._updating_component = False  # Flag to prevent recursion
 
         self.current_status_log_path: Optional[str] = None
         self.current_instrument_control_file_path: str = "instrument_control.txt"
@@ -505,9 +507,17 @@ class AutoZahrtGUI(tk.Tk):
                     self.components.append("SYNC")
 
                 self.components.sort()
+                
+                # Temporarily unbind to prevent event firing
+                self.comp_cb.unbind("<<ComboboxSelected>>")
                 self.comp_cb["values"] = self.components
                 if self.components:
-                    self.comp_cb.current(0)
+                    self.comp_var.set(self.components[0])
+                # Rebind the event
+                self.comp_cb.bind("<<ComboboxSelected>>", self._on_component_change)
+                
+                # Now manually trigger the change
+                if self.components:
                     self._on_component_change()
         except Exception as e:
             messagebox.showerror("Instrument config error", str(e))
@@ -551,21 +561,45 @@ class AutoZahrtGUI(tk.Tk):
             return None
         return group_for_instrument_type(inst_type)
 
-    def _on_component_change(self, _=None) -> None:
-        comp = self.comp_var.get()
-        grp = self._group_for_component(comp)
-        if grp is None:
-            self.act_cb["values"] = []
-            self.act_var.set("")
-            self._rebuild_param_fields()
+    def _on_component_change(self, event=None) -> None:
+        if self._updating_component:  # Prevent recursion
             return
-        actions = ACTIONS_BY_GROUP.get(grp, [])
-        self.act_cb["values"] = actions
-        if actions:
-            self.act_cb.current(0)
-        self._rebuild_param_fields()
+        self._updating_component = True
+        try:
+            # When user selects from combobox, sync the StringVar
+            if event:
+                idx = self.comp_cb.current()
+                if idx >= 0:
+                    selected_value = self.comp_cb['values'][idx]
+                    self.comp_var.set(selected_value)
+            
+            comp = self.comp_var.get()
+            grp = self._group_for_component(comp)
+            
+            if grp is None:
+                self.act_cb["values"] = []
+                self.act_var.set("")
+                self._rebuild_param_fields()
+                return
+            
+            actions = ACTIONS_BY_GROUP.get(grp, [])
+            self.act_cb["values"] = actions
+            if actions:
+                self.act_var.set(actions[0])
+            else:
+                self.act_var.set("")
+            self._rebuild_param_fields()
+        finally:
+            self._updating_component = False
 
-    def _rebuild_param_fields(self, _=None) -> None:
+    def _rebuild_param_fields(self, event=None) -> None:
+        # When user selects from action combobox, sync the StringVar
+        if event:
+            idx = self.act_cb.current()
+            if idx >= 0:
+                selected_value = self.act_cb['values'][idx]
+                self.act_var.set(selected_value)
+        
         for w in self.param_frame.winfo_children():
             w.destroy()
         self.param_entries.clear()
