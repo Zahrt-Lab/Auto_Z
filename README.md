@@ -1,7 +1,7 @@
 # AUTO_ZAHRT v3.0
 
 Automated laboratory instrumentation control system for chemical experiments.
-
+![Workflow diagram](docs/AutoZahrt.png)
 ## Overview
 
 AUTO_ZAHRT is a comprehensive Python-based automation platform for controlling laboratory equipment including liquid handlers, pumps, valves, temperature controllers, and UV-Vis detectors. The system enables researchers to define complex experimental workflows through CSV-based method files and execute them with precise control and monitoring.
