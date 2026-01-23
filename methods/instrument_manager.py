@@ -19,6 +19,7 @@ from liquid_handlers.gx281.gx281 import GX281
 from liquid_handlers.ender3_liquid_handler.ender3_liquid_handler import Ender3LiquidHandler
 from pumps.vici_m6_pump.vici_m6_pump import VICI_M6_Pumps
 from pumps.isametic_pump.isametic_pump import IsmaticPump
+from pumps.tricontinental_c24000.tricontinental_c24000 import TricontinentalC24000
 from syringe_pumps.phd_ultra_pumps.phd_ultra_pumps import PhdUltraPump
 from valves.vici_valves.vici_valves import ViciValve
 from temperature_controller.tc720.tc720 import TC720
@@ -98,6 +99,8 @@ class InstrumentManager:
                     pass
             elif instrument_type == "Isametic":
                 obj = IsmaticPump(port=com_port, name=attr_name)
+            elif instrument_type == "Tricontinental_C24000":
+                obj = TricontinentalC24000(port=com_port, name=attr_name)
             elif instrument_type == "PhdUltraPump":
                 obj = PhdUltraPump(port=com_port, name=attr_name)
             # TODO current code only supports Vici valves, add other valve types as needed and make necessary changes to code

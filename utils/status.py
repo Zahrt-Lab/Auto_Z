@@ -17,7 +17,7 @@ from matplotlib.figure import Figure
 
 # Instrument group helpers (same logic as in main GUI)
 LIQUID_HANDLER_TYPES = {"GX281", "Ender3_Liquid_Handler"}
-PUMP_TYPES = {"VICI_M6_Pump", "Isametic", "PhdUltraPump"}
+PUMP_TYPES = {"VICI_M6_Pump", "Isametic", "PhdUltraPump", "Tricontinental_C24000"}
 VALVE_TYPES = {"Valve6Way", "Valve10Way", "Valve24Way"}
 TEMP_TYPES = {"Temperature"}
 

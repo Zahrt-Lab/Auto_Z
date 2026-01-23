@@ -262,7 +262,23 @@ PARAM_FIELDS: dict[tuple[str, str], list[tuple[str, str]]] = {
 }
 ```
 
-### Step 5: Update DeviceExecutor (if needed)
+### Step 5: Update Status Monitor Groupings (utils/status.py)
+
+The status monitoring system uses instrument type groupings to map instruments to their action categories. You must add your new instrument type to the appropriate set in `utils/status.py`:
+
+```python
+# utils/status.py
+
+# Instrument group helpers (same logic as in main GUI)
+LIQUID_HANDLER_TYPES = {"GX281", "Ender3_Liquid_Handler"}
+PUMP_TYPES = {"VICI_M6_Pump", "Isametic", "PhdUltraPump", "Tricontinental_C24000"}  # ← Add pump types here
+VALVE_TYPES = {"Valve6Way", "Valve10Way", "Valve24Way"}
+TEMP_TYPES = {"Temperature"}
+```
+
+**Important:** If this step is skipped, the GUI will not show any available actions when your instrument is selected in the component dropdown. The `group_for_instrument_type()` function in `utils/status.py` is imported by `methods_gui.py` and used to determine which actions to display.
+
+### Step 6: Update DeviceExecutor (if needed)
 
 **Most devices work with existing `execute_pump()`, `execute_valve()`, etc. methods in `device_executors.py`.**
 
@@ -285,7 +301,7 @@ def execute_pump(self, action, params, component, pump: Pump):
     # ... rest of existing code ...
 ```
 
-### Step 6: Create __init__.py (optional but recommended)
+### Step 7: Create __init__.py (optional but recommended)
 
 ```python
 # pumps/tricontinental_c24000/__init__.py
@@ -295,7 +311,7 @@ from .tricontinental_c24000 import TricontinentalC24000
 __all__ = ['TricontinentalC24000']
 ```
 
-### Step 7: Test Your Device
+### Step 8: Test Your Device
 
 **1. Create a test instrument configuration CSV:**
 

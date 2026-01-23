@@ -47,7 +47,7 @@ except Exception:
         # Fallback grouping if utils.status is unavailable
         if inst_type in ("GX281", "Ender3_Liquid_Handler"):
             return "LiquidHandler"
-        if inst_type in ("VICI_M6_Pump", "Isametic", "PhdUltraPump"):
+        if inst_type in ("VICI_M6_Pump", "Isametic", "PhdUltraPump", "Tricontinental_C24000"):
             return "Pump"
         if inst_type in ("Valve6Way", "Valve10Way", "Valve24Way"):
             return "Valve"
@@ -75,6 +75,7 @@ INSTRUMENT_CHOICES = [
     "Ender3_Liquid_Handler",
     "VICI_M6_Pump",
     "Isametic",
+    "Tricontinental_C24000",
     "PhdUltraPump",
     "Valve6Way",
     "Valve10Way",
@@ -95,6 +96,7 @@ DEFAULT_ROWS = [
     ("Temperature", "1", "Temperature",  "COM12", ""),
     ("DH2000",       "1", "DH2000",        "COM9",  ""),
     ("OceanOptics_UVVis", "1", "OceanOptics", "",   ""),
+    ("Tricontinental_C24000", "1", "Tricontinental", "COM5", "")
 ]
 
 
