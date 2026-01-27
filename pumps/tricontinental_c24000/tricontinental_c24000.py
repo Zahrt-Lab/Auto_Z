@@ -30,6 +30,7 @@ class TricontinentalC24000(Pump):
         self._connected = False
         self._pump_a_position = 0  # Track syringe A position
         self._pump_b_position = 0  # Track syringe B position
+        self.uL_per_count = 0.854 # Based on calibration 
 
     def connect(self) -> None:
         """Connect to the pump via serial port."""
@@ -113,7 +114,8 @@ class TricontinentalC24000(Pump):
     def _convert_flow_rate(self, ul_min: float) -> int:
         """Convert µL/min to device-specific rate units."""
         #todo: implement actual conversion based on device specs and calibration
-        output_speed = ul_min  # Placeholder conversion
+        uL_second = ul_min / 60
+        output_speed = uL_second / self.uL_per_count  # Convert to device units
         return int(output_speed)
     
     def _convert_volume(self, ul: float) -> int:
