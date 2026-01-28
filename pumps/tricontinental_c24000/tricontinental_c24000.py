@@ -38,11 +38,27 @@ class TricontinentalC24000(Pump):
             self.serial = serial.Serial(
                 port=self.port,
                 baudrate=self.baudrate,
-                timeout=2.0
+                timeout=5.0,        # Read timeout
+                write_timeout=5.0   # Write timeout
             )
-            time.sleep(0.5)  # Allow hardware to stabilize
+            
+            # Arduino resets on serial connect and sends startup messages
+            # Wait for it to finish booting and sending help/params (~3 seconds)
+            print(f"{self.name}: Waiting for Arduino to boot...")
+            time.sleep(3.0)
+            
+            # Read and discard all startup messages
+            startup_data = b""
+            while self.serial.in_waiting:
+                startup_data += self.serial.read(self.serial.in_waiting)
+                time.sleep(1)  # Small delay to let more data arrive
+            
+            if startup_data:
+                print(f"{self.name}: Cleared {len(startup_data)} bytes of startup data")
+            
             self._connected = True
             print(f"{self.name}: Connected on {self.port}")
+            
         except Exception as e:
             raise ConnectionError(f"Failed to connect to {self.name}: {e}")
         
@@ -51,27 +67,49 @@ class TricontinentalC24000(Pump):
         if not self._connected:
             raise RuntimeError(f"{self.name}: Not connected")
         
-        # Convert µL/min to device-specific units (example)
-        #device_rate = self._convert_flow_rate(flow_rate_ul_min)
-        #device_volume = self._convert_volume(volume_ul)
+        # Clear any pending data in buffer
+        if self.serial.in_waiting:
+            self.serial.read(self.serial.in_waiting)
+        
+        # Stop the pump before starting new command
+        self.stop()
+        print(f"{self.name}: Pump stopped before dispensing")
 
         # Set the flow rate
-        #self.set_flow_rate(device_rate)
+        device_rate = self._convert_flow_rate(flow_rate_ul_min)
+        cmd_rate = f"output_speed {device_rate}\n"
+        print(f"{self.name}: Setting flow rate with command: {cmd_rate.strip()}")
+        self.serial.write(cmd_rate.encode())
+        self.serial.flush()  # Ensure data is sent
+        time.sleep(1)  # Small delay to allow command processing
 
-        # Send hardware-specific command
-        # For the tricontinental pump, the command is start"
-        
-        cmd = f"start\n"
+        # Send the start command (the Arduino expects "start" followed by newline)
+        cmd = "start\n"
+        print(f"{self.name}: Sending command: {cmd.strip()}")
         self.serial.write(cmd.encode())
+        self.serial.flush()  # Ensure data is sent
+        time.sleep(1)  # Small delay to allow command processing
+        # Wait for and read response (Arduino will echo the command and print status)
+        time.sleep(1.0)  # Give Arduino time to process and respond
+        response = ""
+        timeout_count = 0
+        while timeout_count < 10:  # Try for up to 5 seconds
+            if self.serial.in_waiting:
+                response += self.serial.read(self.serial.in_waiting).decode(errors='ignore')
+                if "started" in response.lower() or "pumps started" in response.lower():
+                    break
+            time.sleep(1)
+            timeout_count += 1
         
-        # Wait for completion or response
-        # todo: implement proper response handling
-        response = self.serial.readline().decode().strip()
-        if "ERROR" in response:
+        print(f"{self.name}: Dispense response: {response.strip()}")
+        
+        if "ERROR" in response.upper():
             raise RuntimeError(f"{self.name}: Dispense failed - {response}")
-        
+        time.sleep(60) #to remove later. THis is just for testing purposes
+
     def aspirate(self, flow_rate_ul_min: float, volume_ul: float) -> None:
         """For the tricontinental pump, there is no aspirate function."""
+        print(f"{self.name}: Aspirate function not implemented for this pump model.")
         pass
 
     def set_flow_rate(self, flow_rate_ul_min: float) -> None:
@@ -85,27 +123,52 @@ class TricontinentalC24000(Pump):
 
     def stop(self) -> None:
         """Stop any ongoing pump operation."""
-        if not self._connected:
+        if not self._connected or not self.serial or not self.serial.is_open:
             return
         
-        cmd = "stop\r\n"
-        self.serial.write(cmd.encode())
-        print(f"{self.name}: Stopped")
+        try:
+            cmd = "stop\n"
+            self.serial.write(cmd.encode())
+            self.serial.flush()
+            time.sleep(1)
+            # Read any response
+            if self.serial.in_waiting:
+                self.serial.read(self.serial.in_waiting)
+            print(f"{self.name}: Stopped")
+        except Exception as e:
+            print(f"{self.name}: Error during stop: {e}")
 
     def status(self) -> str:
         """Return current pump status."""
         if not self._connected:
             return f"{self.name}: Not connected"
         
-        cmd = "status\r\n"
-        self.serial.write(cmd.encode())
-        response = self.serial.readline().decode().strip()
-        return f"{self.name}: {response}"
+        try:
+            # Clear buffer
+            if self.serial.in_waiting:
+                self.serial.read(self.serial.in_waiting)
+            
+            cmd = "status\n"
+            self.serial.write(cmd.encode())
+            self.serial.flush()
+            
+            # Wait for response
+            time.sleep(1)
+            response = ""
+            if self.serial.in_waiting:
+                response = self.serial.read(self.serial.in_waiting).decode(errors='ignore').strip()
+            
+            return f"{self.name}: {response}" if response else f"{self.name}: No response"
+        except Exception as e:
+            return f"{self.name}: Error getting status - {e}"
 
     def close(self) -> None:
         """Close serial connection."""
         if self.serial and self.serial.is_open:
-            self.stop()  # Ensure pump is stopped
+            try:
+                self.stop()  # Ensure pump is stopped
+            except Exception:
+                pass
             self.serial.close()
             self._connected = False
             print(f"{self.name}: Closed")
