@@ -14,7 +14,7 @@ import time
 class TricontinentalC24000(Pump):
     """Driver for Tricontinental C24000 Dual Syringe Pump."""
 
-    def __init__(self, port: str, baudrate: int = 9600, name: str = "Tricontinental_C24000"):
+    def __init__(self, port: str, baudrate: int = 115200, name: str = "Tricontinental_C24000"):
         """
         Initialize Tricontinental C24000 dual pump.
         
@@ -52,16 +52,16 @@ class TricontinentalC24000(Pump):
             raise RuntimeError(f"{self.name}: Not connected")
         
         # Convert µL/min to device-specific units (example)
-        device_rate = self._convert_flow_rate(flow_rate_ul_min)
-        device_volume = self._convert_volume(volume_ul)
+        #device_rate = self._convert_flow_rate(flow_rate_ul_min)
+        #device_volume = self._convert_volume(volume_ul)
 
         # Set the flow rate
-        self.set_flow_rate(device_rate)
+        #self.set_flow_rate(device_rate)
 
         # Send hardware-specific command
         # For the tricontinental pump, the command is start"
         
-        cmd = f"start\r\n"
+        cmd = f"start\n"
         self.serial.write(cmd.encode())
         
         # Wait for completion or response
