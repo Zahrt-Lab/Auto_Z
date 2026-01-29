@@ -12,7 +12,27 @@ import time
 
 
 class TricontinentalC24000(Pump):
-    """Driver for Tricontinental C24000 Dual Syringe Pump."""
+    """Driver for Tricontinental C24000 Dual Syringe Pump.
+    
+    Uses a VICI-style approach for volume control:
+    - Converts flow rate and volume to device-specific units
+    - Calculates pump time based on volume and flow rate
+    - Blocks until the calculated time has elapsed
+    - Stops the pump after completion
+    """
+
+    # Calibration values: maps flow_rate (µL/min) to counts_per_uL
+    # TODO: Populate with actual calibration data for your specific pump
+    CALIBRATION_VALUES = {
+        # flow_rate_ul_min: counts_per_uL
+        100: 9.37,      # Example calibration at 100 µL/min
+        200: 9.37,      # Example calibration at 200 µL/min
+        500: 9.37,      # Example calibration at 500 µL/min
+        1000: 9.37,     # Example calibration at 1000 µL/min
+        1500: 9.37,     # Example calibration at 1500 µL/min
+        2000: 9.37,     # Example calibration at 2000 µL/min
+    }
+    DEFAULT_COUNTS_PER_UL = 9.37  # Default if flow rate not in calibration table (1 / 0.10675)
 
     def __init__(self, port: str, baudrate: int = 115200, name: str = "Tricontinental_C24000"):
         """
@@ -30,7 +50,14 @@ class TricontinentalC24000(Pump):
         self._connected = False
         self._pump_a_position = 0  # Track syringe A position
         self._pump_b_position = 0  # Track syringe B position
-        self.uL_per_count = 0.854 # Based on calibration 
+        
+        # Calibration parameters
+        self.uL_per_count = 0.10675  # Based on calibration (µL dispensed per count)
+        self.counts_per_uL = 1 / self.uL_per_count  # ~9.37 counts per µL
+        
+        # Current operation state
+        self.flow_rate_ul_min = 0.0
+        self.flow_rate_ul_sec = 0.0 
 
     def connect(self) -> None:
         """Connect to the pump via serial port."""
@@ -63,9 +90,42 @@ class TricontinentalC24000(Pump):
             raise ConnectionError(f"Failed to connect to {self.name}: {e}")
         
     def dispense(self, flow_rate_ul_min: float, volume_ul: float) -> None:
-        """Dispense specified volume at specified flow rate."""
+        """Dispense specified volume at specified flow rate.
+        
+        Uses VICI-style approach:
+        1. Calculate the pump time based on volume and flow rate
+        2. Set the flow rate on the device
+        3. Start pumping
+        4. Wait for the calculated time + buffer
+        5. Stop the pump
+        
+        Args:
+            flow_rate_ul_min: Flow rate in µL/min
+            volume_ul: Volume to dispense in µL
+        """
         if not self._connected:
             raise RuntimeError(f"{self.name}: Not connected")
+        
+        if flow_rate_ul_min <= 0:
+            raise ValueError(f"{self.name}: Flow rate must be > 0, got {flow_rate_ul_min}")
+        if volume_ul <= 0:
+            raise ValueError(f"{self.name}: Volume must be > 0, got {volume_ul}")
+        
+        # Store current flow rate
+        self.flow_rate_ul_min = abs(flow_rate_ul_min)
+        self.flow_rate_ul_sec = self.flow_rate_ul_min / 60.0
+        
+        # Get calibration value for this flow rate (or use default)
+        self.counts_per_uL = self.CALIBRATION_VALUES.get(
+            self.flow_rate_ul_min, 
+            self.DEFAULT_COUNTS_PER_UL
+        )
+        
+        # Calculate pump time using helper function
+        pump_time_sec, total_wait_time = self._calculate_pump_time(volume_ul, self.flow_rate_ul_min)
+        
+        print(f"{self.name}: Dispensing {volume_ul} µL at {flow_rate_ul_min} µL/min")
+        print(f"{self.name}: Calculated pump time: {pump_time_sec:.2f} s (total wait: {total_wait_time:.2f} s)")
         
         # Clear any pending data in buffer
         if self.serial.in_waiting:
@@ -80,32 +140,39 @@ class TricontinentalC24000(Pump):
         cmd_rate = f"output_speed {device_rate}\n"
         print(f"{self.name}: Setting flow rate with command: {cmd_rate.strip()}")
         self.serial.write(cmd_rate.encode())
-        self.serial.flush()  # Ensure data is sent
-        time.sleep(1)  # Small delay to allow command processing
+        self.serial.flush()
+        time.sleep(0.5)  # Small delay to allow command processing
 
-        # Send the start command (the Arduino expects "start" followed by newline)
+        # Send the start command
         cmd = "start\n"
         print(f"{self.name}: Sending command: {cmd.strip()}")
         self.serial.write(cmd.encode())
-        self.serial.flush()  # Ensure data is sent
-        time.sleep(1)  # Small delay to allow command processing
-        # Wait for and read response (Arduino will echo the command and print status)
-        time.sleep(1.0)  # Give Arduino time to process and respond
+        self.serial.flush()
+        time.sleep(0.5)  # Small delay to allow command processing
+        
+        # Wait for confirmation that pump started
         response = ""
         timeout_count = 0
-        while timeout_count < 10:  # Try for up to 5 seconds
+        while timeout_count < 5:  # Try for up to 2.5 seconds
             if self.serial.in_waiting:
                 response += self.serial.read(self.serial.in_waiting).decode(errors='ignore')
                 if "started" in response.lower() or "pumps started" in response.lower():
                     break
-            time.sleep(1)
+            time.sleep(0.5)
             timeout_count += 1
         
         print(f"{self.name}: Dispense response: {response.strip()}")
         
         if "ERROR" in response.upper():
             raise RuntimeError(f"{self.name}: Dispense failed - {response}")
-        time.sleep(60) #to remove later. THis is just for testing purposes
+        
+        # Wait for the calculated pump time
+        print(f"{self.name}: Waiting {total_wait_time:.2f} s for dispense to complete...")
+        time.sleep(total_wait_time)
+        
+        # Stop the pump after dispensing
+        self.stop()
+        print(f"{self.name}: Dispense complete - {volume_ul} µL dispensed")
 
     def aspirate(self, flow_rate_ul_min: float, volume_ul: float) -> None:
         """For the tricontinental pump, there is no aspirate function."""
@@ -175,14 +242,72 @@ class TricontinentalC24000(Pump):
 
     # Helper methods (device-specific)
     def _convert_flow_rate(self, ul_min: float) -> int:
-        """Convert µL/min to device-specific rate units."""
-        #todo: implement actual conversion based on device specs and calibration
-        uL_second = ul_min / 60
-        output_speed = uL_second / self.uL_per_count  # Convert to device units
+        """Convert µL/min to device-specific rate units (counts/second).
+        
+        The device expects a speed in counts per second.
+        Formula: output_speed = (µL/sec) / (µL/count) = (µL/sec) * (counts/µL)
+        
+        Args:
+            ul_min: Flow rate in µL/min
+            
+        Returns:
+            Device speed in counts/second
+        """
+        # Get calibration value for this flow rate (or use default)
+        counts_per_uL = self.CALIBRATION_VALUES.get(
+            abs(ul_min), 
+            self.DEFAULT_COUNTS_PER_UL
+        )
+        
+        uL_per_second = abs(ul_min) / 60.0
+        output_speed = uL_per_second * counts_per_uL  # counts/second
+        
         return int(output_speed)
     
-    def _convert_volume(self, ul: float) -> int:
-        """Convert µL to device-specific volume units."""
-        # todo: implement actual conversion based on device specs and calibration
-        device_volume = ul  # Placeholder conversion
-        return int(device_volume)
+    def _convert_volume_to_counts(self, volume_ul: float) -> int:
+        """Convert µL to device-specific volume units (counts).
+        
+        Args:
+            volume_ul: Volume in µL
+            
+        Returns:
+            Volume in device counts
+        """
+        total_counts = abs(volume_ul) * self.counts_per_uL
+        return int(total_counts)
+    
+    def _calculate_pump_time(self, volume_ul: float, flow_rate_ul_min: float, buffer_sec: float = 2.0) -> tuple:
+        """Calculate the pump time based on volume and flow rate.
+        
+        Uses the formula: time = volume / (flow_rate / 60)
+        Similar to VICI M6 approach.
+        
+        Args:
+            volume_ul: Volume to pump in µL
+            flow_rate_ul_min: Flow rate in µL/min
+            buffer_sec: Safety buffer time in seconds (default 2.0)
+            
+        Returns:
+            Tuple of (pump_time_sec, total_wait_time) where:
+                - pump_time_sec: Raw calculated pump time in seconds
+                - total_wait_time: pump_time_sec + buffer_sec
+        """
+        if flow_rate_ul_min <= 0:
+            raise ValueError("Flow rate must be > 0")
+        if volume_ul <= 0:
+            raise ValueError("Volume must be > 0")
+        
+        flow_rate_ul_sec = abs(flow_rate_ul_min) / 60.0
+        pump_time_sec = abs(volume_ul) / flow_rate_ul_sec
+        total_wait_time = pump_time_sec + buffer_sec
+        
+        return pump_time_sec, total_wait_time
+    
+    def get_pump_parameters(self) -> None:
+        """Print current pump parameters (similar to VICI M6)."""
+        print(f"Pump parameters for {self.name}:")
+        print(f"  Flow rate: {self.flow_rate_ul_min} µL/min ({self.flow_rate_ul_sec:.4f} µL/sec)")
+        print(f"  µL per count: {self.uL_per_count}")
+        print(f"  Counts per µL: {self.counts_per_uL:.4f}")
+        print(f"  Connected: {self._connected}")
+        print(f"  Port: {self.port} @ {self.baudrate} baud")
