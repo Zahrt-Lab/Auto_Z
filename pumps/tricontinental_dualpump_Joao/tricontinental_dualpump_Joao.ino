@@ -24,11 +24,11 @@ static const uint16_t READ_TIMEOUT_MS = 1200;
 // ============================================================
 // Configurable pump parameters (set via Serial)  (NO String)
 // ============================================================
-static uint16_t param_initial_speed  = 6000;  // aspirate speed
-static uint32_t param_initial_volume = 24000; // stroke volume
-static uint16_t param_output_speed   = 1000;  // dispense speed
-static uint16_t param_input_speed    = 6000;  // refill speed
-static uint16_t param_jDispense      = 100;   // j-dispense threshold
+static uint16_t param_initial_speed  = 48000;  // aspirate speed
+static uint32_t param_initial_volume = 192000; // stroke volume
+static uint16_t param_output_speed   = 8000;  // dispense speed
+static uint16_t param_input_speed    = 48000;  // refill speed
+static uint16_t param_jDispense      = 800;   // j-dispense threshold
 
 // ============================================================
 // Command input buffer (NO String)
@@ -119,7 +119,7 @@ static void buildPumpAProgram_restart(char* buf, size_t bufSize,
                               uint16_t input_speed) {
   // Program A (from your previous sprintf, but with numbers + snprintf)
   snprintf(buf, bufSize,
-           "%sN192000J7V%uIA%luOV%uj%uA0IV%uA%luJ7OV%uj%ugH0A0IV%uA%luJ7OV%uj%uGR",
+           "%sN2J7V%uIA%luOV%uj%uA0IV%uA%luJ7OV%uj%ugH0A0IV%uA%luJ7OV%uj%uGR",
            eeprom_addr,
            (unsigned)initial_speed,
            (unsigned long)initial_volume,
@@ -144,7 +144,7 @@ static void buildPumpBProgram_restart(char* buf, size_t bufSize,
                               uint16_t input_speed) {
   // Program B (from your previous sprintf, but with numbers + snprintf)
   snprintf(buf, bufSize,
-           "%sJ7V%uIA%luOV%uj%ugH0A0IV%uA%luJ7OV%uj%uGR",
+           "%sN2J7V%uIA%luOV%uj%ugH0A0IV%uA%luJ7OV%uj%uGR",
            eeprom_addr,
            (unsigned)initial_speed,
            (unsigned long)initial_volume,
@@ -165,7 +165,7 @@ static void buildPumpAProgram(char* buf, size_t bufSize,
                               uint16_t input_speed) {
   // Program A (from your previous sprintf, but with numbers + snprintf)
   snprintf(buf, bufSize,
-           "%sJ7V%uOV%uj%uA0IV%uA%luJ7OV%uj%ugH0A0IV%uA%luJ7OV%uj%uGR",
+           "%sN2J7V%uOV%uj%uA0IV%uA%luJ7OV%uj%ugH0A0IV%uA%luJ7OV%uj%uGR",
            eeprom_addr,
            (unsigned)initial_speed,
            (unsigned)output_speed,
@@ -189,7 +189,7 @@ static void buildPumpBProgram(char* buf, size_t bufSize,
                               uint16_t input_speed) {
   // Program B (from your previous sprintf, but with numbers + snprintf)
   snprintf(buf, bufSize,
-           "%sJ7V%uIA%luOV%uj%ugH0A0IV%uA%luJ7OV%uj%uGR",
+           "%sN2J7V%uIA%luOV%uj%ugH0A0IV%uA%luJ7OV%uj%uGR",
            eeprom_addr,
            (unsigned)initial_speed,
            (unsigned long) initial_volume,
