@@ -24,10 +24,10 @@ static const uint16_t READ_TIMEOUT_MS = 1200;
 // ============================================================
 // Configurable pump parameters (set via Serial)  (NO String)
 // ============================================================
-static uint16_t param_initial_speed  = 48000;  // aspirate speed
+static uint16_t param_initial_speed  = 8000;  // aspirate speed
 static uint32_t param_initial_volume = 192000; // stroke volume
-static uint16_t param_output_speed   = 8000;  // dispense speed
-static uint16_t param_input_speed    = 48000;  // refill speed
+static uint16_t param_output_speed   = 4000;  // dispense speed
+static uint16_t param_input_speed    = 8000;  // refill speed
 static uint16_t param_jDispense      = 800;   // j-dispense threshold
 
 // ============================================================
@@ -68,6 +68,7 @@ static void sendDT(const char* addr, const char* core) {
   pumpBus.print(addr);
   pumpBus.print(core);
   pumpBus.print('\r');
+  pumpBus.flush();     // <-- ensure bytes are out while still TX
   rs485_set_rx();
 }
 
@@ -201,6 +202,71 @@ static void buildPumpBProgram(char* buf, size_t bufSize,
            (unsigned)jDispense_val);
 }
 
+static void buildCustomProgram(char* buf, size_t bufSize,
+                               const char* eeprom_addr,
+                               const char* program_body) {
+  snprintf(buf, bufSize, "%s%s", eeprom_addr, program_body);
+}
+
+// ============================================================
+//Store command variables parsing
+
+static const char* addrFromSelector(char sel) {
+  sel = (char)toupper((unsigned char)sel);
+  if (sel == 'A') return PUMP_A_ADDR;
+  if (sel == 'B') return PUMP_B_ADDR;
+  return nullptr; // invalid
+}
+
+// Returns pointer to first non-space after the nth token.
+// Example: line="store A s0N2J7..." -> restAfterToken(line, 2) points at "s0N2J7..."
+static char* restAfterToken(char* line, int tokenIndex) {
+  // tokenIndex = 0 means start of line; tokenIndex = 1 means after first token, etc.
+  char* p = line;
+  int t = 0;
+
+  // Skip leading spaces
+  while (*p == ' ' || *p == '\t') p++;
+
+  while (*p && t < tokenIndex) {
+    // Skip current token
+    while (*p && *p != ' ' && *p != '\t') p++;
+    // Skip spaces
+    while (*p == ' ' || *p == '\t') p++;
+    t++;
+  }
+  return (*p) ? p : nullptr;
+}
+
+// ============================================================
+// Send comands to pump
+
+static void cmd_send(char* line) {
+  // line starts with "send ..."
+  char* pSel = restAfterToken(line, 1);   // token 1 = selector
+  char* pCore = restAfterToken(line, 2);  // token 2 = core
+
+  if (!pSel || !pCore || !*pSel || !*pCore) {
+    Serial.println(F("Usage: send <A|B|*> <core>   e.g. send A Q"));
+    return;
+  }
+
+  char sel = pSel[0];
+  if (sel == '*') {
+    sendAndPrint(F("SEND A"), PUMP_A_ADDR, pCore, 1500);
+    sendAndPrint(F("SEND B"), PUMP_B_ADDR, pCore, 1500);
+    return;
+  }
+
+  const char* addr = addrFromSelector(sel);
+  if (!addr) {
+    Serial.println(F("Bad pump selector. Use A, B, or *."));
+    return;
+  }
+
+  sendAndPrint(F("SEND"), addr, pCore, 1500);
+}
+
 // ============================================================
 // UI printing (all strings in FLASH using F())
 // ============================================================
@@ -226,6 +292,7 @@ static void printHelp() {
   Serial.println(F("  initialize              - Send Z (home) once to both pumps (do this only when needed)"));
   Serial.println(F("  start                   - Program and run both pumps"));
   Serial.println(F("  restart                 - Program and run both pumps with initial refill"));
+  Serial.println(F("  send <A|B|*> <core>     - Send raw DT command core (e.g. send A Q, send * ZR)"));
   Serial.println(F("  stop                    - Stop both pumps"));
   Serial.println(F("  status                  - Query pump status"));
   Serial.println(F("  help                    - Show this help"));
@@ -363,6 +430,11 @@ void loop() {
       Serial.println(F("Bad value. Example: jDispense 100"));
     }
   }
+  // --- Send custom command ---
+  else if (startsWith(inputBuf, "send ")) {
+  cmd_send(inputBuf);
+  }  
+
   // --- Show current parameters ---
   else if (strcmp(inputBuf, "params") == 0) {
     printCurrentParams();
