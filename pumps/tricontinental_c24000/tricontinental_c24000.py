@@ -119,20 +119,20 @@ class TricontinentalC24000(Pump):
             elif "INIT_DONE" in response:
                 time.sleep(40)  # ensure pumps are ready after init
                 print(f"{self.name}: Initialization completed successfully.")
-                print(f"{self.name}: Refilling pump A with initial refill...")
-                fill_a_cmd = "fill_A\n"
-                self.serial.write(fill_a_cmd.encode())
+                print(f"{self.name}: Refilling pump B with initial refill...")
+                fill_b_cmd = "fill_B\n"
+                self.serial.write(fill_b_cmd.encode())
                 time.sleep(40)  # Wait for the refill command to complete
                 response = ""
                 if self.serial.in_waiting:
                     response = self.serial.read(self.serial.in_waiting).decode(errors='ignore').strip()
-                print(f"{self.name}: Fill A command response: {response}")
+                print(f"{self.name}: Fill B command response: {response}")
                 
                 if "ERROR" in response.upper():
-                    raise RuntimeError(f"{self.name}: Fill A failed - {response}")
+                    raise RuntimeError(f"{self.name}: Fill B failed - {response}")
                 else:
                     time.sleep(40)  # Wait for the refill command to complete
-                    print(f"{self.name}: Pump A filled with initial refill successfully.")
+                    print(f"{self.name}: Pump B filled with initial refill successfully.")
                 
             else:
                 print(f"{self.name}: Unexpected initialization response: {response}")
