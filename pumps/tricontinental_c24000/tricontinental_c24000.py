@@ -130,6 +130,7 @@ class TricontinentalC24000(Pump):
                 
                 if "ERROR" in response.upper():
                     raise RuntimeError(f"{self.name}: Fill B failed - {response}")
+                
                 else:
                     time.sleep(40)  # Wait for the refill command to complete
                     print(f"{self.name}: Pump B filled with initial refill successfully.")
