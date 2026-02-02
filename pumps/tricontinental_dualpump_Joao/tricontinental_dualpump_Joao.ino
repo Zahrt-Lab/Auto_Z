@@ -292,6 +292,7 @@ static void printHelp() {
   Serial.println(F("  initialize              - Send Z (home) once to both pumps (do this only when needed)"));
   Serial.println(F("  start                   - Program and run both pumps"));
   Serial.println(F("  fill_A                  - Fill pump A only with initial refill"));
+  Serial.println(F("  fill_B                  - Fill pump B only with initial refill"));
   Serial.println(F("  restart                 - Program and run both pumps with initial refill"));
   Serial.println(F("  send <A|B|*> <core>     - Send raw DT command core (e.g. send A Q, send * ZR)"));
   Serial.println(F("  stop                    - Stop both pumps"));
@@ -560,6 +561,12 @@ void loop() {
     sendAndPrint(F("FILL A"), PUMP_A_ADDR, "N2V8000IA192000R", 2000); // Example command, adjust as needed
     Serial.println(F("Pump A filled with initial refill."));
   }
+
+  else if (strcmp(inputBuf, "fill_B") == 0) {
+    Serial.println(F("Filling pump B with initial refill..."));
+    // Send command to pump B to perform initial refill
+    sendAndPrint(F("FILL B"), PUMP_B_ADDR, "N2V8000IA192000R", 2000); // Example command, adjust as needed
+    Serial.println(F("Pump B filled with initial refill."));
 
     // --- Initialization status ---
   else if (strcmp(inputBuf, "init_status") == 0) {
