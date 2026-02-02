@@ -291,10 +291,12 @@ static void printHelp() {
   Serial.println(F("  params                  - Show current parameters"));
   Serial.println(F("  initialize              - Send Z (home) once to both pumps (do this only when needed)"));
   Serial.println(F("  start                   - Program and run both pumps"));
+  Serial.println(F("  fill_A                  - Fill pump A only with initial refill"));
   Serial.println(F("  restart                 - Program and run both pumps with initial refill"));
   Serial.println(F("  send <A|B|*> <core>     - Send raw DT command core (e.g. send A Q, send * ZR)"));
   Serial.println(F("  stop                    - Stop both pumps"));
   Serial.println(F("  status                  - Query pump status"));
+  Serial.println(F("  init_status             - Query the initialization status. It prints 0 if not initialized; 1 if initialized"));
   Serial.println(F("  help                    - Show this help"));
   Serial.println(F("==========================="));
 }
@@ -356,6 +358,20 @@ static bool readLineFromSerial() {
 }
 
 // ============================================================
+// Init status code
+
+static int parseInitFlagFromReply(const char* rep) {
+  // Returns 0 or 1 if found, -1 if unknown
+  const char* p0 = strchr(rep, '`');   // backtick character
+  if (!p0) return -1;
+  char c = *(p0 + 1);
+  if (c == '0') return 0;
+  if (c == '1') return 1;
+  return -1;
+}
+// ============================================================
+
+// ============================================================
 // Main
 // ============================================================
 
@@ -367,7 +383,7 @@ void setup() {
   Serial.begin(115200);
   pumpBus.begin(PUMP_BAUD);
 
-  Serial.println(F("Programming C3000 dual-pump continuous flow"));
+  Serial.println(F("Programming C24000 dual-pump continuous flow"));
   Serial.println(F("Arduino set up complete. Type 'help' for commands."));
   printHelp();
   printCurrentParams();
@@ -443,9 +459,10 @@ void loop() {
   else if (strcmp(inputBuf, "initialize") == 0) {
     Serial.println(F("Initializing both pumps (mechanical home)..."));
     // Use ZR so you get a reply back
-    sendAndPrint(F("INIT A"), PUMP_A_ADDR, "ZR", 2500);
-    sendAndPrint(F("INIT B"), PUMP_B_ADDR, "ZR", 2500);
+    sendAndPrint(F("INIT A"), PUMP_A_ADDR, "N2YZR", 2500);
+    sendAndPrint(F("INIT B"), PUMP_B_ADDR, "N2YZR", 2500);
     Serial.println(F("Initialization done. (This homed plunger + valve.)"));
+    Serial.println(F("INIT_DONE"));
   }
   // --- Help ---
   else if (strcmp(inputBuf, "help") == 0) {
@@ -536,6 +553,42 @@ void loop() {
     sendAndPrint(F("RUN A"), PUMP_A_ADDR, "e0R", 800);
 
     Serial.println(F("Pumps started with initial refill! Use 'status' to check or 'stop' to halt."));
+  }
+  else if (strcmp(inputBuf, "fill_A") == 0) {
+    Serial.println(F("Filling pump A with initial refill..."));
+    // Send command to pump A to perform initial refill
+    sendAndPrint(F("FILL A"), PUMP_A_ADDR, "N2V8000IA192000R", 2000); // Example command, adjust as needed
+    Serial.println(F("Pump A filled with initial refill."));
+  }
+
+    // --- Initialization status ---
+  else if (strcmp(inputBuf, "init_status") == 0) {
+    // Query pump A
+    sendDT(PUMP_A_ADDR, "?19");
+    const char* repA = readReply(1500);
+    int a = parseInitFlagFromReply(repA);
+
+    // Query pump B
+    sendDT(PUMP_B_ADDR, "?19");
+    const char* repB = readReply(1500);
+    int b = parseInitFlagFromReply(repB);
+
+    // Optional debug: show raw + hex
+    Serial.print(F("INIT_A_RAW: ")); Serial.println(repA);
+    //printHexLine("INIT_A_HEX:", repA);
+    Serial.print(F("INIT_B_RAW: ")); Serial.println(repB);
+    //printHexLine("INIT_B_HEX:", repB);
+
+    // Clean machine-readable one-liner for Python
+    Serial.print(F("INIT_STATUS A="));
+    Serial.print(a);
+    Serial.print(F(" B="));
+    Serial.println(b);
+
+    // If either is unknown, also emit an error marker
+    if (a < 0 || b < 0) {
+      Serial.println(F("INIT_STATUS_ERROR"));
+    }
   }
 
   // --- Status ---
