@@ -6,6 +6,8 @@
 # All rights reserved.
 # ------------------------------------------------------------------------------
 
+from pyparsing import line
+from pyparsing import line
 from pumps.pumps import Pump
 import serial
 import time
@@ -78,7 +80,7 @@ class TricontinentalC24000(Pump):
             startup_data = b""
             while self.serial.in_waiting:
                 startup_data += self.serial.read(self.serial.in_waiting)
-                time.sleep(1)  # Small delay to let more data arrive
+                time.sleep(2)  # Small delay to let more data arrive
             
             if startup_data:
                 print(f"{self.name}: Cleared {len(startup_data)} bytes of startup data")
@@ -88,6 +90,59 @@ class TricontinentalC24000(Pump):
             
         except Exception as e:
             raise ConnectionError(f"Failed to connect to {self.name}: {e}")
+        
+        init_status_cmd = "init_status\n"
+        self.serial.write(init_status_cmd.encode())
+        time.sleep(5)  # Wait for response
+        response = ""
+        if self.serial.in_waiting:
+            response = self.serial.read(self.serial.in_waiting).decode(errors='ignore').strip()
+        # parse "INIT_STATUS A=1 B=0"
+        parts = dict(item.split("=") for item in response.split() if "=" in item)
+        a = int(parts["A"])
+        b = int(parts["B"])
+        print(f"{self.name}: Initialization status - Pump A: {a}, Pump B: {b}")
+
+        # Initialize pumps if not already initialized
+        if a == 0 or b == 0:
+            print(f"{self.name}: Pumps not initialized. Initializing pumps...")
+            initialization_cmd = "initialize \n"
+            self.serial.write(initialization_cmd.encode())
+            # Listen to response, but not time based, wait for arduino response
+            time.sleep(10)
+            response = ""
+            if self.serial.in_waiting:
+                response = self.serial.read(self.serial.in_waiting).decode(errors='ignore').strip()
+            print(f"{self.name}: Initialization command response: {response}")
+            if "INIT_STATUS_ERROR" in response.upper():
+                raise RuntimeError(f"{self.name}: Initialization failed - {response}")
+            elif "INIT_DONE" in response:
+                time.sleep(40)  # ensure pumps are ready after init
+                print(f"{self.name}: Initialization completed successfully.")
+                print(f"{self.name}: Refilling pump A with initial refill...")
+                fill_a_cmd = "fill_A\n"
+                self.serial.write(fill_a_cmd.encode())
+                time.sleep(40)  # Wait for the refill command to complete
+                response = ""
+                if self.serial.in_waiting:
+                    response = self.serial.read(self.serial.in_waiting).decode(errors='ignore').strip()
+                print(f"{self.name}: Fill A command response: {response}")
+                
+                if "ERROR" in response.upper():
+                    raise RuntimeError(f"{self.name}: Fill A failed - {response}")
+                else:
+                    time.sleep(40)  # Wait for the refill command to complete
+                    print(f"{self.name}: Pump A filled with initial refill successfully.")
+                
+            else:
+                print(f"{self.name}: Unexpected initialization response: {response}")
+            
+        elif a == 1 and b == 1:
+            print(f"{self.name}: Pumps already initialized.")
+
+        else:
+            print(f"{self.name}: Unknown initialization status: {response}")
+
         
     def dispense(self, flow_rate_ul_min: float, volume_ul: float) -> None:
         """Dispense specified volume at specified flow rate.
@@ -134,6 +189,8 @@ class TricontinentalC24000(Pump):
         # Stop the pump before starting new command
         self.stop()
         print(f"{self.name}: Pump stopped before dispensing")
+        self.serial.flush()
+        time.sleep(2)  # Small delay to ensure pump is stopped
 
         # Set the flow rate
         device_rate = self._convert_flow_rate(flow_rate_ul_min)
@@ -141,14 +198,14 @@ class TricontinentalC24000(Pump):
         print(f"{self.name}: Setting flow rate with command: {cmd_rate.strip()}")
         self.serial.write(cmd_rate.encode())
         self.serial.flush()
-        time.sleep(0.5)  # Small delay to allow command processing
+        time.sleep(2)  # Small delay to allow command processing
 
         # Send the start command
         cmd = "start\n"
         print(f"{self.name}: Sending command: {cmd.strip()}")
         self.serial.write(cmd.encode())
         self.serial.flush()
-        time.sleep(0.5)  # Small delay to allow command processing
+        time.sleep(2)  # Small delay to allow command processing
         
         # Wait for confirmation that pump started
         response = ""
@@ -158,7 +215,7 @@ class TricontinentalC24000(Pump):
                 response += self.serial.read(self.serial.in_waiting).decode(errors='ignore')
                 if "started" in response.lower() or "pumps started" in response.lower():
                     break
-            time.sleep(0.5)
+            time.sleep(2)
             timeout_count += 1
         
         print(f"{self.name}: Dispense response: {response.strip()}")
@@ -220,7 +277,7 @@ class TricontinentalC24000(Pump):
             self.serial.flush()
             
             # Wait for response
-            time.sleep(1)
+            time.sleep(2)
             response = ""
             if self.serial.in_waiting:
                 response = self.serial.read(self.serial.in_waiting).decode(errors='ignore').strip()
