@@ -567,7 +567,7 @@ void loop() {
     // Send command to pump B to perform initial refill
     sendAndPrint(F("FILL B"), PUMP_B_ADDR, "N2V8000IA192000R", 2000); // Example command, adjust as needed
     Serial.println(F("Pump B filled with initial refill."));
-
+  }
     // --- Initialization status ---
   else if (strcmp(inputBuf, "init_status") == 0) {
     // Query pump A
