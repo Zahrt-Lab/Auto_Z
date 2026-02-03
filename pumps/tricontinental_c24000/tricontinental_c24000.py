@@ -117,11 +117,13 @@ class TricontinentalC24000(Pump):
             if "INIT_STATUS_ERROR" in response.upper():
                 raise RuntimeError(f"{self.name}: Initialization failed - {response}")
             elif "INIT_DONE" in response:
+                # TODO : 40 seconds is quite long, is it necessary to wait this long
                 time.sleep(40)  # ensure pumps are ready after init
                 print(f"{self.name}: Initialization completed successfully.")
                 print(f"{self.name}: Refilling pump B with initial refill...")
                 fill_b_cmd = "fill_B\n"
                 self.serial.write(fill_b_cmd.encode())
+                # TODO : 40 seconds is quite long, is it necessary to wait this long
                 time.sleep(40)  # Wait for the refill command to complete
                 response = ""
                 if self.serial.in_waiting:
@@ -132,6 +134,7 @@ class TricontinentalC24000(Pump):
                     raise RuntimeError(f"{self.name}: Fill B failed - {response}")
                 
                 else:
+                    # TODO : 40 seconds is quite long, is it necessary to wait this long
                     time.sleep(40)  # Wait for the refill command to complete
                     print(f"{self.name}: Pump B filled with initial refill successfully.")
                 
@@ -169,6 +172,7 @@ class TricontinentalC24000(Pump):
         
         # Store current flow rate
         self.flow_rate_ul_min = abs(flow_rate_ul_min)
+        # TODO : Does self.flow_rate_ul_sec be set to abs() if self.flow_rate_ul_min is set to absolute?
         self.flow_rate_ul_sec = self.flow_rate_ul_min / 60.0
         
         # Get calibration value for this flow rate (or use default)
@@ -318,6 +322,7 @@ class TricontinentalC24000(Pump):
         )
         
         uL_per_second = abs(ul_min) / 60.0
+        # TODO : Does the manual call it output_speed, is their a more descriptive name to give this variable?
         output_speed = uL_per_second * counts_per_uL  # counts/second
         
         return int(output_speed)
@@ -331,6 +336,7 @@ class TricontinentalC24000(Pump):
         Returns:
             Volume in device counts
         """
+        # TODO : Is there a more descriptive name we can use besides total_counts for this part
         total_counts = abs(volume_ul) * self.counts_per_uL
         return int(total_counts)
     
