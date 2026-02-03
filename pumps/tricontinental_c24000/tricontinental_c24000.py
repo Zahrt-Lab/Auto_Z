@@ -25,6 +25,7 @@ class TricontinentalC24000(Pump):
 
     # Calibration values: maps flow_rate (µL/min) to counts_per_uL
     # TODO: Populate with actual calibration data for your specific pump
+    # TODO: Should make the calibration function necessary in the pumps.py but that can be in a future develops version, not urgent
     CALIBRATION_VALUES = {
         # flow_rate_ul_min: counts_per_uL
         100: 15.6835,      # Example calibration at 100 µL/min
