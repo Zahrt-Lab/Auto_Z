@@ -9,6 +9,7 @@
 from pyparsing import line
 from pyparsing import line
 from pumps.pumps import Pump
+from pumps.tricontinental_c24000 import tricont_pyserial as tri
 import serial
 import time
 
@@ -37,7 +38,7 @@ class TricontinentalC24000(Pump):
     }
     DEFAULT_COUNTS_PER_UL = 15.6835  # Default if flow rate not in calibration table (1 / 0.10675)
 
-    def __init__(self, port: str, baudrate: int = 115200, name: str = "Tricontinental_C24000"):
+    def __init__(self, port: str, baudrate: int = 9600, name: str = "Tricontinental_C24000"):
         """
         Initialize Tricontinental C24000 dual pump.
         
@@ -65,17 +66,9 @@ class TricontinentalC24000(Pump):
     def connect(self) -> None:
         """Connect to the pump via serial port."""
         try:
-            self.serial = serial.Serial(
-                port=self.port,
-                baudrate=self.baudrate,
-                timeout=5.0,        # Read timeout
-                write_timeout=5.0   # Write timeout
-            )
+            self.serial = tri.connect(port=self.port, baudrate=self.baudrate)
             
-            # Arduino resets on serial connect and sends startup messages
-            # Wait for it to finish booting and sending help/params (~3 seconds)
-            print(f"{self.name}: Waiting for Arduino to boot...")
-            time.sleep(3.0)
+            time.sleep(2)  # Wait for pump to initialize
             
             # Read and discard all startup messages
             startup_data = b""
@@ -92,62 +85,30 @@ class TricontinentalC24000(Pump):
         except Exception as e:
             raise ConnectionError(f"Failed to connect to {self.name}: {e}")
         
-        init_status_cmd = "init_status\n"
-        self.serial.write(init_status_cmd.encode())
-        time.sleep(5)  # Wait for response
-        response = ""
-        if self.serial.in_waiting:
-            response = self.serial.read(self.serial.in_waiting).decode(errors='ignore').strip()
-        # parse "INIT_STATUS A=1 B=0"
-        parts = dict(item.split("=") for item in response.split() if "=" in item)
-        a = int(parts["A"])
-        b = int(parts["B"])
-        print(f"{self.name}: Initialization status - Pump A: {a}, Pump B: {b}")
-
-        # Initialize pumps if not already initialized
-        if a == 0 or b == 0:
-            print(f"{self.name}: Pumps not initialized. Initializing pumps...")
-            initialization_cmd = "initialize \n"
-            self.serial.write(initialization_cmd.encode())
-            # Listen to response, but not time based, wait for arduino response
-            time.sleep(10)
-            response = ""
-            if self.serial.in_waiting:
-                response = self.serial.read(self.serial.in_waiting).decode(errors='ignore').strip()
-            print(f"{self.name}: Initialization command response: {response}")
-            if "INIT_STATUS_ERROR" in response.upper():
-                raise RuntimeError(f"{self.name}: Initialization failed - {response}")
-            elif "INIT_DONE" in response:
-                # TODO : 40 seconds is quite long, is it necessary to wait this long
-                time.sleep(40)  # ensure pumps are ready after init
-                print(f"{self.name}: Initialization completed successfully.")
-                print(f"{self.name}: Refilling pump B with initial refill...")
-                fill_b_cmd = "fill_B\n"
-                self.serial.write(fill_b_cmd.encode())
-                # TODO : 40 seconds is quite long, is it necessary to wait this long
-                time.sleep(40)  # Wait for the refill command to complete
-                response = ""
-                if self.serial.in_waiting:
-                    response = self.serial.read(self.serial.in_waiting).decode(errors='ignore').strip()
-                print(f"{self.name}: Fill B command response: {response}")
-                
-                if "ERROR" in response.upper():
-                    raise RuntimeError(f"{self.name}: Fill B failed - {response}")
-                
-                else:
-                    # TODO : 40 seconds is quite long, is it necessary to wait this long
-                    time.sleep(40)  # Wait for the refill command to complete
-                    print(f"{self.name}: Pump B filled with initial refill successfully.")
-                
-            else:
-                print(f"{self.name}: Unexpected initialization response: {response}")
-            
-        elif a == 1 and b == 1:
-            print(f"{self.name}: Pumps already initialized.")
-
+        # Check initialization status
+        print(f"{self.name}: Checking pump initialization status...")
+        is_A_initialized = tri.is_initialized(self.serial, pump="A")
+        is_B_initialized = tri.is_initialized(self.serial, pump="B")
+        
+        if is_A_initialized is None or is_B_initialized is None:
+            raise RuntimeError(f"{self.name}: Failed to get initialization status. Are the pumps connected?")
+        
+        if is_A_initialized:
+            print(f"{self.name}: Pump A is already initialized.")
         else:
-            print(f"{self.name}: Unknown initialization status: {response}")
+            print(f"{self.name}: Pump A is not initialized.")
+            print(f"{self.name}: Initializing Pump A...")
+            tri.initialize_pump(self.serial, pump="A")        
+        if is_B_initialized:
+            print(f"{self.name}: Pump B is already initialized.")
+        else:
+            print(f"{self.name}: Pump B is not initialized.")
+            print(f"{self.name}: Initializing Pump B...")
+            tri.initialize_pump(self.serial, pump="B")
 
+        tri.check_until_initialized(self.serial, pump="A")
+        tri.check_until_initialized(self.serial, pump="B")
+        print(f"{self.name}: Both pumps initialized successfully.")
         
     def dispense(self, flow_rate_ul_min: float, volume_ul: float) -> None:
         """Dispense specified volume at specified flow rate.
@@ -199,40 +160,32 @@ class TricontinentalC24000(Pump):
         time.sleep(2)  # Small delay to ensure pump is stopped
 
         # Set the flow rate
-        device_rate = self._convert_flow_rate(flow_rate_ul_min)
-        cmd_rate = f"output_speed {device_rate}\n"
-        print(f"{self.name}: Setting flow rate with command: {cmd_rate.strip()}")
-        self.serial.write(cmd_rate.encode())
-        self.serial.flush()
-        time.sleep(2)  # Small delay to allow command processing
+        dispense_speed = self._convert_flow_rate(flow_rate_ul_min)
+        continuous_flow_cmd_A = tri.compose_command_continuous_flow_A(dispense_speed=dispense_speed)
+        continuous_flow_cmd_B = tri.compose_command_continuous_flow_B(dispense_speed=dispense_speed)
+        
+        #Run continuos flow on both pumps
+        tri.run_continuous_flow(self.serial,pump="A", command=continuous_flow_cmd_A)
+        tri.run_continuous_flow(self.serial,pump="B", command=continuous_flow_cmd_B)
+        
+        time.sleep(1)  # Give time for the valves to change position
+        is_output_valve_A = tri.is_valve_output(self.serial, pump="A")
+        is_output_valve_B = tri.is_valve_output(self.serial, pump="B")        
 
-        # Send the start command
-        cmd = "start\n"
-        print(f"{self.name}: Sending command: {cmd.strip()}")
-        self.serial.write(cmd.encode())
-        self.serial.flush()
-        time.sleep(2)  # Small delay to allow command processing
-        
-        # Wait for confirmation that pump started
-        response = ""
-        timeout_count = 0
-        while timeout_count < 5:  # Try for up to 2.5 seconds
-            if self.serial.in_waiting:
-                response += self.serial.read(self.serial.in_waiting).decode(errors='ignore')
-                if "started" in response.lower() or "pumps started" in response.lower():
-                    break
-            time.sleep(2)
-            timeout_count += 1
-        
-        print(f"{self.name}: Dispense response: {response.strip()}")
-        
-        if "ERROR" in response.upper():
-            raise RuntimeError(f"{self.name}: Dispense failed - {response}")
-        
-        # Wait for the calculated pump time
-        print(f"{self.name}: Waiting {total_wait_time:.2f} s for dispense to complete...")
-        time.sleep(total_wait_time)
-        
+        while (not is_output_valve_A) and (not is_output_valve_B):
+            print(f"{self.name}: Waiting for pumps to start dispensing...")
+            time.sleep(0.5)
+            is_output_valve_A = tri.is_valve_output(self.serial, pump="A")
+            time.sleep(0.5)
+            is_output_valve_B = tri.is_valve_output(self.serial, pump="B")
+
+        start_time = time.time()
+
+        while time.time() - start_time < pump_time_sec:
+            elapsed = time.time() - start_time
+            print(f"{self.name}: Pumping... {elapsed:.2f}/{pump_time_sec:.2f} s elapsed", end='\r')
+            time.sleep(1)
+
         # Stop the pump after dispensing
         self.stop()
         print(f"{self.name}: Dispense complete - {volume_ul} µL dispensed")
@@ -257,14 +210,12 @@ class TricontinentalC24000(Pump):
             return
         
         try:
-            cmd = "stop\n"
-            self.serial.write(cmd.encode())
-            self.serial.flush()
-            time.sleep(1)
-            # Read any response
-            if self.serial.in_waiting:
-                self.serial.read(self.serial.in_waiting)
-            print(f"{self.name}: Stopped")
+            tri.stop_pump(self.serial, pump="A")
+            print(f"{self.name}: Stopped pump A")
+            time.sleep(0.5)  # Small delay between stops
+            tri.stop_pump(self.serial, pump="B")
+            print(f"{self.name}: Stopped pump B")
+            time.sleep(0.5)  # Allow time for pump to stop
         except Exception as e:
             print(f"{self.name}: Error during stop: {e}")
 
@@ -274,21 +225,9 @@ class TricontinentalC24000(Pump):
             return f"{self.name}: Not connected"
         
         try:
-            # Clear buffer
-            if self.serial.in_waiting:
-                self.serial.read(self.serial.in_waiting)
-            
-            cmd = "status\n"
-            self.serial.write(cmd.encode())
-            self.serial.flush()
-            
-            # Wait for response
-            time.sleep(2)
-            response = ""
-            if self.serial.in_waiting:
-                response = self.serial.read(self.serial.in_waiting).decode(errors='ignore').strip()
-            
-            return f"{self.name}: {response}" if response else f"{self.name}: No response"
+            response_A = tri.check_status(self.serial, pump="A")
+            response_B = tri.check_status(self.serial, pump="B") 
+            return f"{self.name}: Pump A status: {response_A}, Pump B status: {response_B}"
         except Exception as e:
             return f"{self.name}: Error getting status - {e}"
 
