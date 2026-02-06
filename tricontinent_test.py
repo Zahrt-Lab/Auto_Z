@@ -1,4 +1,6 @@
-#import sys
+#TO BE DELETED OR MOVED TO ANOTHER FOLDER
+# 
+# #import sys
 #sys.path.append('../')
 from methods import GeneralExperimentMethod
 
