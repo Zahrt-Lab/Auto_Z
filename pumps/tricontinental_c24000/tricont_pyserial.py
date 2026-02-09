@@ -578,4 +578,3 @@ def test_tricontinental_pump():
     is_running(ser, pump="B")
     disconnect(ser)
 
-#test_tricontinental_pump()

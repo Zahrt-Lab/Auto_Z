@@ -38,7 +38,7 @@ class DH2000LightSource:
     def connect(self):
         self.ser = serial.Serial(self.port, baudrate=self.baudrate, timeout=self.timeout)
         time.sleep(self.boot_delay_s)
-        self._drain()
+        self._drain(seconds=3.0)  # Give Arduino time to send startup messages and clear buffer
 
     def close(self):
         try:
@@ -48,15 +48,28 @@ class DH2000LightSource:
             self.ser = None
 
     # --- internal IO ---
-    def _drain(self, seconds: float = 0.75) -> None:
+    def _drain(self, seconds: float = 1.0) -> None:
+        """Aggressively drain the serial buffer to clear any stale/corrupted data."""
+        if not self.ser:
+            return
         end = time.time() + seconds
+        # Keep draining until time expires
         while time.time() < end:
-            while self.ser and self.ser.in_waiting:
+            time.sleep(0.05)  # Small delay to let data accumulate
+            if self.ser.in_waiting > 0:
                 try:
-                    self.ser.readline()
+                    # Read all available bytes at once
+                    self.ser.read(self.ser.in_waiting)
                 except Exception:
-                    break
-            time.sleep(0.01)
+                    pass
+        
+        # Final check to ensure buffer is completely empty
+        time.sleep(0.1)
+        if self.ser.in_waiting > 0:
+            try:
+                self.ser.read(self.ser.in_waiting)
+            except Exception:
+                pass
 
     def _readline_str(self) -> str:
         raw = self.ser.readline() if self.ser else b""
@@ -69,21 +82,40 @@ class DH2000LightSource:
             raise RuntimeError("DH2000 serial not connected")
         if not isinstance(command, str) or len(command) != 1:
             raise ValueError("Command must be a single character")
-        if command not in ['o', 'c', 'h', 'd', 's']:
+        if command not in ['o', 'c', 'h', 'd', 's', 'x']:
             raise ValueError("Invalid command character")
         
-        self.ser.write((command + "\n").encode("ascii", errors="ignore"))
+        # Clear buffer before sending command
+        self._drain(seconds=0.5)
+        
+        # Small pause after drain for stability
+        time.sleep(0.05)
+        
+        # Send just the character without newline - Arduino reads single chars
+        self.ser.write(command.encode("ascii", errors="ignore"))
         self.ser.flush()
+        
+        # Give Arduino time to process and respond
+        time.sleep(0.2)
 
         if not expect_ok:
             return
 
         deadline = time.time() + (self.timeout or 2.0)
+        received_lines = []
+        received_text = ""
+        
+        # Keep reading until we find OK or timeout
         while time.time() < deadline:
             line = self._readline_str()
-            if line == "OK":
-                return
-        raise RuntimeError(f"Timed out waiting for OK after '{command}' command")
+            if line:
+                received_lines.append(line)
+                received_text += line.upper()
+                # Look for OK anywhere in any received text (very lenient)
+                if "OK" in received_text:
+                    return
+        
+        raise RuntimeError(f"Timed out waiting for OK after '{command}' command. Received: {received_lines}")
 
     # --- public control ---
     def shutter_open(self):   self.dh2000_command("o", expect_ok=True)
@@ -158,3 +190,16 @@ class DH2000LightSource:
                 last_error = e
                 time.sleep(0.25)
         raise RuntimeError(f"safe_shutdown failed after {self.retries} attempts: {last_error}")
+    
+'''
+light = DH2000LightSource(port='COM27')
+light.connect()
+light.deuterium_toggle()
+light.halogen_toggle()
+time.sleep(10.0)
+light.shutter_open()
+time.sleep(10.0)
+light.shutter_close()
+light.safe_shutdown()
+light.close()
+'''

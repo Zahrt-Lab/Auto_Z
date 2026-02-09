@@ -183,8 +183,8 @@ class TricontinentalC24000(Pump):
 
         while time.time() - start_time < pump_time_sec:
             elapsed = time.time() - start_time
-            print(f"{self.name}: Pumping... {elapsed:.2f}/{pump_time_sec:.2f} s elapsed", end='\r')
-            time.sleep(1)
+            print(f"{self.name}: Pumping... {elapsed:.2f}/{pump_time_sec:.2f} s elapsed")
+            time.sleep(60)  # Update every 60 seconds
 
         # Stop the pump after dispensing
         self.stop()

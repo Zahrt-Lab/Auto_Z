@@ -220,13 +220,13 @@ class VICI_M6_Pumps(Pump):
 
 
 '''
-pump = VICI_M6_Pumps(port='COM21')
+pump = VICI_M6_Pumps(port='COM22')
 
 pump.start()
 
-pump.set_flow_rate(1000, "aspirating")
-#pump.set_flow_rate(1000, "dispensing")
-pump.pump_solution(500)
+#pump.set_flow_rate(1000, "aspirating")
+pump.set_flow_rate(1000, "dispensing")
+pump.pump_solution(2000)
 
 pump.stop_connection()
 '''

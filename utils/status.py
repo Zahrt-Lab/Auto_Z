@@ -20,6 +20,8 @@ LIQUID_HANDLER_TYPES = {"GX281", "Ender3_Liquid_Handler"}
 PUMP_TYPES = {"VICI_M6_Pump", "Isametic", "PhdUltraPump", "Tricontinental_C24000"}
 VALVE_TYPES = {"Valve6Way", "Valve10Way", "Valve24Way"}
 TEMP_TYPES = {"Temperature"}
+DH2000_TYPES = {"DH2000"}
+OCEANOPTICS_TYPES = {"OceanOptics_UVVis"}
 
 
 def group_for_instrument_type(inst_type: str) -> Optional[str]:
@@ -31,6 +33,10 @@ def group_for_instrument_type(inst_type: str) -> Optional[str]:
         return "Valve"
     if inst_type in TEMP_TYPES:
         return "Temperature"
+    if inst_type in DH2000_TYPES:
+        return "DH2000"
+    if inst_type in OCEANOPTICS_TYPES:
+        return "OceanOptics"
     return None
 
 

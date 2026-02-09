@@ -122,7 +122,7 @@ DH2000Controller dh2000(3, 5, 6);
 
 // ----- Arduino entry points -----
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
   dh2000.begin();
   Serial.println("DH2000 controller ready. Commands:");
   Serial.println("  o = shutter open");

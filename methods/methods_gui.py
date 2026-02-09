@@ -792,10 +792,13 @@ class AutoZahrtGUI(tk.Tk):
             self._register_run(exp)
 
             self._append_log("\nExperiment finished.\n")
-            messagebox.showinfo("Done", "Experiment finished")
+            # Use after() to show messagebox on main thread
+            self.after(0, lambda: messagebox.showinfo("Done", "Experiment finished"))
         except Exception as e:
             self._append_log(f"\n[ERROR] {e}\n")
-            messagebox.showerror("Error", str(e))
+            # Use after() to show messagebox on main thread
+            error_msg = str(e)
+            self.after(0, lambda msg=error_msg: messagebox.showerror("Error", msg))
 
     # ────────────────────────── CONTROL BAR
     def _build_control_bar(self) -> None:
