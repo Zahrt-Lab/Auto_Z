@@ -27,6 +27,7 @@ class TricontinentalC24000(Pump):
     # Calibration values: maps flow_rate (µL/min) to counts_per_uL
     # TODO: Populate with actual calibration data for your specific pump
     # TODO: Should make the calibration function necessary in the pumps.py but that can be in a future develops version, not urgent
+    '''Calibration values for 25mL syringe, 0.06376 µL/count (1 / 15.6835 counts/µL)
     CALIBRATION_VALUES = {
         # flow_rate_ul_min: counts_per_uL
         100: 15.6835,      # Example calibration at 100 µL/min
@@ -37,6 +38,18 @@ class TricontinentalC24000(Pump):
         2000: 15.6835,     # Example calibration at 2000 µL/min
     }
     DEFAULT_COUNTS_PER_UL = 15.6835  # Default if flow rate not in calibration table (1 / 0.10675)
+    '''
+    # Calibration values for 1mL syringe, 0.005107 µL/count (1 / 196.82 counts/µL)
+    CALIBRATION_VALUES = {
+        # flow_rate_ul_min: counts_per_uL
+        100: 196.82,      # Example calibration at 100 µL/min
+        200: 196.82,      # Example calibration at 200 µL/min
+        500: 196.82,      # Example calibration at 500 µL/min
+        1000: 196.82,     # Example calibration at 1000 µL/min
+        1500: 196.82,     # Example calibration at 1500 µL/min
+        2000: 196.82,     # Example calibration at 2000 µL/min
+    }
+    DEFAULT_COUNTS_PER_UL = 196.82  # Default if flow rate not in calibration table (1 / 0.005107)
 
     def __init__(self, port: str, baudrate: int = 9600, name: str = "Tricontinental_C24000"):
         """
@@ -56,7 +69,7 @@ class TricontinentalC24000(Pump):
         self._pump_b_position = 0  # Track syringe B position
         
         # Calibration parameters
-        self.uL_per_count = 0.06376  # Based on calibration (µL dispensed per count)
+        self.uL_per_count = 0.005107  # Based on calibration (µL dispensed per count)
         self.counts_per_uL = 1 / self.uL_per_count  
         
         # Current operation state

@@ -377,7 +377,7 @@ def run_continuous_flow(ser, pump="A", eeprom_addr=None, command="R"):
     run_pump(ser, pump=pump, eeprom_addr=eeprom_addr, command=command)
 
 def compose_command_continuous_flow_A(resolution = 2,
-                                      initial_speed = 6000,
+                                      initial_speed = 26000,
                                       aspirate_speed = None,
                                         dispense_speed = 1000,
                                         initial_count = 0,
@@ -402,7 +402,7 @@ def compose_command_continuous_flow_A(resolution = 2,
     return command
 
 def compose_command_continuous_flow_B(resolution = 2,
-                                      initial_speed = 6000,
+                                      initial_speed = 26000,
                                       aspirate_speed = None,
                                       dispense_speed = 1000, 
                                       initial_count = 0, 
