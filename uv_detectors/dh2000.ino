@@ -2,13 +2,11 @@
 // Software: AUTO_ZAHRT
 // Copyright: (C) 2026 by Professor Andrew Zahrt
 // This software is the intellectual property of Professor Andrew Zahrt
-// Contributions by graduate students Scott Laverty are acknowledged.
+// Contributions by graduate students Scott Laverty and Joao are acknowledged.
 // All rights reserved.
 // ------------------------------------------------------------------------------
 
-// DH-2000 TTL controller (UPDATED for your NEW wiring — NO LEDs)
-
-// New wiring (confirmed):
+// wiring for DH-2000 lamp controller (DB15 connector):
 //   Arduino D3  -> DB15 Pin 13  (Shutter, LEVEL: HIGH=OPEN, LOW=CLOSE)
 //   Arduino D5  -> DB15 Pin 3   (Halogen toggle, EDGE pulse)
 //   Arduino D6  -> DB15 Pin 2   (Deuterium toggle, EDGE pulse)

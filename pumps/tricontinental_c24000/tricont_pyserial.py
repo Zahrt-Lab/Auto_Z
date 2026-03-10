@@ -1,5 +1,9 @@
-# Standalone code to control Tricontinental C24000 pump via PySerial
-# In the future, this code can be imported into the tricontinental_c24000.py file.
+# ------------------------------------------------------------------------------
+# Software: AUTO_ZAHRT
+# Copyright: (C) 2024 by Professor Andrew Zahrt
+# This software is the intellectual property of Professor Andrew Zahrt
+# Contributions by graduate students Scott Laverty and Joao Luiz Albuquerque are acknowledged.
+# All rights reserved.
 # ------------------------------------------------------------------------------
 
 # Import necessary libraries

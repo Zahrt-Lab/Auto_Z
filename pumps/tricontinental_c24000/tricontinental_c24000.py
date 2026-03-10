@@ -13,6 +13,11 @@ from pumps.tricontinental_c24000 import tricont_pyserial as tri
 import serial
 import time
 
+'''
+The purpose of this code is to control the Tricontinental C24000 dual syringe pump 
+via its serial interface.
+'''
+
 
 class TricontinentalC24000(Pump):
     """Driver for Tricontinental C24000 Dual Syringe Pump.
@@ -26,7 +31,8 @@ class TricontinentalC24000(Pump):
 
     # Calibration values: maps flow_rate (µL/min) to counts_per_uL
     # TODO: Populate with actual calibration data for your specific pump
-    # TODO: Should make the calibration function necessary in the pumps.py but that can be in a future develops version, not urgent
+    # TODO: Should make the calibration function necessary in the pumps.py 
+    # but that can be in a future develops version, not urgent
     '''Calibration values for 25mL syringe, 0.06376 µL/count (1 / 15.6835 counts/µL)
     CALIBRATION_VALUES = {
         # flow_rate_ul_min: counts_per_uL
@@ -40,6 +46,7 @@ class TricontinentalC24000(Pump):
     DEFAULT_COUNTS_PER_UL = 15.6835  # Default if flow rate not in calibration table (1 / 0.10675)
     '''
     # Calibration values for 1mL syringe, 0.005107 µL/count (1 / 196.82 counts/µL)
+    # Is this even needed? The pumps have the same calibration value across all flow rates
     CALIBRATION_VALUES = {
         # flow_rate_ul_min: counts_per_uL
         100: 196.82,      # Example calibration at 100 µL/min
@@ -294,12 +301,12 @@ class TricontinentalC24000(Pump):
         return int(total_counts)
     
     def _calculate_pump_time(self, volume_ul: float, flow_rate_ul_min: float, buffer_sec: float = 2.0) -> tuple:
-        """Calculate the pump time based on volume and flow rate.
+        """Calculate the pump time in seconds based on volume and flow rate.
         
         Uses the formula: time = volume / (flow_rate / 60)
         Similar to VICI M6 approach.
         
-        Args:
+        Parameters:
             volume_ul: Volume to pump in µL
             flow_rate_ul_min: Flow rate in µL/min
             buffer_sec: Safety buffer time in seconds (default 2.0)

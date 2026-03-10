@@ -11,7 +11,7 @@ The purpose of this code is to feed into our liquid handler ender 3 class
 which we can use as a 3D printer to control the xyz coordinates of our 3D printer
 '''
 
-from components.ender3 import ender3
+from liquid_handlers.ender3_liquid_handler.ender3 import ender3
 from ..liquid_handlers import LiquidHandler
 from ..bed_layout import BedLayout
 
@@ -117,7 +117,7 @@ class Ender3LiquidHandler(ender3, LiquidHandler):
         self._ensure_conn()
         if z < self.ZMIN: z = self.ZMIN
         if z > self.ZMAX: z = self.ZMAX
-        return self.move(x=None, y=None, z=z, feed=1000)
+        return self.move(x=None, y=None, z=z, feed=5000)
 
     def get_z(self) -> float:
         """Return current Z coordinate in mm."""

@@ -26,7 +26,7 @@ class ender3:
         self._drain()
 
         # Query limits so we can clamp feeds (M203 is in mm/s; F is mm/min)
-        self._max_feed_mm_s = {"X": 9000, "Y": 9000, "Z": 300}
+        self._max_feed_mm_s = {"X": 9000, "Y": 9000, "Z": 9000}
         # Query limits so we clamp location if a position is invalid
         self._max_location_mm = {"X": 235, "Y": 235, "Z": 250}
         self._read_max_feeds()
