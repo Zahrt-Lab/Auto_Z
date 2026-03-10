@@ -46,7 +46,7 @@ class GX271(LiquidHandler):
         self.XMIN, self.XMAX = 0, 100
         self.YMIN, self.YMAX = 0, 100
         self.ZMIN, self.ZMAX = 0, 100
-        self.SAFE_Z = 125
+        self.SAFE_Z = 110
 
         self.rack1 = 204
         self.rack2 = 204
@@ -407,6 +407,7 @@ if __name__ == "__main__":
     gx.move_xy(50, 100)
     gx.move_xy(150, 50)
     gx.home()
+
 
     print(gx.status())
     gx.disconnect()

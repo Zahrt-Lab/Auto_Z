@@ -8,6 +8,11 @@
 
 import serial
 import time
+import sys
+from pathlib import Path
+
+# Add the project root to the Python path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from pumps.pumps import Pump
 
 # ==============================================================================
@@ -484,11 +489,21 @@ class TricontinentalC24000(Pump):
 
 def test_tricontinental_pump():
     """End-to-end test: initialize, run continuous flow for 10s, then stop both pumps."""
-    port = 'COM9'
-    cmd_a = compose_command_continuous_flow_A(resolution=0, aspirate_speed=6000,
-                                              dispense_speed=3000, final_count=24000)
-    cmd_b = compose_command_continuous_flow_B(resolution=0, aspirate_speed=6000,
-                                              dispense_speed=3000, final_count=24000)
+    port = 'COM17'
+    cmd_a = compose_command_continuous_flow_A(
+    resolution=0,
+    initial_speed=5600,   # ← safe C24000 default per manual
+    aspirate_speed=6000,
+    dispense_speed=3000,
+    final_count=24000
+    )
+    cmd_b = compose_command_continuous_flow_B(
+    resolution=0,
+    initial_speed=5600,   # ← was missing, same fix as Pump A
+    aspirate_speed=6000,
+    dispense_speed=3000,
+    final_count=24000
+    )
 
     ser = connect(port=port)
 
@@ -518,3 +533,5 @@ def test_tricontinental_pump():
         is_running(ser, pump)
 
     disconnect(ser)
+
+test_tricontinental_pump()

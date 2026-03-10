@@ -6,11 +6,8 @@
 # All rights reserved.
 # ------------------------------------------------------------------------------
 
-from pyparsing import line
-from pyparsing import line
 from pumps.pumps import Pump
 from pumps.tricontinental_c24000 import tricont_pyserial as tri
-import serial
 import time
 
 '''

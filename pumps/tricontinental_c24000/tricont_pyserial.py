@@ -1,6 +1,6 @@
 # ------------------------------------------------------------------------------
 # Software: AUTO_ZAHRT
-# Copyright: (C) 2024 by Professor Andrew Zahrt
+# Copyright: (C) 2026 by Professor Andrew Zahrt
 # This software is the intellectual property of Professor Andrew Zahrt
 # Contributions by graduate students Scott Laverty and Joao Luiz Albuquerque are acknowledged.
 # All rights reserved.
@@ -539,7 +539,8 @@ def test_tricontinental_pump():
                                                         initial_count=0,
                                                         final_count=24000,
                                                         j_value=1000)
-    
+    # Connect to the pump
+    port = 'COM9'
     ser = connect(port=port)
 
     print("Checking initialization status...")
