@@ -539,8 +539,7 @@ def test_tricontinental_pump():
                                                         initial_count=0,
                                                         final_count=24000,
                                                         j_value=1000)
-    # Connect to the pump
-    port = 'COM9'
+    
     ser = connect(port=port)
 
     print("Checking initialization status...")
