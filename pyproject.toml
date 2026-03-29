@@ -8,7 +8,6 @@ version = "3.0.0"
 description = "Automated laboratory instrumentation control system for chemical experiments"
 readme = "README.md"
 requires-python = ">=3.9"
-license = {text = "Proprietary - All Rights Reserved"}
 authors = [
     {name = "Professor Andrew Zahrt"},
 ]
@@ -36,29 +35,9 @@ dev = [
 [project.scripts]
 auto-zahrt-gui = "methods.methods_gui:main"
 
-[tool.setuptools]
-packages = [
-    "components",
-    "custom_components",
-    "custom_components.light_source",
-    "custom_components.light_source.mirror_box_365nm",
-    "liquid_handlers",
-    "liquid_handlers.ender3_liquid_handler",
-    "liquid_handlers.gx281",
-    "methods",
-    "pumps",
-    "pumps.isametic_pump",
-    "pumps.tricontinental_c24000",
-    "pumps.vici_m6_pump",
-    "syringe_pumps",
-    "syringe_pumps.phd_ultra_pumps",
-    "temperature_controller",
-    "temperature_controller.tc720",
-    "utils",
-    "uv_detectors",
-    "valves",
-    "valves.vici_valves",
-]
+[tool.setuptools.packages.find]
+where = ["."]
+exclude = [".conda*", "test*", "docs*", "*.egg-info*"]
 
 [tool.setuptools.package-data]
 "*" = ["*.txt", "*.md"]
