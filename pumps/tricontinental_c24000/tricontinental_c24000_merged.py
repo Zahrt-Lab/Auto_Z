@@ -534,4 +534,5 @@ def test_tricontinental_pump():
 
     disconnect(ser)
 
-test_tricontinental_pump()
+if __name__ == "__main__":
+    test_tricontinental_pump()

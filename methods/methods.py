@@ -41,7 +41,8 @@ from syringe_pumps.syringe_pumps import SyringePump
 # Import concrete implementations (needed for bed layout)
 from liquid_handlers.bed_layout import BedLayout
 from uv_detectors.dh2000 import DH2000LightSource
-from uv_detectors.uv_detector import Ocean_Optics_UV_vis  
+from uv_detectors.uv_detector import Ocean_Optics_UV_vis
+from custom_components.light_source.mirror_box_365nm.mirror_box_365nm import MirrorBox365nm
 
 
 # TODO can't find syringe pump and isamatic scripts and need to add this script later
@@ -187,6 +188,8 @@ class GeneralExperimentMethod:
                     self.executor.execute_dh2000(action, params, component, device)
                 elif isinstance(device, Ocean_Optics_UV_vis):
                     self.executor.execute_ocean_optics(action, params, component, device)
+                elif isinstance(device, MirrorBox365nm):
+                    self.executor.execute_mirror_box(action, params, component, device)
                 else:
                     self.log_to_csv(component, action, params, f"Error: Unknown device type for '{component}'")
 
@@ -228,6 +231,10 @@ class GeneralExperimentMethod:
     def execute_ocean_optics(self, action, params, component, uv: Ocean_Optics_UV_vis):
         """Execute Ocean Optics UV-Vis actions. Delegated to DeviceExecutor."""
         self.executor.execute_ocean_optics(action, params, component, uv)
+
+    def execute_mirror_box(self, action, params, component, mirror_box: MirrorBox365nm):
+        """Execute MirrorBox365nm actions. Delegated to DeviceExecutor."""
+        self.executor.execute_mirror_box(action, params, component, mirror_box)
 
     def shutdown(self, success: bool):
         """
@@ -283,6 +290,16 @@ class GeneralExperimentMethod:
             except Exception as e:
                 # retries happen inside safe_shutdown(); if still failing, log and continue
                 self.log_to_csv(dh2000_name or "DH2000", "shutdown_error", f"success={success}", f"FAILED: {e}")
+        # --- MirrorBox365nm: always dim to 255 (off) on shutdown ---
+        for name, instance in self.instruments.items():
+            if isinstance(instance, MirrorBox365nm):
+                try:
+                    instance.set_dimmer(255)
+                    self.log_to_csv(name, "shutdown_set_dimmer", "value=255", "OK",
+                                    notes="MirrorBox dimmed to 255 (off) at shutdown")
+                except Exception as e:
+                    self.log_to_csv(name, "shutdown_set_dimmer", "value=255", f"FAILED: {e}")
+
         # --- stop monitoring and close other instruments ---
         self.stop_status_monitoring()
 

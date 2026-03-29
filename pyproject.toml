@@ -39,12 +39,16 @@ auto-zahrt-gui = "methods.methods_gui:main"
 [tool.setuptools]
 packages = [
     "components",
+    "custom_components",
+    "custom_components.light_source",
+    "custom_components.light_source.mirror_box_365nm",
     "liquid_handlers",
     "liquid_handlers.ender3_liquid_handler",
     "liquid_handlers.gx281",
     "methods",
     "pumps",
     "pumps.isametic_pump",
+    "pumps.tricontinental_c24000",
     "pumps.vici_m6_pump",
     "syringe_pumps",
     "syringe_pumps.phd_ultra_pumps",
@@ -58,3 +62,10 @@ packages = [
 
 [tool.setuptools.package-data]
 "*" = ["*.txt", "*.md"]
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
+markers = [
+    "hardware: marks tests requiring physical hardware on a COM port (deselect with '-m not hardware')",
+    "mirror_box: marks tests requiring MirrorBox365nm device",
+]

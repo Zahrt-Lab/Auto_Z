@@ -22,6 +22,7 @@ VALVE_TYPES = {"Valve6Way", "Valve10Way", "Valve24Way"}
 TEMP_TYPES = {"Temperature"}
 DH2000_TYPES = {"DH2000"}
 OCEANOPTICS_TYPES = {"OceanOptics_UVVis"}
+MIRRORBOX_TYPES = {"MirrorBox365nm"}
 
 
 def group_for_instrument_type(inst_type: str) -> Optional[str]:
@@ -37,6 +38,8 @@ def group_for_instrument_type(inst_type: str) -> Optional[str]:
         return "DH2000"
     if inst_type in OCEANOPTICS_TYPES:
         return "OceanOptics"
+    if inst_type in MIRRORBOX_TYPES:
+        return "MirrorBox"
     return None
 
 

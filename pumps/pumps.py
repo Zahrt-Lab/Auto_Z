@@ -42,7 +42,7 @@ class Pump(abc.ABC):
         """Stop any ongoing aspiration/dispense operation promptly."""
 
     @abc.abstractmethod
-    def status() -> str:
+    def status(self) -> str:
         """Return a string representing the current status of the pump."""
 
     @abc.abstractmethod

@@ -68,14 +68,22 @@ class ParameterParser:
     @staticmethod
     def extract_uv_detector_parameters(params):
         """
-        This method extracts UV detector parameters from a parameter string.
-        The expected format is a comma-separated list of key=value pairs.
-        For example: "integration_time=30000,num_scans=10,measurement_interval=5,target_wavelengths=409,509"
-        Returns a dictionary with the parsed parameters.
+        Extract UV detector parameters from a parameter string.
+        Format: "integration_time=30000,num_scans=10,measurement_interval=5,target_wavelengths=409;509"
+        target_wavelengths uses semicolons as separators (not commas) to avoid ambiguity.
+        Returns a dict with parsed parameters; returns empty dict if params is empty/None.
         """
-        param_dict = {key.strip(): float(value.strip()) for key, value in
-            (param.split('=') for param in params.split(','))}
-        return param_dict['integration_time'], \
-               param_dict['num_scans'], \
-               param_dict['measurement_interval'], \
-               [float(wl) for wl in param_dict['target_wavelengths'].split(';')]
+        result = {}
+        if not params or not isinstance(params, str) or not params.strip():
+            return result
+        for param in params.split(','):
+            if '=' not in param:
+                continue
+            key, value = param.split('=', 1)
+            key = key.strip()
+            value = value.strip()
+            if key == 'target_wavelengths':
+                result[key] = [float(wl) for wl in value.split(';') if wl.strip()]
+            else:
+                result[key] = float(value)
+        return result

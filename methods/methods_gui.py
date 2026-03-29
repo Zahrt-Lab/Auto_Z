@@ -57,6 +57,8 @@ except Exception:
             return "DH2000"
         if inst_type in ("OceanOptics_UVVis",):
             return "OceanOptics"
+        if inst_type in ("MirrorBox365nm",):
+            return "MirrorBox"
         return "Other"
 
 try:
@@ -83,6 +85,7 @@ INSTRUMENT_CHOICES = [
     "Temperature",
     "DH2000",
     "OceanOptics_UVVis",
+    "MirrorBox365nm",
 ]
 
 DEFAULT_ROWS = [
@@ -329,6 +332,7 @@ ACTIONS_BY_GROUP: dict[str, list[str]] = {
     "DH2000": ["shutter_open", "shutter_close", "halogen_toggle", "deuterium_toggle", "status", "safe_shutdown"],
     "OceanOptics": ["init", "record_blank", "record_dark", "load_blank_csv", "load_dark_csv",
                     "measure_absorbance", "start_continuous", "stop_continuous", "set_params", "status"],
+    "MirrorBox": ["set_dimmer", "status", "read_temperature"],
     "SYNC": ["wait_for_pumps"],
 }
 
@@ -375,6 +379,10 @@ PARAM_FIELDS: dict[tuple[str, str], list[tuple[str, str]]] = {
         ("target_wavelengths", "Targets (e.g., 409;450)"),
     ],
     ("OceanOptics", "status"): [],
+
+    ("MirrorBox", "set_dimmer"): [("value", "Dimmer value (0=brightest, 255=off)")],
+    ("MirrorBox", "status"): [],
+    ("MirrorBox", "read_temperature"): [],
 
     ("SYNC", "wait_for_pumps"): [],
 }

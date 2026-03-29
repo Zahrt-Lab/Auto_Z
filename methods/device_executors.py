@@ -26,6 +26,7 @@ from temperature_controller.temperature_controller import TemperatureController
 from syringe_pumps.syringe_pumps import SyringePump
 from uv_detectors.dh2000 import DH2000LightSource
 from uv_detectors.uv_detector import Ocean_Optics_UV_vis
+from custom_components.light_source.mirror_box_365nm.mirror_box_365nm import MirrorBox365nm
 
 
 class DeviceExecutor:
@@ -324,6 +325,46 @@ class DeviceExecutor:
             self.log_to_csv(component, action, params, f"Error: {e}")
             raise
 
+    def execute_mirror_box(self, action, params, component, mirror_box: MirrorBox365nm):
+        """
+        MirrorBox365nm actions usable in the method CSV.
+        Actions: set_dimmer, status, read_temperature
+          set_dimmer  params: value=128   (0=brightest, 255=off)
+        """
+        try:
+            if action == "set_dimmer":
+                param_dict = {k.strip(): v.strip() for k, v in
+                              (p.split('=') for p in params.split(','))}
+                dimmer_value = int(param_dict.get('value', 255))
+                response = mirror_box.set_dimmer(dimmer_value)
+                self.log_to_csv(component, action, params, response or "OK")
+
+            elif action == "status":
+                st = mirror_box.status()
+                notes = (f"L1={'ON' if st.get('light1_on') else 'OFF'} "
+                         f"L2={'ON' if st.get('light2_on') else 'OFF'} "
+                         f"TC3={st.get('temp_light1_c')}C "
+                         f"TC4={st.get('temp_light2_c')}C")
+                self.log_to_csv(component, action, params, str(st), notes=notes)
+
+            elif action == "read_temperature":
+                temp_data = mirror_box.read_temperature_stream()
+                if 'error' in temp_data:
+                    self.log_to_csv(component, action, params, f"Error: {temp_data['error']}")
+                else:
+                    notes = (f"TC3={temp_data.get('temp_light1_c')}C "
+                             f"TC4={temp_data.get('temp_light2_c')}C")
+                    self.log_to_csv(component, action, params, str(temp_data), notes=notes)
+
+            else:
+                self.log_to_csv(component, action, params,
+                                f"Error: Unknown MirrorBox action '{action}'")
+                raise ValueError(f"Unknown MirrorBox action '{action}'")
+
+        except Exception as e:
+            self.log_to_csv(component, action, params, f"Error: {e}")
+            raise
+
     def execute_ocean_optics(self, action, params, component, uv: Ocean_Optics_UV_vis):
         """
         Actions:
@@ -362,8 +403,8 @@ class DeviceExecutor:
             self.log_to_csv(component, action, params, f"A={A}", notes=f"{csv_path} ; {png_path}")
 
         elif action == "start_continuous":
-            stop_upon = str(d.get("stop_upon_convergence", "False")).lower() == "true"
-            name = d.get("name", None)
+            stop_upon = str(uv_detector_parameters.get("stop_upon_convergence", "False")).lower() == "true"
+            name = uv_detector_parameters.get("name", None)
             uv.start_continuous(name=name, stop_upon_convergence=stop_upon)
             self.log_to_csv(component, action, params, "OK")
 
@@ -372,18 +413,16 @@ class DeviceExecutor:
             self.log_to_csv(component, action, params, "OK")
 
         elif action == "set_params":
-            if "integration_time" in d:
-                uv.integration_time = int(float(uv_detector_parameters["integration_time"]))
+            if "integration_time" in uv_detector_parameters:
+                uv.integration_time = int(uv_detector_parameters["integration_time"])
                 if uv.initialized:
                     uv.set_integration_time()
-            if "num_scans" in d:
-                uv.set_number_of_scans(int(float(uv_detector_parameters["num_scans"])))
-            if "measurement_interval" in d:
-                uv.set_measurement_interval(float(uv_detector_parameters["measurement_interval"]))
-            if "target_wavelengths" in d:
-                # allow "409;450;520" format
-                wls = [float(x) for x in uv_detector_parameters["target_wavelengths"].replace(" ", "").split(";") if x]
-                uv.set_target_wavelength(wls)
+            if "num_scans" in uv_detector_parameters:
+                uv.set_number_of_scans(int(uv_detector_parameters["num_scans"]))
+            if "measurement_interval" in uv_detector_parameters:
+                uv.set_measurement_interval(uv_detector_parameters["measurement_interval"])
+            if "target_wavelengths" in uv_detector_parameters:
+                uv.set_target_wavelength(uv_detector_parameters["target_wavelengths"])
             self.log_to_csv(component, action, params, "OK")
 
         elif action == "status":

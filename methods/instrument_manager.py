@@ -25,6 +25,7 @@ from valves.vici_valves.vici_valves import ViciValve
 from temperature_controller.tc720.tc720 import TC720
 from uv_detectors.dh2000 import DH2000LightSource
 from uv_detectors.uv_detector import Ocean_Optics_UV_vis
+from custom_components.light_source.mirror_box_365nm.mirror_box_365nm import MirrorBox365nm
 
 
 class InstrumentManager:
@@ -122,6 +123,12 @@ class InstrumentManager:
                 obj = TC720(port=com_port, name=attr_name)
             elif instrument_type == "DH2000":
                 obj = DH2000LightSource(port=com_port, baudrate=9600, timeout=2.0, retries=10)
+                try:
+                    obj.name = attr_name
+                except Exception:
+                    pass
+            elif instrument_type == "MirrorBox365nm":
+                obj = MirrorBox365nm(port=com_port, baudrate=9600, timeout=2.0)
                 try:
                     obj.name = attr_name
                 except Exception:
