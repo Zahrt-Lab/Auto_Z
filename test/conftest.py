@@ -12,6 +12,9 @@ import pytest
 import serial
 import serial.tools.list_ports
 
+# Sensor-1 query for TC720: '*01000021\r' (pre-computed, see test_tc720_parsing.py)
+_TC720_PROBE_QUERY = b'*01000021\r'
+
 
 # ---------------------------------------------------------------------------
 # COM port auto-detection
@@ -52,6 +55,65 @@ def _detect_mirror_box_port() -> Optional[str]:
 # ---------------------------------------------------------------------------
 # Session-scoped fixtures (connect once, shared across all hardware tests)
 # ---------------------------------------------------------------------------
+
+def _detect_tc720_port() -> Optional[str]:
+    """
+    Scan all available COM ports for a TC720 temperature controller.
+    Opens each port at 230400 baud, sends a sensor-1 query, and checks
+    for a valid 8-byte response starting with '*'.
+    Returns the first matching port, or None if not found.
+    """
+    for port_info in serial.tools.list_ports.comports():
+        port = port_info.device
+        ser = None
+        try:
+            ser = serial.Serial(port, baudrate=230400, timeout=1)
+            ser.reset_input_buffer()
+            ser.write(_TC720_PROBE_QUERY)
+            ser.flush()
+            time.sleep(0.1)
+            resp = ser.read(8)
+            if len(resp) == 8 and resp[0:1] == b'*':
+                return port
+        except (serial.SerialException, OSError):
+            continue
+        finally:
+            if ser is not None:
+                try:
+                    ser.close()
+                except Exception:
+                    pass
+    return None
+
+
+@pytest.fixture(scope="session")
+def tc720_port() -> Optional[str]:
+    """
+    Detect the COM port of a connected TC720 temperature controller.
+    Skips the entire hardware test session if no device is found.
+    """
+    port = _detect_tc720_port()
+    if port is None:
+        pytest.skip("TC720 not detected on any COM port — skipping hardware tests")
+    return port
+
+
+@pytest.fixture(scope="session")
+def tc720_device(tc720_port: str):
+    """
+    Connected TC720 instance, shared across the hardware test session.
+    Returns temperature to 25°C (safe default) and closes cleanly on teardown.
+    """
+    from temperature_controller.tc720.tc720 import TC720
+    tc = TC720(port=tc720_port)
+    tc.connect()
+    yield tc
+    try:
+        tc.set_temperature(25.0)   # Return to safe temperature before disconnecting
+    except Exception:
+        pass
+    tc.close()
+
 
 @pytest.fixture(scope="session")
 def mirror_box_port() -> Optional[str]:
