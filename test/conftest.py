@@ -7,6 +7,7 @@ no manual configuration required.
 """
 
 import time
+from typing import Optional
 import pytest
 import serial
 import serial.tools.list_ports
@@ -16,7 +17,7 @@ import serial.tools.list_ports
 # COM port auto-detection
 # ---------------------------------------------------------------------------
 
-def _detect_mirror_box_port() -> str | None:
+def _detect_mirror_box_port() -> Optional[str]:
     """
     Scan all available COM ports for a MirrorBox365nm Arduino.
     Opens each port at 9600 baud, sends 's', and checks the response
@@ -53,7 +54,7 @@ def _detect_mirror_box_port() -> str | None:
 # ---------------------------------------------------------------------------
 
 @pytest.fixture(scope="session")
-def mirror_box_port() -> str:
+def mirror_box_port() -> Optional[str]:
     """
     Detect the COM port of a connected MirrorBox365nm.
     Skips the entire hardware test session if no device is found.
