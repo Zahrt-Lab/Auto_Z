@@ -127,6 +127,70 @@ def mirror_box_port() -> Optional[str]:
     return port
 
 
+def _detect_dh2000_port() -> Optional[str]:
+    """
+    Scan all available COM ports for a DH2000 Arduino TTL controller.
+    Opens each port at 9600 baud, sends 's' (status command), and checks
+    the response for the expected DH2000 status format ('Shutter:').
+    Returns the first matching port, or None if not found.
+    """
+    for port_info in serial.tools.list_ports.comports():
+        port = port_info.device
+        ser = None
+        try:
+            ser = serial.Serial(port, baudrate=9600, timeout=2.0)
+            time.sleep(2.0)           # Wait for Arduino reset after connect
+            if ser.in_waiting > 0:
+                ser.read(ser.in_waiting)  # Drain startup messages
+            time.sleep(0.5)
+            ser.write(b"s")           # DH2000 status command (no newline)
+            time.sleep(0.3)
+            response = ""
+            for _ in range(5):        # Read up to 5 lines
+                line = ser.readline().decode("utf-8", errors="ignore")
+                response += line
+                if "Shutter:" in response:
+                    return port
+        except (serial.SerialException, OSError):
+            continue
+        finally:
+            if ser is not None:
+                try:
+                    ser.close()
+                except Exception:
+                    pass
+    return None
+
+
+@pytest.fixture(scope="session")
+def dh2000_port() -> Optional[str]:
+    """
+    Detect the COM port of a connected DH2000 Arduino TTL controller.
+    Skips the entire hardware test session if no device is found.
+    """
+    port = _detect_dh2000_port()
+    if port is None:
+        pytest.skip("DH2000 not detected on any COM port — skipping hardware tests")
+    return port
+
+
+@pytest.fixture(scope="session")
+def dh2000_device(dh2000_port: str):
+    """
+    Connected DH2000LightSource instance, shared across the hardware test session.
+    Performs a safe_shutdown on teardown to leave the device in a known safe state.
+    """
+    from uv_detectors.dh2000 import DH2000LightSource
+    dh = DH2000LightSource(port=dh2000_port, baudrate=9600, timeout=2.0)
+    dh.connect()
+    yield dh
+    try:
+        dh.safe_shutdown()   # Safe: shutter closed, lamps off before disconnecting
+    except Exception:
+        pass
+    dh.close()
+
+
 @pytest.fixture(scope="session")
 def mirror_box_device(mirror_box_port: str):
     """
