@@ -11,6 +11,7 @@ from typing import Optional
 import pytest
 import serial
 import serial.tools.list_ports
+from unittest.mock import MagicMock
 
 # Sensor-1 query for TC720: '*01000021\r' (pre-computed, see test_tc720_parsing.py)
 _TC720_PROBE_QUERY = b'*01000021\r'
@@ -206,3 +207,29 @@ def mirror_box_device(mirror_box_port: str):
     except Exception:
         pass
     mb.close()
+
+
+# ---------------------------------------------------------------------------
+# Shared TC720 test helpers (used by unit and integration tests)
+# ---------------------------------------------------------------------------
+
+def make_tc720_response(temp_celsius: float) -> bytes:
+    """Build a valid 8-byte TC720 response for a given temperature."""
+    val = int(temp_celsius * 100)
+    if val < 0:
+        val += 0x10000
+    dddd = format(val, '04x')
+    checksum = format(sum(ord(c) for c in dddd) & 0xFF, '02x')
+    return ('*' + dddd + checksum + '\r').encode('ascii')
+
+
+def make_tc720_device(read_responses: list):
+    """TC720 with mock serial pre-loaded with read() responses."""
+    from temperature_controller.tc720.tc720 import TC720
+    tc = TC720(port="COM_TEST")
+    mock_ser = MagicMock()
+    mock_ser.is_open = True
+    mock_ser.read.side_effect = read_responses + [b""] * 20
+    tc.ser = mock_ser
+    tc._connected = True
+    return tc
