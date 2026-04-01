@@ -14,6 +14,7 @@ Commands to control the DH2000 light source via Arduino TTL controller.
 
 import serial
 import time
+import threading
 
 class DH2000LightSource:
     """
@@ -33,6 +34,12 @@ class DH2000LightSource:
         self.name = "DH2000"
 
         self.ser = None
+
+        # TODO: A coarser lock like this prevents races between the StatusMonitor thread and
+        # main-thread commands, but a smarter approach would be a dedicated serial I/O thread
+        # with a command queue so status polling and commands can be properly prioritized
+        # rather than one blocking the other entirely.
+        self._lock = threading.RLock()
 
     # --- lifecycle ---
     def connect(self):
@@ -84,38 +91,39 @@ class DH2000LightSource:
             raise ValueError("Command must be a single character")
         if command not in ['o', 'c', 'h', 'd', 's', 'x']:
             raise ValueError("Invalid command character")
-        
-        # Clear buffer before sending command
-        self._drain(seconds=0.5)
-        
-        # Small pause after drain for stability
-        time.sleep(0.05)
-        
-        # Send just the character without newline - Arduino reads single chars
-        self.ser.write(command.encode("ascii", errors="ignore"))
-        self.ser.flush()
-        
-        # Give Arduino time to process and respond
-        time.sleep(0.2)
 
-        if not expect_ok:
-            return
+        with self._lock:
+            # Clear buffer before sending command
+            self._drain(seconds=0.5)
 
-        deadline = time.time() + (self.timeout or 2.0)
-        received_lines = []
-        received_text = ""
-        
-        # Keep reading until we find OK or timeout
-        while time.time() < deadline:
-            line = self._readline_str()
-            if line:
-                received_lines.append(line)
-                received_text += line.upper()
-                # Look for OK anywhere in any received text (very lenient)
-                if "OK" in received_text:
-                    return
-        
-        raise RuntimeError(f"Timed out waiting for OK after '{command}' command. Received: {received_lines}")
+            # Small pause after drain for stability
+            time.sleep(0.05)
+
+            # Send just the character without newline - Arduino reads single chars
+            self.ser.write(command.encode("ascii", errors="ignore"))
+            self.ser.flush()
+
+            # Give Arduino time to process and respond
+            time.sleep(0.2)
+
+            if not expect_ok:
+                return
+
+            deadline = time.time() + (self.timeout or 2.0)
+            received_lines = []
+            received_text = ""
+
+            # Keep reading until we find OK or timeout
+            while time.time() < deadline:
+                line = self._readline_str()
+                if line:
+                    received_lines.append(line)
+                    received_text += line.upper()
+                    # Look for OK anywhere in any received text (very lenient)
+                    if "OK" in received_text:
+                        return
+
+            raise RuntimeError(f"Timed out waiting for OK after '{command}' command. Received: {received_lines}")
 
     # --- public control ---
     def shutter_open(self):   self.dh2000_command("o", expect_ok=True)
@@ -128,13 +136,14 @@ class DH2000LightSource:
         Returns dict:
           {'shutter_open': bool|None, 'halogen_on': bool|None, 'deuterium_on': bool|None, 'raw': [lines]}
         """
-        self.dh2000_command("s", expect_ok=False)
-        dh2000_components_status = []
-        timeout = time.time() + (self.timeout or 2.0)
-        while time.time() < timeout and len(dh2000_components_status) < 3:
-            dh2000_component_status = self._readline_str()
-            if dh2000_component_status:
-                dh2000_components_status.append(dh2000_component_status)
+        with self._lock:
+            self.dh2000_command("s", expect_ok=False)
+            dh2000_components_status = []
+            timeout = time.time() + (self.timeout or 2.0)
+            while time.time() < timeout and len(dh2000_components_status) < 3:
+                dh2000_component_status = self._readline_str()
+                if dh2000_component_status:
+                    dh2000_components_status.append(dh2000_component_status)
 
         def _parse_bool(dh2000_component_status: str, key: str):
             if key.lower() in dh2000_component_status.lower():

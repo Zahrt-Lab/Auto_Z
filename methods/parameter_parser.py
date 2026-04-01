@@ -85,5 +85,8 @@ class ParameterParser:
             if key == 'target_wavelengths':
                 result[key] = [float(wl) for wl in value.split(';') if wl.strip()]
             else:
-                result[key] = float(value)
+                try:
+                    result[key] = float(value)
+                except ValueError:
+                    result[key] = value
         return result

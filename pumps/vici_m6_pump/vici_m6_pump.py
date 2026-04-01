@@ -218,9 +218,9 @@ class VICI_M6_Pumps(Pump):
         """Closes the serial connection."""
         self.ser.close()
 
-
 '''
-pump = VICI_M6_Pumps(port='COM22')
+
+pump = VICI_M6_Pumps(port='COM21')
 
 pump.start()
 

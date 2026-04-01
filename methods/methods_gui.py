@@ -10,6 +10,13 @@
 
 from __future__ import annotations
 
+# Force the non-interactive Agg backend before any other import can initialize matplotlib.
+# utils/status.py imports FigureCanvasTkAgg (TkAgg backend), which can win the backend
+# race if it runs first, causing plt.figure()/plt.close() in background experiment threads
+# to create and destroy Tk objects off the main thread → fatal Tcl_AsyncDelete crash.
+import matplotlib
+matplotlib.use("Agg")
+
 import csv
 import glob
 import os

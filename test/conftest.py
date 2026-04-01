@@ -210,6 +210,76 @@ def mirror_box_device(mirror_box_port: str):
 
 
 # ---------------------------------------------------------------------------
+# Tricontinental C24000 fixtures
+# ---------------------------------------------------------------------------
+
+def _detect_tricontinental_port() -> Optional[str]:
+    """
+    Try COM17 first (known port), then scan all ports at 9600 baud.
+    Sends a status query to pump address 1 and checks for the ETX byte (0x03)
+    that the Tricontinental firmware appends to every response.
+    Returns the matching port, or None if not found.
+    """
+    candidates = ["COM17"] + [p.device for p in serial.tools.list_ports.comports()
+                               if p.device != "COM17"]
+    for port in candidates:
+        ser = None
+        try:
+            ser = serial.Serial(port, baudrate=9600,
+                                bytesize=serial.EIGHTBITS,
+                                parity=serial.PARITY_NONE,
+                                stopbits=serial.STOPBITS_ONE,
+                                timeout=2)
+            time.sleep(2)
+            if ser.in_waiting:
+                ser.read(ser.in_waiting)  # drain startup bytes
+            ser.reset_input_buffer()
+            ser.write("/1?\r".encode("utf-8"))
+            ser.flush()
+            response = ser.read(64)       # read up to 64 bytes
+            if b'\x03' in response:       # ETX = pump found
+                return port
+        except (serial.SerialException, OSError):
+            continue
+        finally:
+            if ser is not None:
+                try:
+                    ser.close()
+                except Exception:
+                    pass
+    return None
+
+
+@pytest.fixture(scope="session")
+def tricontinental_port() -> Optional[str]:
+    """
+    Detect the COM port of a connected Tricontinental C24000 pump.
+    Skips the entire hardware test session if no device is found.
+    """
+    port = _detect_tricontinental_port()
+    if port is None:
+        pytest.skip("Tricontinental C24000 not detected on any COM port — skipping hardware tests")
+    return port
+
+
+@pytest.fixture(scope="session")
+def tricontinental_device(tricontinental_port: str):
+    """
+    Connected TricontinentalC24000 instance, shared across the hardware test session.
+    Stops both pumps and closes the port cleanly on teardown.
+    """
+    from pumps.tricontinental_c24000 import TricontinentalC24000
+    pump = TricontinentalC24000(port=tricontinental_port)
+    pump.connect()
+    yield pump
+    try:
+        pump.stop()
+    except Exception:
+        pass
+    pump.close()
+
+
+# ---------------------------------------------------------------------------
 # Shared TC720 test helpers (used by unit and integration tests)
 # ---------------------------------------------------------------------------
 
