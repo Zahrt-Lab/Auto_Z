@@ -14,6 +14,7 @@ import pytest
 
 pytestmark = [pytest.mark.hardware, pytest.mark.tricontinental]
 
+# TODO : Current test show pumps aren't working. Need to investigate
 
 # ---------------------------------------------------------------------------
 # Connection
