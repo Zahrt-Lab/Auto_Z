@@ -135,4 +135,34 @@ class TestSetFlowRate:
 # Aspirate and dispense
 # ----------------------------------------------------------------------------
 
+class TestAspirateAndDispense:
 
+    def test_valid_aspirate(self):
+        pump = VICI_M6_Pumps(port="COM_TEST")
+        pump.set_flow_rate(100, "aspirating")
+        pump.aspirate(500)
+        assert pump.volume == 500
+        assert pump.volume_units == "uL"
+        print("Aspirate test passed.")
+
+    def test_valid_dispense(self):
+        pump = VICI_M6_Pumps(port="COM_TEST")
+        pump.set_flow_rate(100, "dispensing")
+        pump.dispense(500)
+        assert pump.volume == 500
+        assert pump.volume_units == "uL"
+        print("Dispense test passed.")
+    
+    def test_invalid_aspirate_volume(self):
+        pump = VICI_M6_Pumps(port="COM_TEST")
+        pump.set_flow_rate(100, "aspirating")
+        with pytest.raises(ValueError):
+            pump.aspirate(-100)
+        print("Invalid aspirate volume test passed.")
+    
+    def test_invalid_dispense_volume(self):
+        pump = VICI_M6_Pumps(port="COM_TEST")
+        pump.set_flow_rate(100, "dispensing")
+        with pytest.raises(ValueError):
+            pump.dispense(-100)
+        print("Invalid dispense volume test passed.")

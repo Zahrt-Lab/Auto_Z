@@ -10,6 +10,9 @@ import time
 import serial
 from pumps.pumps import Pump
 
+# TODO : Need to add a max flow rate volume of 5 mL/min which is max 
+# recommended flow rate for the pump. 
+
 class VICI_M6_Pumps(Pump):
 
     def __init__(self,  port='COM16', baud_rate=9600, timeout=1):
