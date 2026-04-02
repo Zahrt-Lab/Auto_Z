@@ -11,6 +11,12 @@
 5) A lot of the pump logic is the same, can maybe include some general purpose math for all our test ases to ensure everything is working. 
 
 6) Directories are getting crowded should be cleaned up and organized to make it cleaner for people. 
+   Vision of new directory setup, hardware/devices directory of all the equipment needed.
+
+   Have a test directory with simulation and hardware commands, one to test unit individual devices another to test the integration into the code.
+   Is the autozahrt.eff-info really needed.
+
+7) Clean up code to focus mostly on the most relevant scripts
 
 ---
 
