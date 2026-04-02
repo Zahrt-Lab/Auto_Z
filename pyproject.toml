@@ -51,4 +51,6 @@ markers = [
     "mirror_box: marks tests requiring MirrorBox365nm device",
     "tc720: marks tests requiring TC720 temperature controller device",
     "tricontinental: marks tests requiring Tricontinental C24000 pump device",
+    "vici_m6: marks tests requiring VICI M6 pump device",
+    "vici_valve: marks tests requiring VICI selector valve devices",
 ]
