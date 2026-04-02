@@ -6,7 +6,6 @@ If a device is not found, hardware tests are skipped automatically —
 no manual configuration required.
 """
 
-import os
 import time
 from typing import Optional
 import pytest
@@ -221,8 +220,9 @@ def _detect_tricontinental_port() -> Optional[str]:
     that the Tricontinental firmware appends to every response.
     Returns the matching port, or None if not found.
     """
-    candidates = ["COM25"] + [p.device for p in serial.tools.list_ports.comports()
-                               if p.device != "COM25"]
+    # TODO : We should have this script autodetect the COM ports
+    candidates = ["COM17"] + [p.device for p in serial.tools.list_ports.comports()
+                               if p.device != "COM17"]
     for port in candidates:
         ser = None
         try:
@@ -281,141 +281,6 @@ def tricontinental_device(tricontinental_port: str):
 
 
 # ---------------------------------------------------------------------------
-# VICI M6 pump fixtures
-# ---------------------------------------------------------------------------
-
-def _detect_vici_m6_port() -> Optional[str]:
-    """Detect VICI M6 pump by probing each COM port with a velocity query."""
-    preferred_ports = ["COM16", "COM4", "COM21"]
-    # Preserve preferred ordering, then try every remaining port once.
-    remaining = [p.device for p in serial.tools.list_ports.comports()
-                 if p.device not in preferred_ports]
-    candidates = preferred_ports + remaining
-    for port in candidates:
-        ser = None
-        try:
-            ser = serial.Serial(port, baudrate=9600, timeout=1.0)
-            time.sleep(0.2)
-            if ser.in_waiting:
-                ser.read(ser.in_waiting)
-            ser.reset_input_buffer()
-            ser.write(b"PR V\r")
-            ser.flush()
-            response = ser.readline().decode("utf-8", errors="ignore").strip()
-            if not response:
-                continue
-            try:
-                float(response)
-                return port
-            except ValueError:
-                continue
-        except (serial.SerialException, OSError):
-            continue
-        finally:
-            if ser is not None:
-                try:
-                    ser.close()
-                except Exception:
-                    pass
-    return None
-
-
-@pytest.fixture(scope="session")
-def vici_m6_port() -> Optional[str]:
-    """Detect the COM port of a connected VICI M6 pump."""
-    port = _detect_vici_m6_port()
-    if port is None:
-        pytest.skip("VICI M6 pump not detected on any COM port — skipping hardware tests")
-    return port
-
-
-@pytest.fixture(scope="session")
-def vici_m6_device(vici_m6_port: str):
-    """Connected VICI_M6_Pumps instance shared across hardware tests."""
-    from pumps.vici_m6_pump.vici_m6_pump import VICI_M6_Pumps
-
-    pump = VICI_M6_Pumps(port=vici_m6_port)
-    if pump.ser is None:
-        pytest.skip("Unable to open serial connection to VICI M6 pump")
-    pump.start()
-    yield pump
-    try:
-        pump.stop()
-    except Exception:
-        pass
-    try:
-        pump.stop_connection()
-    except Exception:
-        pass
-
-
-# ---------------------------------------------------------------------------
-# VICI valve fixtures
-# ---------------------------------------------------------------------------
-
-def _detect_vici_valve_port() -> Optional[str]:
-    """Detect a VICI valve by issuing a CP (current position) query."""
-    preferred_ports = ["COM15", "COM5", "COM18"]
-    remaining = [p.device for p in serial.tools.list_ports.comports()
-                 if p.device not in preferred_ports]
-    candidates = preferred_ports + remaining
-    for port in candidates:
-        ser = None
-        try:
-            ser = serial.Serial(port, baudrate=9600, timeout=1.0)
-            time.sleep(0.2)
-            if ser.in_waiting:
-                ser.read(ser.in_waiting)
-            ser.reset_input_buffer()
-            ser.write(b"CP\r")
-            ser.flush()
-            response = ser.readline().decode("utf-8", errors="ignore").strip()
-            if not response:
-                continue
-            normalized = response.upper().replace("CP", "").replace("P", "")
-            normalized = normalized.replace("=", "").strip()
-            if normalized.isdigit():
-                return port
-        except (serial.SerialException, OSError):
-            continue
-        finally:
-            if ser is not None:
-                try:
-                    ser.close()
-                except Exception:
-                    pass
-    return None
-
-
-@pytest.fixture(scope="session")
-def vici_valve_port() -> Optional[str]:
-    """Detect the COM port of a connected VICI valve."""
-    port = _detect_vici_valve_port()
-    if port is None:
-        pytest.skip("VICI valve not detected on any COM port — skipping hardware tests")
-    return port
-
-
-@pytest.fixture(scope="session")
-def vici_valve_device(vici_valve_port: str):
-    """Connected ViciValve instance shared across hardware tests."""
-    from valves.vici_valves.vici_valves import ViciValve
-
-    valve_type = os.getenv("VICI_VALVE_TYPE", "10-way")
-    valve = ViciValve(port=vici_valve_port, valve_type=valve_type)
-    try:
-        valve.connect()
-    except Exception:
-        pass
-    yield valve
-    try:
-        valve.move_home()
-    except Exception:
-        pass
-    valve.close()
-
-
-# ---------------------------------------------------------------------------
 # Shared TC720 test helpers (used by unit and integration tests)
 # ---------------------------------------------------------------------------
 
@@ -439,3 +304,27 @@ def make_tc720_device(read_responses: list):
     tc.ser = mock_ser
     tc._connected = True
     return tc
+
+def make_vici_m6_response(response_str: str) -> bytes:
+    """Helper to create a byte response for VICI M6 pump."""
+    return (response_str + "\r").encode("ascii")
+
+
+def make_vici_m6_device():
+    """Return a MagicMock serial port pre-configured for VICI M6 pump unit tests."""
+    mock_ser = MagicMock()
+    mock_ser.is_open = True
+    mock_ser.readline.return_value = make_vici_m6_response("1000.0")
+    return mock_ser
+
+
+def make_uv_detector_response() -> bytes:
+    """Return a placeholder UV detector serial response."""
+    return b"OK\r\n"
+
+
+def make_uv_detector_device():
+    """Return a MagicMock serial port pre-configured for UV detector unit tests."""
+    mock_ser = MagicMock()
+    mock_ser.is_open = True
+    return mock_ser

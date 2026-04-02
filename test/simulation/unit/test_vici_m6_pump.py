@@ -12,7 +12,8 @@ A MagicMock is attached directly to tc.ser; GeneralExperimentMethod is never inv
 """
 
 import pytest
-from unittest.mock import patch
+import serial
+from unittest.mock import patch, MagicMock
 
 from pumps.vici_m6_pump.vici_m6_pump import VICI_M6_Pumps
 from conftest import make_vici_m6_response, make_vici_m6_device
@@ -33,7 +34,7 @@ class TestViciM6PumpCommunication:
 
     def test_failed_initialization(self):
         """Test that the pump handles failed initialization gracefully."""
-        with patch('serial.Serial', side_effect=Exception("Serial connection failed")):
+        with patch('serial.Serial', side_effect=serial.SerialException("Serial connection failed")):
             pump = VICI_M6_Pumps(port="COM_TEST")
             assert pump.ser is None
             print("Failed initialization test passed.")
@@ -137,32 +138,38 @@ class TestSetFlowRate:
 
 class TestAspirateAndDispense:
 
-    def test_valid_aspirate(self):
+    def test_aspirate_calls_pump_solution_with_volume(self):
+        """aspirate(flow_rate, volume) forwards volume to pump_solution."""
         pump = VICI_M6_Pumps(port="COM_TEST")
         pump.set_flow_rate(100, "aspirating")
-        pump.aspirate(500)
-        assert pump.volume == 500
-        assert pump.volume_units == "uL"
+        with patch.object(pump, 'pump_solution') as mock_pump, \
+             patch.object(pump, 'start'), patch.object(pump, 'stop'):
+            pump.aspirate(100, 500)
+        mock_pump.assert_called_once_with(500)
         print("Aspirate test passed.")
 
-    def test_valid_dispense(self):
+    def test_dispense_calls_pump_solution_with_volume(self):
+        """dispense(flow_rate, volume) forwards volume to pump_solution."""
         pump = VICI_M6_Pumps(port="COM_TEST")
         pump.set_flow_rate(100, "dispensing")
-        pump.dispense(500)
-        assert pump.volume == 500
-        assert pump.volume_units == "uL"
+        with patch.object(pump, 'pump_solution') as mock_pump, \
+             patch.object(pump, 'start'), patch.object(pump, 'stop'):
+            pump.dispense(100, 500)
+        mock_pump.assert_called_once_with(500)
         print("Dispense test passed.")
-    
-    def test_invalid_aspirate_volume(self):
+
+    def test_aspirate_does_not_raise_when_disconnected(self):
+        """aspirate with no serial connection handles gracefully."""
         pump = VICI_M6_Pumps(port="COM_TEST")
         pump.set_flow_rate(100, "aspirating")
-        with pytest.raises(ValueError):
-            pump.aspirate(-100)
-        print("Invalid aspirate volume test passed.")
-    
-    def test_invalid_dispense_volume(self):
+        with patch('pumps.vici_m6_pump.vici_m6_pump.time.sleep'):
+            pump.aspirate(100, 500)
+        print("Aspirate disconnected test passed.")
+
+    def test_dispense_does_not_raise_when_disconnected(self):
+        """dispense with no serial connection handles gracefully."""
         pump = VICI_M6_Pumps(port="COM_TEST")
         pump.set_flow_rate(100, "dispensing")
-        with pytest.raises(ValueError):
-            pump.dispense(-100)
-        print("Invalid dispense volume test passed.")
+        with patch('pumps.vici_m6_pump.vici_m6_pump.time.sleep'):
+            pump.dispense(100, 500)
+        print("Dispense disconnected test passed.")

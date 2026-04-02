@@ -60,12 +60,16 @@ class VICI_M6_Pumps(Pump):
 
     def set_flow_rate(self, flow_rate_min, direction):
         try:
+            if flow_rate_min is None or isinstance(flow_rate_min, str):
+                raise ValueError(f"flow_rate_min must be a numeric value, got {type(flow_rate_min).__name__}")
             self.flow_rate_min = float(flow_rate_min)
             self.flow_rate_sec = self.flow_rate_min / 60.0
 
+            if self.flow_rate_min > 5000:
+                raise ValueError(f"Flow rate {self.flow_rate_min} uL/min exceeds the maximum of 5000 uL/min for the VICI M6 pump.")
+
             if direction not in ["aspirating", "dispensing"]:
-                print("Invalid direction. Must be 'aspirating' or 'dispensing'.")
-                return
+                raise ValueError(f"Invalid direction '{direction}'. Must be 'aspirating' or 'dispensing'.")
 
             self.direction = direction
             self.direction_multiplier = 1 if direction == "dispensing" else -1
@@ -90,7 +94,7 @@ class VICI_M6_Pumps(Pump):
             print(f"Steps per uL: {self.steps_per_ul}, VM: {self.SL} steps/sec")
 
         except ValueError:
-            print('Invalid rate or volume.')
+            raise
 
     # Initiates the pump
     def start(self):
@@ -119,16 +123,18 @@ class VICI_M6_Pumps(Pump):
         print(f"Command sent to the pump \"{response.decode()}\"")
 
     def get_pump_parameters(self):
-        print("Pump parameters:\n"
-              f"The flow rate per minute is {self.flow_rate_min} {self.flow_rate_units_min}\n"
-              f"The flow rate per second is {round(self.flow_rate_sec,2)} {self.flow_rate_units_sec}\n"
-              f"The # of micro steps is  {self.micro_steps}\n"
-              f"The # of motor steps is  {self.motor_steps}\n"
-              f"The gear box ratio is  {self.gearbox_ratio}\n"
-              f"The number of microsteps per revolution is {round(self.micro_steps_per_rev,2)}\n"
-              f"The Pump Head Volume is  {self.pump_head_volume}\n"
-              f"The Velocity Max is {round(self.steps_per_ul,2)} {self.steps_per_ul_units}"
-              )
+        result = ("Pump parameters:\n"
+                  f"The flow rate per minute is {self.flow_rate_min} {self.flow_rate_units_min}\n"
+                  f"The flow rate per second is {round(self.flow_rate_sec,2)} {self.flow_rate_units_sec}\n"
+                  f"The # of micro steps is  {self.micro_steps}\n"
+                  f"The # of motor steps is  {self.motor_steps}\n"
+                  f"The gear box ratio is  {self.gearbox_ratio}\n"
+                  f"The number of microsteps per revolution is {round(self.micro_steps_per_rev,2)}\n"
+                  f"The Pump Head Volume is  {self.pump_head_volume}\n"
+                  f"The Velocity Max is {round(self.steps_per_ul,2)} {self.steps_per_ul_units}"
+                  )
+        print(result)
+        return result
 
     #Turns off serial connection and turned it off
     def stop(self):

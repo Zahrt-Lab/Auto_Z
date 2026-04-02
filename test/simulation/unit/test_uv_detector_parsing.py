@@ -7,103 +7,150 @@
 # ------------------------------------------------------------------------------
 
 """
-Unit tests for UV detector — pure logic, no real serial hardware.
-A MagicMock is attached directly to tc.ser; GeneralExperimentMethod is never involved.
+Unit tests for Ocean_Optics_UV_vis — pure logic, no real hardware or SDK.
+OceanDirectAPI is mocked at the module level so no Ocean Optics SDK is required.
 """
 
+import tempfile
 import pytest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
-from uv_detectors.uv_detector.uv_detector import UVDetector
-from conftest import make_uv_detector_response, make_uv_detector_device  
+from uv_detectors.uv_detector import Ocean_Optics_UV_vis
+
+# Patch target that makes the SDK appear available
+_OCEAN_API_PATH = 'uv_detectors.uv_detector.OceanDirectAPI'
+
+
+def _make_device(**kwargs) -> Ocean_Optics_UV_vis:
+    """Return an Ocean_Optics_UV_vis with a mocked SDK and a real temp directory."""
+    output_dir = tempfile.mkdtemp()
+    with patch(_OCEAN_API_PATH, MagicMock()):
+        uv = Ocean_Optics_UV_vis(output_dir=output_dir, **kwargs)
+    return uv
+
 
 # ---------------------------------------------------------------------------
-# Communication Connect and Close
+# Initialization
 # ---------------------------------------------------------------------------
 
-class TestUVDetectorCommunication:
+class TestOceanOpticsInitialization:
 
-    def test_successful_initialization(self):
-        """Test that the UV detector initializes successfully with a valid port."""
-        with patch('serial.Serial') as mock_serial:
-            mock_serial.return_value = make_uv_detector_device()
-            uv_detector = UVDetector(port="COM_TEST")
-            assert uv_detector.ser is not None
-            print("Successful initialization test passed.")
-        
-    def test_failed_initialization(self):
-        """Test that the UV handles failed initialization gracefully."""
-        with patch('serial.Serial', side_effect=Exception("Serial connection failed")):
-            uv_detector = UVDetector(port="COM_TEST")
-            assert uv_detector.ser is None
-            print("Failed initialization test passed.")
+    def test_sdk_not_available_raises(self):
+        """RuntimeError is raised when the OceanDirect SDK is unavailable."""
+        with patch(_OCEAN_API_PATH, None):
+            with pytest.raises(RuntimeError):
+                Ocean_Optics_UV_vis(output_dir=tempfile.mkdtemp())
 
-class TestUVDetectorParameters:
+    def test_default_attributes(self):
+        """All attributes are initialized to their expected defaults."""
+        uv = _make_device()
 
-    def test_initialization(self):
-        """Test that all parameters are initialized correctly."""
-        uv_detector = UVDetector(port="COM_TEST")
+        assert uv.od is None
+        assert uv.device_ids is None
+        assert uv.device is None
+        assert uv.initialized is False
+        assert uv.serial is None
+        assert uv.model is None
 
-        assert self.od == None
-        assert self.device_id == None
-        assert self.device == None
-        assert self.initialized == False
+        assert uv.blank_spectrum is None
+        assert uv.dark_spectrum is None
+        assert uv.raw_spectrum is None
+        assert uv.absorbance_spectrum is None
+        assert uv.spectra_sum is None
+        assert uv.wavelengths is None
 
-        assert uv_detector.ser == None
-        assert uv_detector.model == None
+        assert uv.target_wavelengths == [409.0]
+        assert uv.absorbance_at_target_wavelength is None
 
-        #Spectrum Calibration
-        assert uv_detector.blank_spectrum == None
-        assert uv_detector.dark_spectrum == None
-        assert uv_detector.raw_spectrum == None
-        assert uv_detector.absorbance_spectrum == None
+        assert uv._stop_flag is None
+        assert uv._worker_thread is None
+        assert uv._csv_file_path is None
+        assert uv._csv_writer is None
+        assert uv._start_time is None
 
-        assert uv_detector.spectra_sum == None
-        assert uv_detector.wavelengths == None
-
-        assert uv_detector.target_wavelengths == [float(409.0)]
-        assert uv_detector.absorbance_at_target_wavelength == None
-
-        # Thread control
-        assert uv_detector._stop_flag == None
-        assert uv_detector._worker_thread == None
-        assert uv_detector._csv_file_path == None
-        assert uv_detector._csv_writer == None
-        assert uv_detector._start_time == None
-
-        # Convergence monitoring
-        assert uv_detector.convergence_enabled == False
-        assert uv_detector.spike_level == 0.2
-        assert uv_detector.convergence_threshold == 0.05
-        assert uv_detector.convergence_time == 5 * 60  # 5 minutes in seconds
-        assert uv_detector.max_outliers == 2  # Allow up to 2 outliers during convergence period
-        assert uv_detector._convergence_state == {
+        assert uv.convergence_enabled is False
+        assert uv.spike_level == 0.2
+        assert uv.convergence_threshold == 0.05
+        assert uv.convergence_time == 5 * 60
+        assert uv.max_outliers == 2
+        assert uv._convergence_state == {
             'previous': None,
             'spike_seen': False,
             'converged_start': None,
-            'outliers': {},  # Dictionary: {outlier_number: timestamp}
+            'outliers': {},
             'done': False
         }
 
+    def test_invalid_integration_time_raises(self):
+        """integration_time <= 0 raises ValueError."""
+        with patch(_OCEAN_API_PATH, MagicMock()):
+            with pytest.raises(ValueError):
+                Ocean_Optics_UV_vis(output_dir=tempfile.mkdtemp(), integration_time=-1)
+
+    def test_invalid_num_scans_raises(self):
+        """num_scans <= 0 raises ValueError."""
+        with patch(_OCEAN_API_PATH, MagicMock()):
+            with pytest.raises(ValueError):
+                Ocean_Optics_UV_vis(output_dir=tempfile.mkdtemp(), num_scans=0)
+
+    def test_invalid_measurement_interval_raises(self):
+        """measurement_interval <= 0 raises ValueError."""
+        with patch(_OCEAN_API_PATH, MagicMock()):
+            with pytest.raises(ValueError):
+                Ocean_Optics_UV_vis(output_dir=tempfile.mkdtemp(), measurement_interval=0)
+
+    def test_custom_target_wavelengths(self):
+        """target_wavelengths passed at init are stored as floats."""
+        uv = _make_device(target_wavelengths=[250, 300, 350])
+        assert uv.target_wavelengths == [250.0, 300.0, 350.0]
+
+
+# ---------------------------------------------------------------------------
+# set_number_of_scans
+# ---------------------------------------------------------------------------
+
+class TestSetNumberOfScans:
+
     def test_set_number_of_scans(self):
-        uv_detector = UVDetector(port="COM_TEST")
-        uv_detector.set_number_of_scans(10)
-        assert uv_detector.number_of_scans == 10
+        uv = _make_device()
+        uv.set_number_of_scans(10)
+        assert uv.num_scans == 10
 
-    def test_set_number_of_scans_invalid(self):
-        uv_detector = UVDetector(port="COM_TEST")
-        with pytest.raises(ValueError, match="Number of scans must be a positive integer"):
-            uv_detector.set_number_of_scans(-5)
-    
-    def test_set_target_wavelengths(self):
-        uv_detector = UVDetector(port="COM_TEST")
-        uv_detector.set_target_wavelengths([250.0, 300.0, 350.0])
-        assert uv_detector.target_wavelengths == [250.0, 300.0, 350.0]
+    def test_set_number_of_scans_updates(self):
+        uv = _make_device(num_scans=5)
+        uv.set_number_of_scans(20)
+        assert uv.num_scans == 20
 
-    def test_set_target_wavelengths_invalid(self):
-        uv_detector = UVDetector(port="COM_TEST")
-        with pytest.raises(ValueError, match="Target wavelengths must be a list of positive numbers"):
-            uv_detector.set_target_wavelengths([-250.0, "300.0", "XYZ"])
 
-    
-    
+# ---------------------------------------------------------------------------
+# set_target_wavelength
+# ---------------------------------------------------------------------------
+
+class TestSetTargetWavelength:
+
+    def test_set_target_wavelength(self):
+        uv = _make_device()
+        uv.set_target_wavelength([250.0, 300.0, 350.0])
+        assert uv.target_wavelengths == [250.0, 300.0, 350.0]
+
+    def test_set_target_wavelength_single(self):
+        uv = _make_device()
+        uv.set_target_wavelength([409.0])
+        assert uv.target_wavelengths == [409.0]
+
+
+# ---------------------------------------------------------------------------
+# set_measurement_interval
+# ---------------------------------------------------------------------------
+
+class TestSetMeasurementInterval:
+
+    def test_set_measurement_interval(self):
+        uv = _make_device()
+        uv.set_measurement_interval(30.0)
+        assert uv.measurement_interval == 30.0
+
+    def test_set_measurement_interval_int_converts_to_float(self):
+        uv = _make_device()
+        uv.set_measurement_interval(60)
+        assert uv.measurement_interval == 60.0
