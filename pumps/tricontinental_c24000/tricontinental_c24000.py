@@ -216,7 +216,8 @@ class TricontinentalC24000(Pump):
         """Set default flow rate for subsequent operations."""
         if not self._connected:
             raise RuntimeError(f"{self.name}: Not connected")
-        
+
+        self.flow_rate_ul_min = abs(flow_rate_ul_min)
         device_rate = self._convert_flow_rate(flow_rate_ul_min)
         cmd = f"output_speed {device_rate}\r\n"
         self.serial.write(cmd.encode())

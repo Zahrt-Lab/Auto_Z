@@ -220,8 +220,8 @@ def _detect_tricontinental_port() -> Optional[str]:
     that the Tricontinental firmware appends to every response.
     Returns the matching port, or None if not found.
     """
-    candidates = ["COM17"] + [p.device for p in serial.tools.list_ports.comports()
-                               if p.device != "COM17"]
+    candidates = ["COM25"] + [p.device for p in serial.tools.list_ports.comports()
+                               if p.device != "COM25"]
     for port in candidates:
         ser = None
         try:

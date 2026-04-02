@@ -7,7 +7,7 @@
 # ------------------------------------------------------------------------------
 
 """
-Unit tests for TC720 temperature controller — pure logic, no real serial hardware.
+Unit tests for VICI M6 pump — pure logic, no real serial hardware.
 A MagicMock is attached directly to tc.ser; GeneralExperimentMethod is never involved.
 """
 
