@@ -28,7 +28,7 @@ from conftest import make_vici_valve_response
 @pytest.fixture
 def mock_vici_valve():
     """VICI valve with mock serial, pre-loaded with enough read() responses."""
-    from valves.vici_valves.vici_valves import ViciValve
+    from devices.industry_components.valves.vici_valves.vici_valves import ViciValve
     with patch('serial.Serial'):
         valve = ViciValve(port="COM_TEST", valve_type="6-way")
     ser = MagicMock()

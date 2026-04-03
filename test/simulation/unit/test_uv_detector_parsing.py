@@ -15,10 +15,10 @@ import tempfile
 import pytest
 from unittest.mock import MagicMock, patch
 
-from uv_detectors.uv_detector import Ocean_Optics_UV_vis
+from devices.industry_components.uv_detectors.uv_detector import Ocean_Optics_UV_vis
 
 # Patch target that makes the SDK appear available
-_OCEAN_API_PATH = 'uv_detectors.uv_detector.OceanDirectAPI'
+_OCEAN_API_PATH = 'devices.industry_components.uv_detectors.uv_detector.OceanDirectAPI'
 
 
 def _make_device(**kwargs) -> Ocean_Optics_UV_vis:

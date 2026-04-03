@@ -10,7 +10,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 
-from pumps.tricontinental_c24000.tricontinental_c24000 import TricontinentalC24000
+from devices.industry_components.pumps.tricontinental_c24000.tricontinental_c24000 import TricontinentalC24000
 from conftest import make_tricontinental_c24000_response, make_tricontinental_c24000_device
 
 # ---------------------------------------------------------------------------

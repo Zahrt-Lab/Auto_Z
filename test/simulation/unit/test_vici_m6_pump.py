@@ -15,7 +15,7 @@ import pytest
 import serial
 from unittest.mock import patch, MagicMock
 
-from pumps.vici_m6_pump.vici_m6_pump import VICI_M6_Pumps
+from devices.industry_components.pumps.vici_m6_pump.vici_m6_pump import VICI_M6_Pumps
 from conftest import make_vici_m6_response, make_vici_m6_device
 
 # ---------------------------------------------------------------------------
@@ -162,7 +162,7 @@ class TestAspirateAndDispense:
         """aspirate with no serial connection handles gracefully."""
         pump = VICI_M6_Pumps(port="COM_TEST")
         pump.set_flow_rate(100, "aspirating")
-        with patch('pumps.vici_m6_pump.vici_m6_pump.time.sleep'):
+        with patch('devices.industry_components.pumps.vici_m6_pump.vici_m6_pump.time.sleep'):
             pump.aspirate(100, 500)
         print("Aspirate disconnected test passed.")
 
@@ -170,6 +170,6 @@ class TestAspirateAndDispense:
         """dispense with no serial connection handles gracefully."""
         pump = VICI_M6_Pumps(port="COM_TEST")
         pump.set_flow_rate(100, "dispensing")
-        with patch('pumps.vici_m6_pump.vici_m6_pump.time.sleep'):
+        with patch('devices.industry_components.pumps.vici_m6_pump.vici_m6_pump.time.sleep'):
             pump.dispense(100, 500)
         print("Dispense disconnected test passed.")

@@ -27,7 +27,7 @@ from conftest import make_vici_m6_response
 @pytest.fixture
 def mock_vici_m6():
     """VICI M6 pump with mock serial, pre-loaded with enough read() responses."""
-    from pumps.vici_m6_pump.vici_m6_pump import VICI_M6_Pumps
+    from devices.industry_components.pumps.vici_m6_pump.vici_m6_pump import VICI_M6_Pumps
     pump = VICI_M6_Pumps(port="COM_TEST")
     ser = MagicMock()
     ser.is_open = True

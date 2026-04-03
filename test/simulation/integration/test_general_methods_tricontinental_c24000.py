@@ -27,7 +27,7 @@ from conftest import make_tricontinental_c24000_response
 @pytest.fixture
 def mock_c24000():
     """Tricontinental C24000 with mock serial, pre-loaded with enough read() responses."""
-    from pumps.tricontinental_c24000.tricontinental_c24000 import TricontinentalC24000
+    from devices.industry_components.pumps.tricontinental_c24000.tricontinental_c24000 import TricontinentalC24000
     pump = TricontinentalC24000(port="COM_TEST")
     ser = MagicMock()
     ser.is_open = True

@@ -105,7 +105,7 @@ def tc720_device(tc720_port: str):
     Connected TC720 instance, shared across the hardware test session.
     Returns temperature to 25°C (safe default) and closes cleanly on teardown.
     """
-    from temperature_controller.tc720.tc720 import TC720
+    from devices.industry_components.temperature_controller.tc720.tc720 import TC720
     tc = TC720(port=tc720_port)
     tc.connect()
     yield tc
@@ -181,7 +181,7 @@ def dh2000_device(dh2000_port: str):
     Connected DH2000LightSource instance, shared across the hardware test session.
     Performs a safe_shutdown on teardown to leave the device in a known safe state.
     """
-    from uv_detectors.dh2000 import DH2000LightSource
+    from devices.industry_components.uv_detectors.dh2000 import DH2000LightSource
     dh = DH2000LightSource(port=dh2000_port, baudrate=9600, timeout=2.0)
     dh.connect()
     yield dh
@@ -198,7 +198,7 @@ def mirror_box_device(mirror_box_port: str):
     Connected MirrorBox365nm instance, shared across the hardware test session.
     Dims to 255 (off) and closes cleanly on teardown.
     """
-    from custom_components.light_source.mirror_box_365nm.mirror_box_365nm import MirrorBox365nm
+    from devices.custom_components.light_source.mirror_box_365nm.mirror_box_365nm import MirrorBox365nm
     mb = MirrorBox365nm(port=mirror_box_port)
     mb.connect()
     yield mb
@@ -269,7 +269,7 @@ def tricontinental_device(tricontinental_port: str):
     Connected TricontinentalC24000 instance, shared across the hardware test session.
     Stops both pumps and closes the port cleanly on teardown.
     """
-    from pumps.tricontinental_c24000 import TricontinentalC24000
+    from devices.industry_components.pumps.tricontinental_c24000.tricontinental_c24000 import TricontinentalC24000
     pump = TricontinentalC24000(port=tricontinental_port)
     pump.connect()
     yield pump
@@ -296,7 +296,7 @@ def make_tc720_response(temp_celsius: float) -> bytes:
 
 def make_tc720_device(read_responses: list):
     """TC720 with mock serial pre-loaded with read() responses."""
-    from temperature_controller.tc720.tc720 import TC720
+    from devices.industry_components.temperature_controller.tc720.tc720 import TC720
     tc = TC720(port="COM_TEST")
     mock_ser = MagicMock()
     mock_ser.is_open = True

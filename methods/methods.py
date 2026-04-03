@@ -32,17 +32,17 @@ from .instrument_manager import InstrumentManager
 from .device_executors import DeviceExecutor
 
 # Import abstract base classes
-from liquid_handlers.liquid_handlers import LiquidHandler
-from pumps.pumps import Pump
-from valves.valves import Valves
-from temperature_controller.temperature_controller import TemperatureController
-from syringe_pumps.syringe_pumps import SyringePump
+from devices.industry_components.liquid_handlers.liquid_handlers import LiquidHandler
+from devices.industry_components.pumps.pumps import Pump
+from devices.industry_components.valves.valves import Valves
+from devices.industry_components.temperature_controller.temperature_controller import TemperatureController
+from devices.industry_components.syringe_pumps.syringe_pumps import SyringePump
 
 # Import concrete implementations (needed for bed layout)
-from liquid_handlers.bed_layout import BedLayout
-from uv_detectors.dh2000 import DH2000LightSource
-from uv_detectors.uv_detector import Ocean_Optics_UV_vis
-from custom_components.light_source.mirror_box_365nm.mirror_box_365nm import MirrorBox365nm
+from devices.industry_components.liquid_handlers.bed_layout import BedLayout
+from devices.industry_components.uv_detectors.dh2000 import DH2000LightSource
+from devices.industry_components.uv_detectors.uv_detector import Ocean_Optics_UV_vis
+from devices.custom_components.light_source.mirror_box_365nm.mirror_box_365nm import MirrorBox365nm
 
 
 # TODO can't find syringe pump and isamatic scripts and need to add this script later

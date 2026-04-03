@@ -19,5 +19,8 @@ jobs:
       - name: Install dependencies
         run: pip install -e ".[dev]"
 
+      - name: Lint with ruff
+        run: ruff check methods/ devices/ test/
+
       - name: Run unit and integration tests
         run: pytest test/simulation -v --tb=short

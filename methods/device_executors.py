@@ -19,14 +19,14 @@ from pathlib import Path
 from .parameter_parser import ParameterParser
 
 # Import abstract base classes
-from liquid_handlers.liquid_handlers import LiquidHandler
-from pumps.pumps import Pump
-from valves.valves import Valves
-from temperature_controller.temperature_controller import TemperatureController
-from syringe_pumps.syringe_pumps import SyringePump
-from uv_detectors.dh2000 import DH2000LightSource
-from uv_detectors.uv_detector import Ocean_Optics_UV_vis
-from custom_components.light_source.mirror_box_365nm.mirror_box_365nm import MirrorBox365nm
+from devices.industry_components.liquid_handlers.liquid_handlers import LiquidHandler
+from devices.industry_components.pumps.pumps import Pump
+from devices.industry_components.valves.valves import Valves
+from devices.industry_components.temperature_controller.temperature_controller import TemperatureController
+from devices.industry_components.syringe_pumps.syringe_pumps import SyringePump
+from devices.industry_components.uv_detectors.dh2000 import DH2000LightSource
+from devices.industry_components.uv_detectors.uv_detector import Ocean_Optics_UV_vis
+from devices.custom_components.light_source.mirror_box_365nm.mirror_box_365nm import MirrorBox365nm
 
 
 class DeviceExecutor:
@@ -58,7 +58,7 @@ class DeviceExecutor:
                 liquid_handler.set_bedlayout(bed, rack_layout)
             else:
                 # Fallback to bed_layouts dict for GX281
-                from liquid_handlers.bed_layout import BedLayout
+                from devices.industry_components.liquid_handlers.bed_layout import BedLayout
                 bed_layout = BedLayout(bed_number=bed, rack_layout=rack_layout)
                 self.bed_layouts[bed] = bed_layout
                 print(f"Bed {bed} layout set with rack_layout {rack_layout}")

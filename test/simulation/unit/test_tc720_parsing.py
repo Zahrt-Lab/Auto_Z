@@ -6,7 +6,7 @@ A MagicMock is attached directly to tc.ser; GeneralExperimentMethod is never inv
 import pytest
 from unittest.mock import patch
 
-from temperature_controller.tc720.tc720 import TC720
+from devices.industry_components.temperature_controller.tc720.tc720 import TC720
 from conftest import make_tc720_response, make_tc720_device
 
 _SLEEP_PATH = "temperature_controller.tc720.tc720.time.sleep"

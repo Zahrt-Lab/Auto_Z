@@ -9,7 +9,7 @@ Each test covers a single piece of logic in isolation.
 import pytest
 from unittest.mock import MagicMock, patch, call
 
-from uv_detectors.dh2000 import DH2000LightSource
+from devices.industry_components.uv_detectors.dh2000 import DH2000LightSource
 
 
 # ---------------------------------------------------------------------------

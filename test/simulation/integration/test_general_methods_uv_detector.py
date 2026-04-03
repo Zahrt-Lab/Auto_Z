@@ -35,10 +35,10 @@ def mock_uv_detector(tmp_path):
       - absorbance_spectrum            : -log10(raw/blank) at all pixels (~0.301 AU)
       - initialized = True             : skips ensure_init() guard
     """
-    from uv_detectors.uv_detector import Ocean_Optics_UV_vis
+    from devices.industry_components.uv_detectors.uv_detector import Ocean_Optics_UV_vis
 
     # Patch the module-level OceanDirectAPI variable so __init__ won't raise.
-    with patch("uv_detectors.uv_detector.OceanDirectAPI", MagicMock()):
+    with patch("devices.industry_components.uv_detectors.uv_detector.OceanDirectAPI", MagicMock()):
         uv = Ocean_Optics_UV_vis(output_dir=str(tmp_path / "uv_output"))
 
     # --- hardware layer mock (equivalent to pump.ser) ---

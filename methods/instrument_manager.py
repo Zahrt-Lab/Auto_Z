@@ -15,17 +15,17 @@ Handles loading configuration, initializing instruments, and managing connection
 import pandas as pd
 
 # Import concrete implementations
-from liquid_handlers.gx281.gx281 import GX281
-from liquid_handlers.ender3_liquid_handler.ender3_liquid_handler import Ender3LiquidHandler
-from pumps.vici_m6_pump.vici_m6_pump import VICI_M6_Pumps
-from pumps.isametic_pump.isametic_pump import IsmaticPump
-from pumps.tricontinental_c24000.tricontinental_c24000 import TricontinentalC24000
-from syringe_pumps.phd_ultra_pumps.phd_ultra_pumps import PhdUltraPump
-from valves.vici_valves.vici_valves import ViciValve
-from temperature_controller.tc720.tc720 import TC720
-from uv_detectors.dh2000 import DH2000LightSource
-from uv_detectors.uv_detector import Ocean_Optics_UV_vis
-from custom_components.light_source.mirror_box_365nm.mirror_box_365nm import MirrorBox365nm
+from devices.industry_components.liquid_handlers.gx281.gx281 import GX281
+from devices.industry_components.liquid_handlers.ender3_liquid_handler.ender3_liquid_handler import Ender3LiquidHandler
+from devices.industry_components.pumps.vici_m6_pump.vici_m6_pump import VICI_M6_Pumps
+from devices.industry_components.pumps.isametic_pump.isametic_pump import IsmaticPump
+from devices.industry_components.pumps.tricontinental_c24000.tricontinental_c24000 import TricontinentalC24000
+from devices.industry_components.syringe_pumps.phd_ultra_pumps.phd_ultra_pumps import PhdUltraPump
+from devices.industry_components.valves.vici_valves.vici_valves import ViciValve
+from devices.industry_components.temperature_controller.tc720.tc720 import TC720
+from devices.industry_components.uv_detectors.dh2000 import DH2000LightSource
+from devices.industry_components.uv_detectors.uv_detector import Ocean_Optics_UV_vis
+from devices.custom_components.light_source.mirror_box_365nm.mirror_box_365nm import MirrorBox365nm
 
 
 class InstrumentManager:

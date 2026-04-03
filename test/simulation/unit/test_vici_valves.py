@@ -15,7 +15,7 @@ import pytest
 import serial
 from unittest.mock import patch, MagicMock
 
-from valves.vici_valves.vici_valves import ViciValve
+from devices.industry_components.valves.vici_valves.vici_valves import ViciValve
 from conftest import make_vici_valve_response, make_vici_valve_device
 
 # ---------------------------------------------------------------------------

@@ -24,7 +24,7 @@ _DRAIN    = "uv_detectors.dh2000.DH2000LightSource._drain"
 @pytest.fixture
 def mock_dh():
     """DH2000LightSource with mock serial, pre-loaded with enough readline() responses."""
-    from uv_detectors.dh2000 import DH2000LightSource
+    from devices.industry_components.uv_detectors.dh2000 import DH2000LightSource
     dh = DH2000LightSource(port="COM_TEST", timeout=2.0)
     ser = MagicMock()
     ser.in_waiting = 0

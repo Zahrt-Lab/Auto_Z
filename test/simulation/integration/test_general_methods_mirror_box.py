@@ -16,7 +16,7 @@ from datetime import datetime
 
 from methods.methods import GeneralExperimentMethod
 from methods.device_executors import DeviceExecutor
-from custom_components.light_source.mirror_box_365nm.mirror_box_365nm import MirrorBox365nm
+from devices.custom_components.light_source.mirror_box_365nm.mirror_box_365nm import MirrorBox365nm
 
 _IM_INIT = "methods.instrument_manager.InstrumentManager.__init__"
 _SM_START = "methods.status_monitor.StatusMonitor.start"

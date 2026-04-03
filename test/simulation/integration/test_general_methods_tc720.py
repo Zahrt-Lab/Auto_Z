@@ -32,7 +32,7 @@ _SLEEP    = "temperature_controller.tc720.tc720.time.sleep"
 @pytest.fixture
 def mock_tc():
     """TC720 with mock serial, pre-loaded with enough read() responses."""
-    from temperature_controller.tc720.tc720 import TC720
+    from devices.industry_components.temperature_controller.tc720.tc720 import TC720
     tc = TC720(port="COM_TEST")
     ser = MagicMock()
     ser.is_open = True
