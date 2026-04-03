@@ -12,7 +12,7 @@ Integration tests for VICI valves through GeneralExperimentMethod.
 Every test goes through the run_experiment() no direct VICI valve method calls.
 InstrumentManager is patched to inject a VICI valve with mocked serial.
 '''
-'''
+
 import pytest
 import pandas as pd
 from unittest.mock import MagicMock, patch
@@ -29,7 +29,8 @@ from conftest import make_vici_valve_response
 def mock_vici_valve():
     """VICI valve with mock serial, pre-loaded with enough read() responses."""
     from valves.vici_valves.vici_valves import ViciValve
-    valve = ViciValve(port="COM_TEST", valve_type="6-way")
+    with patch('serial.Serial'):
+        valve = ViciValve(port="COM_TEST", valve_type="6-way")
     ser = MagicMock()
     ser.is_open = True
     ser.read.side_effect = [make_vici_valve_response("Position: 1")] * 5 + [b''] * 10
@@ -78,7 +79,7 @@ def _run(gm: GeneralExperimentMethod) -> pd.DataFrame:
     """Run the experiment and return the log as a DataFrame."""
     with patch("methods.status_monitor.StatusMonitor.start"), patch("time.sleep"):
         gm.run_experiment()
-    log = pd.read_csv(gm.log_filename)
+    return pd.read_csv(gm.log_filename)
 
 # ---------------------------------------------------------------------------
 # Log output
@@ -89,6 +90,15 @@ class TestLogOutput:
     @pytest.mark.parametrize("set_position", [1, 3, 6])
     def test_go_to_position_logged_with_valid_position(self, gm, set_position):
         log = _run(gm)
-        row = log[(log["Component"] == "VICI_VALVE_1") & (log["Action"] == f"go_to_position={set_position}")]
-        assert row["Output"].str.contains(f"Started async go_to_position to {set_position}", na=False).any()
-'''
+        row = log[(log["Component"] == "VICI_VALVE_1") & 
+                  (log["Action"] == f"go_to_position") &
+                  (log["Parameters"] == f"position={set_position}")]
+        assert row["Output"].str.contains(f"Moved valve to position {set_position}", na=False).any()
+
+    @pytest.mark.parametrize("set_position", [0, 7, -1])
+    def test_go_to_position_logged_with_invalid_position(self, gm, set_position):
+        log = _run(gm)
+        row = log[(log["Component"] == "VICI_VALVE_1") & 
+                  (log["Action"] == f"go_to_position") &
+                  (log["Parameters"] == f"position={set_position}")]
+        assert log["Output"].str.contains("skipped|FAILED", na=False).any()
