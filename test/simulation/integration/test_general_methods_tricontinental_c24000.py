@@ -92,9 +92,11 @@ class TestLogOutput:
         (0.1),
         (5000.0),
     ])
-    def test_dispense_logged_with_valid_flow_rate(self, gm, flow_rate):
+    def test_dispense_logged_with_valid_flow_rate(self, gm, flow_rate, volume):
         log = _run(gm)
-        row = log[(log["Component"] == "C24000_1") & (log["Action"] == "dispense")]
+        row = log[(log["Component"] == "C24000_1") & 
+                  (log["Action"] == "dispense") &
+                  (log["Parameters"] == f"flow_rate={flow_rate},volume={volume}")]
         assert row["Output"].str.contains("Started async dispense", na=False).any()
     
     @pytest.mark.parametrize("volume", [
@@ -102,10 +104,11 @@ class TestLogOutput:
         (100.0),
         (500.0),
     ])
-
-    def test_dispense_logged_with_valid_volume(self, gm, volume):
+    def test_dispense_logged_with_valid_volume(self, gm, flow_rate, volume):
         log = _run(gm)
-        row = log[(log["Component"] == "C24000_1") & (log["Action"] == "dispense")]
+        row = log[(log["Component"] == "C24000_1") & 
+                  (log["Action"] == "dispense") & 
+                  (log["Parameters"] == f"flow_rate={flow_rate},volume={volume}")]
         assert row["Output"].str.contains("Started async dispense", na=False).any()
     
     @pytest.mark.parametrize("flow_rate", [
@@ -113,9 +116,11 @@ class TestLogOutput:
         (-10),
         ("invalid"),
     ])
-    def test_dispense_logged_with_invalid_flow_rate(self, gm):
+    def test_dispense_logged_with_invalid_flow_rate(self, gm, flow_rate, volume):
         log = _run(gm)
-        row = log[(log["Component"] == "C24000_1") & (log["Action"] == "dispense")]
+        row = log[(log["Component"] == "C24000_1") & 
+                  (log["Action"] == "dispense") &
+                  (log["Parameters"] == f"flow_rate={flow_rate},volume={volume}")]
         assert log["Output"].str.contains("skipped|FAILED", na=False).any()
     
     @pytest.mark.parametrize("volume", [
@@ -123,9 +128,11 @@ class TestLogOutput:
         (-100),
         ("invalid"),
     ])
-    def test_dispense_logged_with_invalid_volume(self, gm, volume):
+    def test_dispense_logged_with_invalid_volume(self, gm, flow_rate, volume):
         log = _run(gm)
-        row = log[(log["Component"] == "C24000_1") & (log["Action"] == "dispense")]
+        row = log[(log["Component"] == "C24000_1") & 
+                  (log["Action"] == "dispense") &
+                  (log["Parameters"] == f"flow_rate={flow_rate},volume={volume}")]
         assert log["Output"].str.contains("skipped|FAILED", na=False).any()
 
 # ---------------------------------------------------------------------------

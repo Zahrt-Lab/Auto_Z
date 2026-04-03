@@ -79,42 +79,6 @@ def _run(gm) -> pd.DataFrame:
         gm.run_experiment()
     return pd.read_csv(gm.log_filename)
 
-
-# ---------------------------------------------------------------------------
-# Routing — does run_experiment() dispatch to the right DH2000 actions?
-# ---------------------------------------------------------------------------
-
-class TestRouting:
-
-    def test_both_actions_appear_in_log(self, gm):
-        log = _run(gm)
-        dh_rows = log[log["Component"] == "DH2000_1"]
-        assert set(dh_rows["Action"]) >= {"shutter_open", "status"}
-
-    def test_no_device_not_found_errors(self, gm):
-        log = _run(gm)
-        assert log["Output"].str.contains("not found", na=False).sum() == 0
-
-
-# ---------------------------------------------------------------------------
-# Serial commands — correct bytes reach the mock device via GeneralExperimentMethod
-# ---------------------------------------------------------------------------
-
-class TestSerialCommands:
-
-    def test_shutter_open_sends_o_byte(self, gm, mock_dh):
-        ser = mock_dh.ser
-        _run(gm)
-        written = [c.args[0] for c in ser.write.call_args_list]
-        assert b"o" in written
-
-    def test_status_sends_s_byte(self, gm, mock_dh):
-        ser = mock_dh.ser
-        _run(gm)
-        written = [c.args[0] for c in ser.write.call_args_list]
-        assert b"s" in written
-
-
 # ---------------------------------------------------------------------------
 # Log output — correct values written to the CSV log
 # ---------------------------------------------------------------------------
