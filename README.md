@@ -7,21 +7,6 @@ AUTO_ZAHRT is a comprehensive Python-based automation platform for controlling l
 
 ## Installation
 
-### From Source (Development)
-
-```bash
-# Clone or navigate to the repository
-cd Auto_Zahrt_v3
-
-# Install in editable mode with development dependencies
-pip install -e .
-
-# Or install with dev dependencies
-pip install -e ".[dev]"
-```
-
-### As a Package
-
 ```bash
 # Install from the directory
 pip install /path/to/Auto_Zahrt_v3
@@ -32,15 +17,7 @@ python -m build
 pip install dist/auto_zahrt-3.0.0-py3-none-any.whl
 ```
 
-### Requirements
-
-- Python 3.9 or higher
-- pandas >= 2.0.0
-- pyserial >= 3.5
-
-## Usage
-
-### Launch the GUI
+## GUI usage
 
 After installation, you can launch the GUI using:
 
@@ -48,14 +25,9 @@ After installation, you can launch the GUI using:
 auto-zahrt-gui
 ```
 
-Or from Python:
+## Programmatic Usage
 
-```python
-from methods.methods_gui import main
-main()
-```
-
-### Programmatic Usage
+For more complex workflows, below is an example of how it can be integrated into more complex workflows.
 
 ```python
 from methods import GeneralExperimentMethod
@@ -70,8 +42,6 @@ experiment = GeneralExperimentMethod(
 # Run experiment
 experiment.run_experiment()
 ```
-
-## Configuration
 
 ### Instrument Configuration CSV
 
