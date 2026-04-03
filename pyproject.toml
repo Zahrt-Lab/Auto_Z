@@ -46,6 +46,8 @@ exclude = [".conda*", "test*", "docs*", "*.egg-info*"]
 
 [tool.pytest.ini_options]
 testpaths = ["test"]
+addopts = "--import-mode=importlib"
+pythonpath = ["test"]
 markers = [
     "hardware: marks tests requiring physical hardware on a COM port (deselect with '-m not hardware')",
     "mirror_box: marks tests requiring MirrorBox365nm device",
