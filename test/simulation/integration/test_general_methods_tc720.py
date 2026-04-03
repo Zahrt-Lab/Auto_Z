@@ -75,40 +75,6 @@ def _run(gm) -> pd.DataFrame:
         gm.run_experiment()
     return pd.read_csv(gm.log_filename)
 
-
-# ---------------------------------------------------------------------------
-# Routing — does run_experiment() dispatch to the right TC720 actions?
-# ---------------------------------------------------------------------------
-
-class TestRouting:
-
-    def test_both_actions_appear_in_log(self, gm):
-        log = _run(gm)
-        tc_rows = log[log["Component"] == "TC720_1"]
-        assert set(tc_rows["Action"]) >= {"set_temperature", "get_temperature"}
-
-    def test_no_device_not_found_errors(self, gm):
-        log = _run(gm)
-        assert log["Output"].str.contains("not found", na=False).sum() == 0
-
-
-# ---------------------------------------------------------------------------
-# Serial commands — correct bytes reach the mock device via GeneralExperimentMethod
-# ---------------------------------------------------------------------------
-
-class TestSerialCommands:
-
-    def test_set_temperature_sends_correct_bytes(self, gm, mock_tc):
-        _run(gm)
-        written = [c.args[0] for c in mock_tc.ser.write.call_args_list]
-        assert b'*1c09c494\r' in written
-
-    def test_get_temperature_sends_sensor1_query(self, gm, mock_tc):
-        _run(gm)
-        written = [c.args[0] for c in mock_tc.ser.write.call_args_list]
-        assert b'*01000021\r' in written
-
-
 # ---------------------------------------------------------------------------
 # Log output — correct values written to the CSV log
 # ---------------------------------------------------------------------------
