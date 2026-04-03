@@ -26,7 +26,7 @@ from devices.industry_components.temperature_controller.temperature_controller i
 from devices.industry_components.syringe_pumps.syringe_pumps import SyringePump
 from devices.industry_components.uv_detectors.dh2000 import DH2000LightSource
 from devices.industry_components.uv_detectors.uv_detector import Ocean_Optics_UV_vis
-from devices.custom_components.light_source.mirror_box_365nm.mirror_box_365nm import MirrorBox365nm
+from custom_components.light_source.mirror_box_365nm.mirror_box_365nm import MirrorBox365nm
 
 
 class DeviceExecutor:

@@ -11,7 +11,7 @@ The purpose of this code is to feed into our liquid handler ender 3 class
 which we can use as a 3D printer to control the xyz coordinates of our 3D printer
 '''
 
-from .ender3 import ender3
+from devices.industry_components.liquid_handlers.ender3_liquid_handler.ender3 import ender3
 from ..liquid_handlers import LiquidHandler
 from ..bed_layout import BedLayout
 

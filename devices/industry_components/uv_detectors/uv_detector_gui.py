@@ -49,10 +49,10 @@ try:
     from .uv_detector import Ocean_Optics_UV_vis
 except ImportError:
     try:
-        from uv_detectors.uv_detector import Ocean_Optics_UV_vis
+        from devices.industry_components.uv_detectors.uv_detector import Ocean_Optics_UV_vis
     except ImportError:
         try:
-            from uv_detector import Ocean_Optics_UV_vis
+            from devices.industry_components.uv_detectors.uv_detector import Ocean_Optics_UV_vis
         except ImportError:
             Ocean_Optics_UV_vis = None  # We'll error nicely on init
 
@@ -170,7 +170,7 @@ class UVVisApp(tk.Tk):
     # ───────────────────────────────────────── device actions
     def _on_init(self):
         if Ocean_Optics_UV_vis is None:
-            return messagebox.showerror("Import error", "Could not import Ocean_Optics_UV_vis from devices.industry_components.uv_detectors.uv_detector. Check that the package is installed or run from the project root.")
+            return messagebox.showerror("Import error", "Could not import Ocean_Optics_UV_vis from uv_detectors.uv_detector. Check that the package is installed or run from the project root.")
         try:
             targets = self._parse_targets()
         except Exception:

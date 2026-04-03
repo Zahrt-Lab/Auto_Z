@@ -8,7 +8,7 @@
 
 import time
 import serial
-from ..pumps import Pump
+from devices.industry_components.pumps.pumps import Pump
 
 # TODO : Need to add a max flow rate volume of 5 mL/min which is max 
 # recommended flow rate for the pump. 

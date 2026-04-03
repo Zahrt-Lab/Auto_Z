@@ -5,7 +5,7 @@
 # Contributions by graduate students Scott Laverty and David Polefrone are acknowledged.
 # All rights reserved.
 # ------------------------------------------------------------------------------
-from .wells import Well
+from devices.industry_components.liquid_handlers.wells import Well
 
 class BedLayout():
 

@@ -6,8 +6,8 @@
 # All rights reserved.
 # ------------------------------------------------------------------------------
 
-from ..pumps import Pump
-from . import tricont_pyserial as tri
+from devices.industry_components.pumps.pumps import Pump
+from devices.industry_components.pumps.tricontinental_c24000 import tricont_pyserial as tri
 import time
 
 '''

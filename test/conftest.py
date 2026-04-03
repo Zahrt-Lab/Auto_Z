@@ -198,7 +198,7 @@ def mirror_box_device(mirror_box_port: str):
     Connected MirrorBox365nm instance, shared across the hardware test session.
     Dims to 255 (off) and closes cleanly on teardown.
     """
-    from devices.custom_components.light_source.mirror_box_365nm.mirror_box_365nm import MirrorBox365nm
+    from custom_components.light_source.mirror_box_365nm.mirror_box_365nm import MirrorBox365nm
     mb = MirrorBox365nm(port=mirror_box_port)
     mb.connect()
     yield mb
@@ -269,7 +269,7 @@ def tricontinental_device(tricontinental_port: str):
     Connected TricontinentalC24000 instance, shared across the hardware test session.
     Stops both pumps and closes the port cleanly on teardown.
     """
-    from devices.industry_components.pumps.tricontinental_c24000.tricontinental_c24000 import TricontinentalC24000
+    from devices.industry_components.pumps.tricontinental_c24000 import TricontinentalC24000
     pump = TricontinentalC24000(port=tricontinental_port)
     pump.connect()
     yield pump
