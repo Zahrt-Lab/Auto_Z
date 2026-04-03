@@ -12,6 +12,7 @@ from pumps.pumps import Pump
 
 # TODO : Need to add a max flow rate volume of 5 mL/min which is max 
 # recommended flow rate for the pump. 
+# TODO: Once test
 
 class VICI_M6_Pumps(Pump):
 

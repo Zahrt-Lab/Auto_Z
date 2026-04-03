@@ -15,6 +15,7 @@ The purpose of this code is to control the Tricontinental C24000 dual syringe pu
 via its serial interface.
 '''
 
+# TODO: After testing, consider refactoring this code to reduce repetition and improve readability.
 
 class TricontinentalC24000(Pump):
     """Driver for Tricontinental C24000 Dual Syringe Pump.

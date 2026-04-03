@@ -8,6 +8,9 @@
 
 # Import necessary libraries
 
+# TODO : This code is long, once test code is up and running, consider refactoring into a class-based structure
+# with helper methods to reduce repetition and improve readability.
+
 import serial
 import time
 
