@@ -102,3 +102,16 @@ class TestLogOutput:
                   (log["Action"] == f"go_to_position") &
                   (log["Parameters"] == f"position={set_position}")]
         assert log["Output"].str.contains("skipped|FAILED", na=False).any()
+
+# ----------------------------------------------------------------------------
+# Test Error Handling
+# ---------------------------------------------------------------------------
+
+class TestErrorHandling:
+
+    def test_unknown_action_logged_as_error(self, tmp_path, mock_vici_valve):
+        bad_gm = _build_gm(tmp_path, mock_vici_valve, "VICI_VALVE_1,nonexistent_action,,,0.5\n")
+        with patch("methods.status_monitor.StatusMonitor.start"), patch("time.sleep"):
+            bad_gm.run_experiment()
+        log = pd.read_csv(bad_gm.log_filename)
+        assert log["Output"].str.contains("Error", na=False).any()

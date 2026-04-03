@@ -9,8 +9,8 @@
 '''
 Integration tests for tricontinental c24000 pump through GeneralExperimentMethod.
 
-Every test goes through the run_experiment() no direct C24000 method calls.
-InstrumentManager is patched to inject a C24000 with mocked serial.
+Every test goes through the run_experiment() no direct VICI M6 pump method calls.
+InstrumentManager is patched to inject a VICI_M6_Pumps with mocked serial.
 '''
 
 import pytest
@@ -60,6 +60,7 @@ def _build_gm(tmp_path, mock_vici_m6, method_rows: str) -> GeneralExperimentMeth
             instrument_config_file=str(config_csv),
             output_dir=str(tmp_path / "output"),
             instrument_control_file=str(tmp_path / "instrument_control.txt"),
+            dh2000_light_source_control_file=str(tmp_path / "dh2000_control.txt"),
         )
     
 @pytest.fixture
