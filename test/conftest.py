@@ -317,6 +317,42 @@ def make_vici_m6_device():
     mock_ser.readline.return_value = make_vici_m6_response("1000.0")
     return mock_ser
 
+def make_tricontinental_c24000_response(response_str: str) -> bytes:
+    """Helper to create a byte response for Tricontinental C24000 pump."""
+    return (response_str + "\r").encode("ascii")
+
+def make_tricontinental_c24000_device():
+    """Return a MagicMock serial port pre-configured for Tricontinental C24000 pump unit tests.
+
+    read_response() reads one byte at a time until it sees the ETX byte (0x03).
+    A response of b'`1\\x03' satisfies is_initialized() — the '`1' substring
+    means the pump reports itself as already initialized, so connect() skips
+    the initialization routine entirely and returns quickly.
+    """
+    mock_ser = MagicMock()
+    mock_ser.is_open = True
+    mock_ser.in_waiting = 0
+    # Each read_response() call consumes 3 bytes: backtick, '1', ETX.
+    # 50 repetitions covers all serial reads made during connect() and status checks.
+    mock_ser.read.side_effect = [b'`', b'1', b'\x03'] * 50
+    return mock_ser
+
+def make_vici_valve_response(response_str: str = "OK") -> bytes:
+    """Helper to create a byte response for VICI valve unit tests."""
+    return (response_str + "\r\n").encode("ascii")
+
+
+def make_vici_valve_device():
+    """Return a MagicMock serial port pre-configured for VICI valve unit tests.
+
+    ViciValve.__init__ calls set_number_of_positions() → send_command() → readline().
+    The mock returns b'OK\\r\\n' for every readline() call.
+    """
+    mock_ser = MagicMock()
+    mock_ser.is_open = True
+    mock_ser.readline.return_value = b"OK\r\n"
+    return mock_ser
+
 
 def make_uv_detector_response() -> bytes:
     """Return a placeholder UV detector serial response."""

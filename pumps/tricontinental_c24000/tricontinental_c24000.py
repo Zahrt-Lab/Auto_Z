@@ -216,6 +216,11 @@ class TricontinentalC24000(Pump):
         """Set default flow rate for subsequent operations."""
         if not self._connected:
             raise RuntimeError(f"{self.name}: Not connected")
+        
+        if flow_rate_ul_min <= 0:
+            raise ValueError(f"{self.name}: Flow rate must be > 0, got {flow_rate_ul_min}")
+        if type(flow_rate_ul_min) not in [int, float]:
+            raise ValueError(f"{self.name}: Flow rate must be a numeric value, got {type(flow_rate_ul_min).__name__}") 
 
         self.flow_rate_ul_min = abs(flow_rate_ul_min)
         device_rate = self._convert_flow_rate(flow_rate_ul_min)

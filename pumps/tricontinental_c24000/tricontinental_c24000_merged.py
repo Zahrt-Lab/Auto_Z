@@ -1,6 +1,6 @@
 # ------------------------------------------------------------------------------
 # Software: AUTO_ZAHRT
-# Copyright: (C) 2024 by Professor Andrew Zahrt
+# Copyright: (C) 2026 by Professor Andrew Zahrt
 # This software is the intellectual property of Professor Andrew Zahrt
 # Contributions by graduate students Scott Laverty and Joao Luiz Albuquerque are acknowledged.
 # All rights reserved.
@@ -410,6 +410,10 @@ class TricontinentalC24000(Pump):
 
     def set_flow_rate(self, flow_rate_ul_min: float) -> None:
         """Store the flow rate; applied on the next dispense() call."""
+        if flow_rate_ul_min <= 0:
+            raise ValueError(f"Flow rate must be > 0, got {flow_rate_ul_min}")
+        if type(flow_rate_ul_min) is not (int, float):
+            raise ValueError(f"Flow rate must be a numeric value, got {type(flow_rate_ul_min).__name__}") 
         self.flow_rate_ul_min = abs(flow_rate_ul_min)
 
     def stop(self) -> None:
