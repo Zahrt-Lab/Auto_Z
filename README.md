@@ -1,9 +1,8 @@
-# AUTO_ZAHRT v3.0
-
-![Workflow diagram](docs/AutoZahrt.png)
 ## Overview
 
 AUTO_ZAHRT is a comprehensive Python-based automation platform for controlling laboratory equipment including liquid handlers, pumps, valves, temperature controllers, UV-Vis detectors, and custom built devices. The purpose of this package is to be a user-friendly code for researchers to define complex experimental workflows with 
+
+![Workflow diagram](docs/AutoZahrt.png)
 
 ## Installation
 
@@ -43,7 +42,7 @@ experiment = GeneralExperimentMethod(
 experiment.run_experiment()
 ```
 
-### Instrument Configuration CSV
+## Instrument Configuration CSV
 
 Define your instruments in a CSV file:
 
@@ -54,7 +53,7 @@ Pump1,VICI_M6,COM4,
 Valve1,VICI_Valve,COM5,position=1
 ```
 
-### Method CSV
+## Method CSV
 
 Define your experimental sequence:
 
