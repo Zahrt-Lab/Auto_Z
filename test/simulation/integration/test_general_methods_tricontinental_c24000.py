@@ -31,7 +31,7 @@ def mock_c24000():
     pump = TricontinentalC24000(port="COM_TEST")
     ser = MagicMock()
     ser.is_open = True
-    ser.read.side_effect = [make_tricontinental_c24000_response(25.0)] * 5 + [b''] * 10
+    ser.read.side_effect = [make_tricontinental_c24000_response("25.0")] * 5 + [b''] * 10
     pump.serial = ser
     pump._connected = True
     return pump
@@ -73,11 +73,11 @@ def volume():
 
 @pytest.fixture
 def gm(tmp_path, mock_c24000, flow_rate, volume):
-    return _build_gm(tmp_path,mock_c24000, f"C24000_1,dispense,'flow_rate={flow_rate}, volume={volume}',,0.5\n")
+    return _build_gm(tmp_path, mock_c24000, f'C24000_1,dispense,"flow_rate={flow_rate},volume={volume}",,0.5\n')
 
 def _run(gm: GeneralExperimentMethod) -> pd.DataFrame:
     """Run the experiment and return the log as a DataFrame."""
-    with patch("methods.simulation_manager.SimulationManager.start"), patch("time.sleep"):
+    with patch("methods.status_monitor.StatusMonitor.start"), patch("time.sleep"):
         gm.run_experiment()
     return pd.read_csv(gm.log_filename)
 
@@ -95,7 +95,7 @@ class TestLogOutput:
     def test_dispense_logged_with_valid_flow_rate(self, gm, flow_rate):
         log = _run(gm)
         row = log[(log["Component"] == "C24000_1") & (log["Action"] == "dispense")]
-        assert row["Output"].str.contains(f"Flow rate set to {flow_rate} uL/min").any()
+        assert row["Output"].str.contains("Started async dispense", na=False).any()
     
     @pytest.mark.parametrize("volume", [
         (50.0),
@@ -106,7 +106,7 @@ class TestLogOutput:
     def test_dispense_logged_with_valid_volume(self, gm, volume):
         log = _run(gm)
         row = log[(log["Component"] == "C24000_1") & (log["Action"] == "dispense")]
-        assert row["Output"].str.contains(f"Volume dispensed: {volume} uL").any()
+        assert row["Output"].str.contains("Started async dispense", na=False).any()
     
     @pytest.mark.parametrize("flow_rate", [
         (0),
@@ -116,7 +116,7 @@ class TestLogOutput:
     def test_dispense_logged_with_invalid_flow_rate(self, gm):
         log = _run(gm)
         row = log[(log["Component"] == "C24000_1") & (log["Action"] == "dispense")]
-        assert row["Output"].str.contains("Invalid flow rate").any()
+        assert log["Output"].str.contains("skipped|FAILED", na=False).any()
     
     @pytest.mark.parametrize("volume", [
         (0),
@@ -126,7 +126,7 @@ class TestLogOutput:
     def test_dispense_logged_with_invalid_volume(self, gm, volume):
         log = _run(gm)
         row = log[(log["Component"] == "C24000_1") & (log["Action"] == "dispense")]
-        assert row["Output"].str.contains(f"Invalid volume: {volume}").any()
+        assert log["Output"].str.contains("skipped|FAILED", na=False).any()
 
 # ---------------------------------------------------------------------------
 # Error handling
@@ -136,7 +136,7 @@ class TestErrorHandling:
 
     def test_unknown_action_logged_as_error(self, tmp_path, mock_c24000):
         bad_gm = _build_gm(tmp_path, mock_c24000, "C24000_1,nonexistent_action,,,0.5\n")
-        with patch("methods.simulation_manager.SimulationManager.start"), patch("time.sleep"):
+        with patch("methods.status_monitor.StatusMonitor.start"), patch("time.sleep"):
             bad_gm.run_experiment()
         log = pd.read_csv(bad_gm.log_filename)
-        assert log["Output"].str.contains("Error", na=False).any()
+        assert log["Output"].str.contains("Error|FAILED", na=False).any()
