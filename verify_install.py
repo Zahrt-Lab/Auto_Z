@@ -13,7 +13,7 @@ def verify_installation():
         print("✓ Core module imported successfully")
         
         # Test import of submodules
-        from methods.parameter_parser import ParameterParser
+        from methods.parameter_parser import parse_params
         print("✓ Parameter parser imported")
         
         from methods.experiment_logger import ExperimentLogger

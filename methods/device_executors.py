@@ -16,7 +16,7 @@ import time
 import threading
 from pathlib import Path
 
-from .parameter_parser import ParameterParser
+from .parameter_parser import parse_params
 
 # Import abstract base classes
 from devices.industry_components.liquid_handlers.liquid_handlers import LiquidHandler
@@ -52,7 +52,7 @@ class DeviceExecutor:
         """Execute liquid handler actions using abstract interface methods."""
         if action == 'set_bedlayout':
             # TODO : Handle both GX281 and Ender3 bed layout settings to keep consistency
-            bed, rack_layout = ParameterParser.extract_bed_rack_layout(params)
+            bed, rack_layout = parse_params(params).get('bed'), parse_params(params).get('rack_layout')
             # Check if liquid handler has set_bedlayout method (Ender3 does, GX281 may not)
             if hasattr(liquid_handler, 'set_bedlayout'):
                 liquid_handler.set_bedlayout(bed, rack_layout)
@@ -69,12 +69,12 @@ class DeviceExecutor:
             self.log_to_csv(component, action, "", "Homing liquid handler")
 
         elif action == 'move_z_height':
-            z_coord = ParameterParser.extract_height(params)
+            z_coord = parse_params(params).get('height')
             liquid_handler.move_z(z_coord)
             self.log_to_csv(component, action, params, f"Moving needle to z height {z_coord}")
 
         elif action == 'move_xy':
-            bed, well = ParameterParser.extract_bed_well(params)
+            bed, well = parse_params(params).get('bed'), parse_params(params).get('well')
 
             # Move needle up to safe height before XY movement to avoid collisions
             safe_z = liquid_handler.get_safe_z_height()
@@ -95,7 +95,7 @@ class DeviceExecutor:
             self.log_to_csv(component, action, params, f"Moving liquid handler to bed {bed} well {well}")
 
         elif action == 'move_z':
-            bed, well = ParameterParser.extract_bed_well(params)
+            bed, well = parse_params(params).get('bed'), parse_params(params).get('well')
 
             # TODO : Really need to check consistency between GX281 and Ender3 here
             # Check if liquid handler has get_well_z (Ender3) or use bed_layouts
@@ -117,7 +117,7 @@ class DeviceExecutor:
                 self.log_to_csv(component, action, params, f"Error: select_syringe is only available for SyringePump devices")
                 return
             try:
-                volume_ml = ParameterParser.extract_syringe_volume(params)
+                volume_ml = parse_params(params).get('volume_ml')
                 pump.select_syringe(volume_ml)
                 self.log_to_csv(component, action, params, f"Selected syringe: {volume_ml} mL")
             except Exception as e:
@@ -125,7 +125,7 @@ class DeviceExecutor:
             return
 
         # Extract parameters for aspirate/dispense
-        flow_rate, volume = ParameterParser.extract_flow_rate_and_volume(params)
+        flow_rate, volume = parse_params(params).get('flow_rate'), parse_params(params).get('volume')
 
         # Validate the action
         if action not in ("aspirate", "dispense"):
@@ -172,7 +172,7 @@ class DeviceExecutor:
     def execute_valve(self, action, params, component, valve: Valves):
         """Execute valve actions using abstract interface methods."""
         if action == 'go_to_position':
-            position = ParameterParser.extract_position(params)
+            position = parse_params(params).get('position')
             if position is None:
                 self.log_to_csv(component, action, params, f'Error: position parameter missing')
                 return
@@ -198,7 +198,7 @@ class DeviceExecutor:
     def execute_temperature(self, action, params, component, temp_control: TemperatureController):
         """Execute temperature controller actions using abstract interface methods."""
         if action == 'set_temperature':
-            temp = ParameterParser.extract_temperature_value(params)
+            temp = parse_params(params).get('temp')
             temp_control.set_temperature(temp)
             self.log_to_csv(component, action, params, f"Temperature controller set to {temp}°C")
 
@@ -379,7 +379,7 @@ class DeviceExecutor:
         set_params (integration_time=..., num_scans=..., measurement_interval=..., target_wavelengths=409;450)
         status
         """
-        uv_detector_parameters = ParameterParser.extract_uv_detector_parameters(params)
+        uv_detector_parameters = parse_params(params)
 
         if action == "init":
             uv.connect()

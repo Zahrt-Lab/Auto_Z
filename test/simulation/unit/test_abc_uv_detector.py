@@ -23,7 +23,7 @@ from devices.industry_components.uv_detectors.uv_detector_base import UVDetector
 # ABC enforcement
 # ---------------------------------------------------------------------------
 
-
+# Need to inspect this code
 class TestUVDetectorABC:
 
     def test_cannot_instantiate_abstract_class(self):
