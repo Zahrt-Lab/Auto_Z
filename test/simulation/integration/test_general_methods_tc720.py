@@ -22,7 +22,7 @@ from conftest import make_tc720_response
 
 _IM_INIT  = "methods.instrument_manager.InstrumentManager.__init__"
 _SM_START = "methods.status_monitor.StatusMonitor.start"
-_SLEEP    = "temperature_controller.tc720.tc720.time.sleep"
+_SLEEP    = "devices.industry_components.temperature_controller.tc720.tc720.time.sleep"
 
 
 # ---------------------------------------------------------------------------

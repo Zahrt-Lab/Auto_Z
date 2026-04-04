@@ -13,8 +13,8 @@ from methods.methods import GeneralExperimentMethod
 
 _IM_INIT  = "methods.instrument_manager.InstrumentManager.__init__"
 _SM_START = "methods.status_monitor.StatusMonitor.start"
-_SLEEP    = "uv_detectors.dh2000.time.sleep"
-_DRAIN    = "uv_detectors.dh2000.DH2000LightSource._drain"
+_SLEEP    = "devices.industry_components.uv_detectors.dh2000.time.sleep"
+_DRAIN    = "devices.industry_components.uv_detectors.dh2000.DH2000LightSource._drain"
 
 
 # ---------------------------------------------------------------------------

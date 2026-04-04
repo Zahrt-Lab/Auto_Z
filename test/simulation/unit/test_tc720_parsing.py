@@ -9,7 +9,7 @@ from unittest.mock import patch
 from devices.industry_components.temperature_controller.tc720.tc720 import TC720
 from conftest import make_tc720_response, make_tc720_device
 
-_SLEEP_PATH = "temperature_controller.tc720.tc720.time.sleep"
+_SLEEP_PATH = "devices.industry_components.temperature_controller.tc720.tc720.time.sleep"
 
 
 # ---------------------------------------------------------------------------

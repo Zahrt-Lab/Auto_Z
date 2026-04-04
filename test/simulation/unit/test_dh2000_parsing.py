@@ -16,8 +16,8 @@ from devices.industry_components.uv_detectors.dh2000 import DH2000LightSource
 # Patch targets
 # ---------------------------------------------------------------------------
 
-_SLEEP_PATH = "uv_detectors.dh2000.time.sleep"
-_DRAIN_PATH = "uv_detectors.dh2000.DH2000LightSource._drain"
+_SLEEP_PATH = "devices.industry_components.uv_detectors.dh2000.time.sleep"
+_DRAIN_PATH = "devices.industry_components.uv_detectors.dh2000.DH2000LightSource._drain"
 
 
 # ---------------------------------------------------------------------------

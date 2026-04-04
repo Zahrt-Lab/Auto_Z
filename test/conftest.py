@@ -198,7 +198,7 @@ def mirror_box_device(mirror_box_port: str):
     Connected MirrorBox365nm instance, shared across the hardware test session.
     Dims to 255 (off) and closes cleanly on teardown.
     """
-    from custom_components.light_source.mirror_box_365nm.mirror_box_365nm import MirrorBox365nm
+    from devices.custom_components.light_source.mirror_box_365nm.mirror_box_365nm import MirrorBox365nm
     mb = MirrorBox365nm(port=mirror_box_port)
     mb.connect()
     yield mb
