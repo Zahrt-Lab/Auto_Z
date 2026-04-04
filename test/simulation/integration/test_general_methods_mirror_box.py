@@ -16,7 +16,9 @@ from datetime import datetime
 
 from methods.methods import GeneralExperimentMethod
 from methods.device_executors import DeviceExecutor
-from devices.custom_components.light_source.mirror_box_365nm.mirror_box_365nm import MirrorBox365nm
+from devices.custom_components.light_source.mirror_box_365nm.mirror_box_365nm import (
+    MirrorBox365nm,
+)
 
 _IM_INIT = "methods.instrument_manager.InstrumentManager.__init__"
 _SM_START = "methods.status_monitor.StatusMonitor.start"
@@ -26,6 +28,7 @@ _SM_START = "methods.status_monitor.StatusMonitor.start"
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def mock_mb():
     """MirrorBox365nm with a mock serial port, pre-loaded with enough responses."""
@@ -34,12 +37,14 @@ def mock_mb():
     ser.timeout = 2.0
     ser.in_waiting = 0
     ser.readline.side_effect = (
-        [b"OK (dimmer set)\r\n"]                                     +  # set_dimmer(200)
-        [b"Light1: ON | Light2: ON | DimmerPWM: 200\r\n",
-         b"Temps(C): 45.30\t44.80\r\n"]                             +  # status()
-        [b"OK (dimmer set)\r\n"]                                     +  # set_dimmer(255)
-        [b"OK (dimmer set)\r\n"] * 10                               +  # shutdown + extras
-        [b""] * 50
+        [b"OK (dimmer set)\r\n"]  # set_dimmer(200)
+        + [
+            b"Light1: ON | Light2: ON | DimmerPWM: 200\r\n",
+            b"Temps(C): 45.30\t44.80\r\n",
+        ]  # status()
+        + [b"OK (dimmer set)\r\n"]  # set_dimmer(255)
+        + [b"OK (dimmer set)\r\n"] * 10  # shutdown + extras
+        + [b""] * 50
     )
     mb.ser = ser
     return mb
@@ -62,9 +67,7 @@ def gm(tmp_path, mock_mb):
     )
 
     config_csv = tmp_path / "instruments.csv"
-    config_csv.write_text(
-        "InstrumentType,DeviceNumber,Name,COMPort,OtherParams\n"
-    )
+    config_csv.write_text("InstrumentType,DeviceNumber,Name,COMPort,OtherParams\n")
 
     def _fake_im_init(self_im, instrument_config_file, experiment_subdir=None):
         self_im.instrument_config_file = instrument_config_file
@@ -94,6 +97,7 @@ def _run(gm) -> pd.DataFrame:
 # Routing — does run_experiment() reach execute_mirror_box()?
 # ---------------------------------------------------------------------------
 
+
 class TestRouting:
 
     def test_set_dimmer_action_is_logged(self, gm):
@@ -122,6 +126,7 @@ class TestRouting:
 # Serial commands — correct bytes reach the mock device
 # ---------------------------------------------------------------------------
 
+
 class TestSerialCommands:
 
     def test_set_dimmer_200_sent_to_device(self, gm, mock_mb):
@@ -148,20 +153,23 @@ class TestSerialCommands:
         _run(gm)
         written = [c.args[0] for c in ser.write.call_args_list]
         # dim 255 must appear at least twice: once in method CSV, once from shutdown
-        assert written.count(b"dim 255\n") >= 2, \
-            f"Expected at least 2 x dim 255 (method + shutdown), got: {written}"
+        assert (
+            written.count(b"dim 255\n") >= 2
+        ), f"Expected at least 2 x dim 255 (method + shutdown), got: {written}"
 
 
 # ---------------------------------------------------------------------------
 # Log output — correct values written to CSV
 # ---------------------------------------------------------------------------
 
+
 class TestLogOutput:
 
     def test_status_output_contains_dict_keys(self, gm):
         log = _run(gm)
-        status_row = log[(log["Component"] == "MirrorBox365nm_1") &
-                         (log["Action"] == "status")]
+        status_row = log[
+            (log["Component"] == "MirrorBox365nm_1") & (log["Action"] == "status")
+        ]
         assert len(status_row) > 0
         output = status_row["Output"].iloc[0]
         assert "light1_on" in output
@@ -169,21 +177,25 @@ class TestLogOutput:
 
     def test_set_dimmer_output_contains_ok(self, gm):
         log = _run(gm)
-        dim_rows = log[(log["Component"] == "MirrorBox365nm_1") &
-                       (log["Action"] == "set_dimmer")]
+        dim_rows = log[
+            (log["Component"] == "MirrorBox365nm_1") & (log["Action"] == "set_dimmer")
+        ]
         assert len(dim_rows) > 0
         assert dim_rows["Output"].str.contains("OK").any()
 
     def test_shutdown_logged_in_csv(self, gm):
         log = _run(gm)
-        shutdown_row = log[(log["Component"] == "MirrorBox365nm_1") &
-                           (log["Action"] == "shutdown_set_dimmer")]
+        shutdown_row = log[
+            (log["Component"] == "MirrorBox365nm_1")
+            & (log["Action"] == "shutdown_set_dimmer")
+        ]
         assert len(shutdown_row) > 0
 
 
 # ---------------------------------------------------------------------------
 # Error handling — unknown actions logged, not silently swallowed
 # ---------------------------------------------------------------------------
+
 
 class TestErrorHandling:
 
@@ -195,9 +207,7 @@ class TestErrorHandling:
             "MirrorBox365nm_1,nonexistent_action,,,0.0\n"
         )
         config_csv = tmp_path / "instruments.csv"
-        config_csv.write_text(
-            "InstrumentType,DeviceNumber,Name,COMPort,OtherParams\n"
-        )
+        config_csv.write_text("InstrumentType,DeviceNumber,Name,COMPort,OtherParams\n")
 
         def _fake_im_init(self_im, instrument_config_file, experiment_subdir=None):
             self_im.instrument_config_file = instrument_config_file
@@ -229,6 +239,7 @@ class TestErrorHandling:
 # DeviceExecutor unit — test execute_mirror_box in isolation
 # ---------------------------------------------------------------------------
 
+
 class TestExecuteMirrorBox:
     """
     Tests DeviceExecutor.execute_mirror_box() directly, bypassing
@@ -242,10 +253,14 @@ class TestExecuteMirrorBox:
         logged = []
 
         def _log(component, action, params, output, notes=""):
-            logged.append({
-                "component": component, "action": action,
-                "params": params, "output": str(output),
-            })
+            logged.append(
+                {
+                    "component": component,
+                    "action": action,
+                    "params": params,
+                    "output": str(output),
+                }
+            )
 
         ex = DeviceExecutor(
             bed_layouts={},
@@ -258,7 +273,9 @@ class TestExecuteMirrorBox:
 
     def test_set_dimmer_calls_device(self, executor, mock_mb):
         mock_mb.ser.readline.side_effect = [b"OK (dimmer set)\r\n"] + [b""] * 10
-        executor.execute_mirror_box("set_dimmer", "value=128", "MirrorBox365nm_1", mock_mb)
+        executor.execute_mirror_box(
+            "set_dimmer", "value=128", "MirrorBox365nm_1", mock_mb
+        )
         mock_mb.ser.write.assert_called_with(b"dim 128\n")
 
     def test_status_logged(self, executor, mock_mb):

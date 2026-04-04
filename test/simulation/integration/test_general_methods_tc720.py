@@ -20,23 +20,25 @@ from unittest.mock import MagicMock, patch
 from methods.methods import GeneralExperimentMethod
 from conftest import make_tc720_response
 
-_IM_INIT  = "methods.instrument_manager.InstrumentManager.__init__"
+_IM_INIT = "methods.instrument_manager.InstrumentManager.__init__"
 _SM_START = "methods.status_monitor.StatusMonitor.start"
-_SLEEP    = "devices.industry_components.temperature_controller.tc720.tc720.time.sleep"
+_SLEEP = "devices.industry_components.temperature_controller.tc720.tc720.time.sleep"
 
 
 # ---------------------------------------------------------------------------
 # Fixtures and helpers
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def mock_tc():
     """TC720 with mock serial, pre-loaded with enough read() responses."""
     from devices.industry_components.temperature_controller.tc720.tc720 import TC720
+
     tc = TC720(port="COM_TEST")
     ser = MagicMock()
     ser.is_open = True
-    ser.read.side_effect = [make_tc720_response(25.0)] * 5 + [b''] * 10
+    ser.read.side_effect = [make_tc720_response(25.0)] * 5 + [b""] * 10
     tc.ser = ser
     tc._connected = True
     return tc
@@ -45,9 +47,7 @@ def mock_tc():
 def _build_gm(tmp_path, mock_tc, method_rows: str) -> GeneralExperimentMethod:
     """Create a GeneralExperimentMethod with InstrumentManager patched to inject mock_tc."""
     method_csv = tmp_path / "method.csv"
-    method_csv.write_text(
-        "Component,Action,Parameters,Notes,delay\n" + method_rows
-    )
+    method_csv.write_text("Component,Action,Parameters,Notes,delay\n" + method_rows)
     config_csv = tmp_path / "instruments.csv"
     config_csv.write_text("InstrumentType,DeviceNumber,Name,COMPort,OtherParams\n")
 
@@ -71,9 +71,9 @@ def _build_gm(tmp_path, mock_tc, method_rows: str) -> GeneralExperimentMethod:
 @pytest.fixture
 def gm(tmp_path, mock_tc):
     return _build_gm(
-        tmp_path, mock_tc,
-        "TC720_1,set_temperature,temp=25.0,,0.0\n"
-        "TC720_1,get_temperature,,,0.0\n",
+        tmp_path,
+        mock_tc,
+        "TC720_1,set_temperature,temp=25.0,,0.0\n" "TC720_1,get_temperature,,,0.0\n",
     )
 
 
@@ -83,26 +83,33 @@ def _run(gm) -> pd.DataFrame:
         gm.run_experiment()
     return pd.read_csv(gm.log_filename)
 
+
 # ---------------------------------------------------------------------------
 # Log output — correct values written to the CSV log
 # ---------------------------------------------------------------------------
+
 
 class TestLogOutput:
 
     def test_set_temperature_logged_with_value(self, gm):
         log = _run(gm)
-        row = log[(log["Component"] == "TC720_1") & (log["Action"] == "set_temperature")]
+        row = log[
+            (log["Component"] == "TC720_1") & (log["Action"] == "set_temperature")
+        ]
         assert "25.0" in row["Output"].iloc[0]
 
     def test_get_temperature_logged_with_value(self, gm):
         log = _run(gm)
-        row = log[(log["Component"] == "TC720_1") & (log["Action"] == "get_temperature")]
+        row = log[
+            (log["Component"] == "TC720_1") & (log["Action"] == "get_temperature")
+        ]
         assert "25.0" in row["Output"].iloc[0]
 
 
 # ---------------------------------------------------------------------------
 # Error handling — unknown actions logged, not silently swallowed
 # ---------------------------------------------------------------------------
+
 
 class TestErrorHandling:
 

@@ -24,6 +24,7 @@ _DRAIN_PATH = "devices.industry_components.uv_detectors.dh2000.DH2000LightSource
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_device(readline_responses: list) -> DH2000LightSource:
     """
     Return a DH2000LightSource with a mock serial port pre-loaded with
@@ -32,10 +33,9 @@ def _make_device(readline_responses: list) -> DH2000LightSource:
     dh = DH2000LightSource(port="COM_TEST", timeout=2.0)
     mock_ser = MagicMock()
     mock_ser.in_waiting = 0
-    mock_ser.readline.side_effect = (
-        [r if isinstance(r, bytes) else r.encode("utf-8") for r in readline_responses]
-        + [b""] * 30
-    )
+    mock_ser.readline.side_effect = [
+        r if isinstance(r, bytes) else r.encode("utf-8") for r in readline_responses
+    ] + [b""] * 30
     dh.ser = mock_ser
     return dh
 
@@ -43,6 +43,7 @@ def _make_device(readline_responses: list) -> DH2000LightSource:
 # ---------------------------------------------------------------------------
 # _readline_str — decoding and stripping
 # ---------------------------------------------------------------------------
+
 
 class TestReadlineStr:
 
@@ -70,6 +71,7 @@ class TestReadlineStr:
 # ---------------------------------------------------------------------------
 # dh2000_command — validation and byte sending
 # ---------------------------------------------------------------------------
+
 
 class TestDh2000Command:
 
@@ -143,6 +145,7 @@ class TestDh2000Command:
 # shutter_open / shutter_close — command characters
 # ---------------------------------------------------------------------------
 
+
 class TestShutterCommands:
 
     def test_shutter_open_sends_o(self):
@@ -161,6 +164,7 @@ class TestShutterCommands:
 # ---------------------------------------------------------------------------
 # halogen_toggle / deuterium_toggle — command characters
 # ---------------------------------------------------------------------------
+
 
 class TestLampCommands:
 
@@ -181,6 +185,7 @@ class TestLampCommands:
 # status() — response parsing
 # ---------------------------------------------------------------------------
 
+
 class TestStatusParsing:
 
     def _status_from(self, lines: list) -> dict:
@@ -190,55 +195,84 @@ class TestStatusParsing:
             return dh.status()
 
     def test_shutter_open_parsed_true(self):
-        result = self._status_from([b"Shutter: OPEN\r\n", b"Halogen: OFF\r\n", b"Deuterium: OFF\r\n"])
+        result = self._status_from(
+            [b"Shutter: OPEN\r\n", b"Halogen: OFF\r\n", b"Deuterium: OFF\r\n"]
+        )
         assert result["shutter_open"] is True
 
     def test_shutter_closed_parsed_false(self):
-        result = self._status_from([b"Shutter: CLOSED\r\n", b"Halogen: OFF\r\n", b"Deuterium: OFF\r\n"])
+        result = self._status_from(
+            [b"Shutter: CLOSED\r\n", b"Halogen: OFF\r\n", b"Deuterium: OFF\r\n"]
+        )
         assert result["shutter_open"] is False
 
     def test_halogen_on_parsed_true(self):
-        result = self._status_from([b"Shutter: CLOSED\r\n", b"Halogen: ON\r\n", b"Deuterium: OFF\r\n"])
+        result = self._status_from(
+            [b"Shutter: CLOSED\r\n", b"Halogen: ON\r\n", b"Deuterium: OFF\r\n"]
+        )
         assert result["halogen_on"] is True
 
     def test_halogen_off_parsed_false(self):
-        result = self._status_from([b"Shutter: CLOSED\r\n", b"Halogen: OFF\r\n", b"Deuterium: OFF\r\n"])
+        result = self._status_from(
+            [b"Shutter: CLOSED\r\n", b"Halogen: OFF\r\n", b"Deuterium: OFF\r\n"]
+        )
         assert result["halogen_on"] is False
 
     def test_deuterium_on_parsed_true(self):
-        result = self._status_from([b"Shutter: CLOSED\r\n", b"Halogen: OFF\r\n", b"Deuterium: ON\r\n"])
+        result = self._status_from(
+            [b"Shutter: CLOSED\r\n", b"Halogen: OFF\r\n", b"Deuterium: ON\r\n"]
+        )
         assert result["deuterium_on"] is True
 
     def test_deuterium_off_parsed_false(self):
-        result = self._status_from([b"Shutter: CLOSED\r\n", b"Halogen: OFF\r\n", b"Deuterium: OFF\r\n"])
+        result = self._status_from(
+            [b"Shutter: CLOSED\r\n", b"Halogen: OFF\r\n", b"Deuterium: OFF\r\n"]
+        )
         assert result["deuterium_on"] is False
 
     def test_result_contains_all_expected_keys(self):
-        result = self._status_from([b"Shutter: OPEN\r\n", b"Halogen: ON\r\n", b"Deuterium: ON\r\n"])
-        assert {"shutter_open", "halogen_on", "deuterium_on", "arduino_output"} <= result.keys()
+        result = self._status_from(
+            [b"Shutter: OPEN\r\n", b"Halogen: ON\r\n", b"Deuterium: ON\r\n"]
+        )
+        assert {
+            "shutter_open",
+            "halogen_on",
+            "deuterium_on",
+            "arduino_output",
+        } <= result.keys()
 
     def test_arduino_output_is_list(self):
-        result = self._status_from([b"Shutter: OPEN\r\n", b"Halogen: ON\r\n", b"Deuterium: ON\r\n"])
+        result = self._status_from(
+            [b"Shutter: OPEN\r\n", b"Halogen: ON\r\n", b"Deuterium: ON\r\n"]
+        )
         assert isinstance(result["arduino_output"], list)
 
     def test_arduino_output_contains_raw_lines(self):
-        result = self._status_from([b"Shutter: OPEN\r\n", b"Halogen: ON\r\n", b"Deuterium: ON\r\n"])
+        result = self._status_from(
+            [b"Shutter: OPEN\r\n", b"Halogen: ON\r\n", b"Deuterium: ON\r\n"]
+        )
         assert any("Shutter" in line for line in result["arduino_output"])
 
     def test_all_lamps_on_shutter_open(self):
-        result = self._status_from([b"Shutter: OPEN\r\n", b"Halogen: ON\r\n", b"Deuterium: ON\r\n"])
+        result = self._status_from(
+            [b"Shutter: OPEN\r\n", b"Halogen: ON\r\n", b"Deuterium: ON\r\n"]
+        )
         assert result["shutter_open"] is True
         assert result["halogen_on"] is True
         assert result["deuterium_on"] is True
 
     def test_all_lamps_off_shutter_closed(self):
-        result = self._status_from([b"Shutter: CLOSED\r\n", b"Halogen: OFF\r\n", b"Deuterium: OFF\r\n"])
+        result = self._status_from(
+            [b"Shutter: CLOSED\r\n", b"Halogen: OFF\r\n", b"Deuterium: OFF\r\n"]
+        )
         assert result["shutter_open"] is False
         assert result["halogen_on"] is False
         assert result["deuterium_on"] is False
 
     def test_status_sends_s_command(self):
-        dh = _make_device([b"Shutter: CLOSED\r\n", b"Halogen: OFF\r\n", b"Deuterium: OFF\r\n"])
+        dh = _make_device(
+            [b"Shutter: CLOSED\r\n", b"Halogen: OFF\r\n", b"Deuterium: OFF\r\n"]
+        )
         with patch(_SLEEP_PATH), patch(_DRAIN_PATH):
             dh.status()
         dh.ser.write.assert_called_once_with(b"s")
@@ -248,15 +282,18 @@ class TestStatusParsing:
 # safe_shutdown() — happy path: already in safe state
 # ---------------------------------------------------------------------------
 
+
 class TestSafeShutdownParsing:
 
     def test_safe_shutdown_does_not_raise_when_already_off(self):
         """If all already off + shutter closed, safe_shutdown should return without error."""
         # status() calls: 3 calls to status() (pre-check, post-lamps, verify)
         # Each status call reads 3 lines
-        status_lines = (
-            [b"Shutter: CLOSED\r\n", b"Halogen: OFF\r\n", b"Deuterium: OFF\r\n"] * 5
-        )
+        status_lines = [
+            b"Shutter: CLOSED\r\n",
+            b"Halogen: OFF\r\n",
+            b"Deuterium: OFF\r\n",
+        ] * 5
         dh = _make_device(status_lines)
         with patch(_SLEEP_PATH), patch(_DRAIN_PATH):
             dh.safe_shutdown()  # must not raise
@@ -268,10 +305,16 @@ class TestSafeShutdownParsing:
           status1 (3 lines) → shutter_close OK (1 line) → status2 (3 lines) → status3 (3 lines)
         """
         readline_responses = [
-            b"Shutter: OPEN\r\n",   b"Halogen: OFF\r\n", b"Deuterium: OFF\r\n",  # status1
-            b"OK\r\n",                                                              # shutter_close
-            b"Shutter: CLOSED\r\n", b"Halogen: OFF\r\n", b"Deuterium: OFF\r\n",  # status2
-            b"Shutter: CLOSED\r\n", b"Halogen: OFF\r\n", b"Deuterium: OFF\r\n",  # status3 (verify)
+            b"Shutter: OPEN\r\n",
+            b"Halogen: OFF\r\n",
+            b"Deuterium: OFF\r\n",  # status1
+            b"OK\r\n",  # shutter_close
+            b"Shutter: CLOSED\r\n",
+            b"Halogen: OFF\r\n",
+            b"Deuterium: OFF\r\n",  # status2
+            b"Shutter: CLOSED\r\n",
+            b"Halogen: OFF\r\n",
+            b"Deuterium: OFF\r\n",  # status3 (verify)
         ]
         dh = _make_device(readline_responses)
         with patch(_SLEEP_PATH), patch(_DRAIN_PATH):
@@ -286,10 +329,16 @@ class TestSafeShutdownParsing:
           status1 (3 lines) → status2 (3 lines) → halogen_toggle OK (1 line) → status3 (3 lines)
         """
         readline_responses = [
-            b"Shutter: CLOSED\r\n", b"Halogen: ON\r\n",  b"Deuterium: OFF\r\n",  # status1
-            b"Shutter: CLOSED\r\n", b"Halogen: ON\r\n",  b"Deuterium: OFF\r\n",  # status2
-            b"OK\r\n",                                                              # halogen_toggle
-            b"Shutter: CLOSED\r\n", b"Halogen: OFF\r\n", b"Deuterium: OFF\r\n",  # status3 (verify)
+            b"Shutter: CLOSED\r\n",
+            b"Halogen: ON\r\n",
+            b"Deuterium: OFF\r\n",  # status1
+            b"Shutter: CLOSED\r\n",
+            b"Halogen: ON\r\n",
+            b"Deuterium: OFF\r\n",  # status2
+            b"OK\r\n",  # halogen_toggle
+            b"Shutter: CLOSED\r\n",
+            b"Halogen: OFF\r\n",
+            b"Deuterium: OFF\r\n",  # status3 (verify)
         ]
         dh = _make_device(readline_responses)
         with patch(_SLEEP_PATH), patch(_DRAIN_PATH):
@@ -304,10 +353,16 @@ class TestSafeShutdownParsing:
           status1 (3 lines) → status2 (3 lines) → deuterium_toggle OK (1 line) → status3 (3 lines)
         """
         readline_responses = [
-            b"Shutter: CLOSED\r\n", b"Halogen: OFF\r\n", b"Deuterium: ON\r\n",   # status1
-            b"Shutter: CLOSED\r\n", b"Halogen: OFF\r\n", b"Deuterium: ON\r\n",   # status2
-            b"OK\r\n",                                                              # deuterium_toggle
-            b"Shutter: CLOSED\r\n", b"Halogen: OFF\r\n", b"Deuterium: OFF\r\n",  # status3 (verify)
+            b"Shutter: CLOSED\r\n",
+            b"Halogen: OFF\r\n",
+            b"Deuterium: ON\r\n",  # status1
+            b"Shutter: CLOSED\r\n",
+            b"Halogen: OFF\r\n",
+            b"Deuterium: ON\r\n",  # status2
+            b"OK\r\n",  # deuterium_toggle
+            b"Shutter: CLOSED\r\n",
+            b"Halogen: OFF\r\n",
+            b"Deuterium: OFF\r\n",  # status3 (verify)
         ]
         dh = _make_device(readline_responses)
         with patch(_SLEEP_PATH), patch(_DRAIN_PATH):

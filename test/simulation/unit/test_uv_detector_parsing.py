@@ -18,7 +18,7 @@ from unittest.mock import MagicMock, patch
 from devices.industry_components.uv_detectors.uv_detector import Ocean_Optics_UV_vis
 
 # Patch target that makes the SDK appear available
-_OCEAN_API_PATH = 'devices.industry_components.uv_detectors.uv_detector.OceanDirectAPI'
+_OCEAN_API_PATH = "devices.industry_components.uv_detectors.uv_detector.OceanDirectAPI"
 
 
 def _make_device(**kwargs) -> Ocean_Optics_UV_vis:
@@ -32,6 +32,7 @@ def _make_device(**kwargs) -> Ocean_Optics_UV_vis:
 # ---------------------------------------------------------------------------
 # Initialization
 # ---------------------------------------------------------------------------
+
 
 class TestOceanOpticsInitialization:
 
@@ -74,11 +75,11 @@ class TestOceanOpticsInitialization:
         assert uv.convergence_time == 5 * 60
         assert uv.max_outliers == 2
         assert uv._convergence_state == {
-            'previous': None,
-            'spike_seen': False,
-            'converged_start': None,
-            'outliers': {},
-            'done': False
+            "previous": None,
+            "spike_seen": False,
+            "converged_start": None,
+            "outliers": {},
+            "done": False,
         }
 
     def test_invalid_integration_time_raises(self):
@@ -97,7 +98,9 @@ class TestOceanOpticsInitialization:
         """measurement_interval <= 0 raises ValueError."""
         with patch(_OCEAN_API_PATH, MagicMock()):
             with pytest.raises(ValueError):
-                Ocean_Optics_UV_vis(output_dir=tempfile.mkdtemp(), measurement_interval=0)
+                Ocean_Optics_UV_vis(
+                    output_dir=tempfile.mkdtemp(), measurement_interval=0
+                )
 
     def test_custom_target_wavelengths(self):
         """target_wavelengths passed at init are stored as floats."""
@@ -108,6 +111,7 @@ class TestOceanOpticsInitialization:
 # ---------------------------------------------------------------------------
 # set_number_of_scans
 # ---------------------------------------------------------------------------
+
 
 class TestSetNumberOfScans:
 
@@ -126,6 +130,7 @@ class TestSetNumberOfScans:
 # set_target_wavelength
 # ---------------------------------------------------------------------------
 
+
 class TestSetTargetWavelength:
 
     def test_set_target_wavelength(self):
@@ -142,6 +147,7 @@ class TestSetTargetWavelength:
 # ---------------------------------------------------------------------------
 # set_measurement_interval
 # ---------------------------------------------------------------------------
+
 
 class TestSetMeasurementInterval:
 
