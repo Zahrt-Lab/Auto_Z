@@ -23,7 +23,6 @@ from pathlib import Path
 
 import sys
 sys.path.insert(0, str(Path.cwd().parent.parent))
-print(Path.cwd().parent)
 
 # Import helper modules
 from .experiment_logger import ExperimentLogger
@@ -147,7 +146,7 @@ class GeneralExperimentMethod:
 
                 # Check if experiment should continue
                 if not self._continue_experiment:
-                    print("Experiment stopped by user request")
+                    print("INITIALIZING EMERGENCY STOP")
                     self.log_to_csv("CONTROL", "emergency_stop", "", 
                                    "Experiment halted - emergency stop triggered")
                     self.emergency_stop()
@@ -307,9 +306,9 @@ class GeneralExperimentMethod:
             if hasattr(instance, 'close') and callable(instance.close):
                 try:
                     instance.close()
-                    print(f"Closed connection for {name}")
+                    self.log_to_csv("Close", "Connection closed at shutdown", name, "OK")
                 except Exception as e:
-                    print(f"Failed to close {name}: {e}")
+                    self.log_to_csv("Close", f"Failed to close {name}: {e}", name, "FAILED")
 
     ############################################################################################
 
@@ -317,8 +316,8 @@ class GeneralExperimentMethod:
         """Set the layout for a specific bed with the given rack_layout."""
         bed_layout = BedLayout(bed_number=bed, rack_layout=rack_layout)
         self.bed_layouts[bed] = bed_layout
-        print(f"Bed {bed} layout set with rack_layout {rack_layout}")
-    
+        self.log_to_csv("SetBedLayout", f"Bed {bed} layout set with rack_layout {rack_layout}", "", "OK")
+
     ###########################################################################################
 
     def emergency_stop(self):
@@ -327,23 +326,22 @@ class GeneralExperimentMethod:
         Called when continue flag becomes False.
         """
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        print(f"[{timestamp}] EMERGENCY STOP - Stopping all devices and closing connections")
+        self.log_to_csv("EmergencyStop", f"[{timestamp}] EMERGENCY STOP - Stopping all devices and closing connections", "", "OK")
         
         # Stop all devices using their stop() method
         for name, device in self.instruments.items():
             if hasattr(device, 'stop') and callable(device.stop):
                 try:
                     device.stop()
-                    print(f"Stopped device: {name}")
-                    self.log_to_csv(name, "emergency_stop", "", f"Device stopped at {timestamp}")
+                    self.log_to_csv("EmergencyStop", f"Stopped device: {name}", "", "OK")
+                    self.log_to_csv("EmergencyStop", f"Device stopped at {timestamp}", "", "OK")
                 except Exception as e:
-                    print(f"Failed to stop {name}: {e}")
-                    self.log_to_csv(name, "emergency_stop", "", f"Error stopping device: {e}")
+                    self.log_to_csv("EmergencyStop", f"Error stopping device: {e}", "", "FAILED")
         
         # Close all connections
         self.close_all_connections()
         
-        print(f"[{timestamp}] Emergency stop complete")
+        print(f"[{timestamp}] EMERGENCY STOP COMPLETED")
 
     def close_all_connections(self):
         """
@@ -356,6 +354,6 @@ class GeneralExperimentMethod:
             if hasattr(inst, 'close') and callable(inst.close):
                 try:
                     inst.close()
-                    print(f"Closed connection for {name}")
+                    self.log_to_csv("Close", f"Connection closed for {name}", name, "OK")
                 except Exception as e:
-                    print(f"Failed to close {name}: {e}")
+                    self.log_to_csv("Close", f"Failed to close {name}: {e}", name, "FAILED")
