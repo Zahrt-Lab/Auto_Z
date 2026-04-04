@@ -1,9 +1,9 @@
 """
-Unit tests for LightSourceBase abstract base class.
+Unit tests for PhotoReactor abstract base class.
 
 Verifies that:
-  - LightSourceBase cannot be instantiated directly (enforces interface)
-  - MirrorBox365nm is a concrete subclass of LightSourceBase
+  - PhotoReactor cannot be instantiated directly (enforces interface)
+  - MirrorBox365nm is a concrete subclass of PhotoReactor
   - isinstance checks work correctly (critical for methods.py routing)
   - A user-defined subclass satisfying the full interface can be instantiated
   - A partial implementation raises TypeError on instantiation
@@ -12,7 +12,7 @@ Verifies that:
 import pytest
 from abc import ABC
 
-from devices.custom_components.light_source.light_source_base import LightSourceBase
+from devices.custom_components.light_source.light_source_base import PhotoReactor
 from devices.custom_components.light_source.mirror_box_365nm.mirror_box_365nm import MirrorBox365nm
 
 
@@ -21,22 +21,22 @@ from devices.custom_components.light_source.mirror_box_365nm.mirror_box_365nm im
 # ---------------------------------------------------------------------------
 
 # TODO : Need to inpect this code
-class TestLightSourceBaseABC:
+class TestPhotoReactorABC:
 
     def test_cannot_instantiate_abstract_class(self):
         with pytest.raises(TypeError):
-            LightSourceBase()
+            PhotoReactor()
 
     def test_is_abstract_base_class(self):
-        assert issubclass(LightSourceBase, ABC)
+        assert issubclass(PhotoReactor, ABC)
 
     def test_abstract_methods_defined(self):
-        abstract_methods = getattr(LightSourceBase, "__abstractmethods__", set())
+        abstract_methods = getattr(PhotoReactor, "__abstractmethods__", set())
         expected = {"connect", "close", "set_dimmer", "status", "read_temperature_stream"}
         assert expected == abstract_methods
 
     def test_partial_subclass_cannot_be_instantiated(self):
-        class PartialLight(LightSourceBase):
+        class PartialLight(PhotoReactor):
             def connect(self): pass
             def close(self): pass
             # Missing: set_dimmer, status, read_temperature_stream
@@ -53,11 +53,11 @@ class TestLightSourceBaseABC:
 class TestMirrorBox365nmIsSubclass:
 
     def test_mirror_box_is_subclass_of_light_source_base(self):
-        assert issubclass(MirrorBox365nm, LightSourceBase)
+        assert issubclass(MirrorBox365nm, PhotoReactor)
 
     def test_instance_is_instance_of_light_source_base(self):
         mb = MirrorBox365nm(port="COM_TEST")
-        assert isinstance(mb, LightSourceBase)
+        assert isinstance(mb, PhotoReactor)
 
     def test_instance_is_instance_of_concrete_class(self):
         mb = MirrorBox365nm(port="COM_TEST")
@@ -69,7 +69,7 @@ class TestMirrorBox365nmIsSubclass:
 # ---------------------------------------------------------------------------
 
 
-class SimLightSource(LightSourceBase):
+class SimLightSource(PhotoReactor):
     """Minimal in-memory light source for simulation/testing."""
 
     def __init__(self):
@@ -105,7 +105,7 @@ class TestSimLightSource:
         assert SimLightSource() is not None
 
     def test_is_instance_of_abc(self):
-        assert isinstance(SimLightSource(), LightSourceBase)
+        assert isinstance(SimLightSource(), PhotoReactor)
 
     def test_connect_sets_connected(self):
         sim = SimLightSource()
@@ -156,4 +156,4 @@ class TestSimLightSource:
         """Simulates the isinstance dispatch in methods.py."""
         devices = [SimLightSource(), MirrorBox365nm(port="COM_TEST")]
         for device in devices:
-            assert isinstance(device, LightSourceBase)
+            assert isinstance(device, PhotoReactor)

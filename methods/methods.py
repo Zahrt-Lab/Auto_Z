@@ -38,7 +38,7 @@ from devices.industry_components.temperature_controller.temperature_controller i
 from devices.industry_components.syringe_pumps.syringe_pumps import SyringePump
 from devices.industry_components.uv_detectors.dh2000_base import DH2000Controller
 from devices.industry_components.uv_detectors.uv_detector_base import UVDetector
-from devices.custom_components.light_source.light_source_base import LightSourceBase
+from devices.custom_components.light_source.light_source_base import PhotoReactor
 
 # Import concrete implementations (needed for bed layout and shutdown)
 from devices.industry_components.liquid_handlers.bed_layout import BedLayout
@@ -187,7 +187,7 @@ class GeneralExperimentMethod:
                     self.executor.execute_dh2000(action, params, component, device)
                 elif isinstance(device, UVDetector):
                     self.executor.execute_ocean_optics(action, params, component, device)
-                elif isinstance(device, LightSourceBase):
+                elif isinstance(device, PhotoReactor):
                     self.executor.execute_mirror_box(action, params, component, device)
                 else:
                     self.log_to_csv(component, action, params, f"Error: Unknown device type for '{component}'")
@@ -231,7 +231,7 @@ class GeneralExperimentMethod:
         """Execute Ocean Optics UV-Vis actions. Delegated to DeviceExecutor."""
         self.executor.execute_ocean_optics(action, params, component, uv)
 
-    def execute_mirror_box(self, action, params, component, mirror_box: LightSourceBase):
+    def execute_mirror_box(self, action, params, component, mirror_box: PhotoReactor):
         """Execute MirrorBox365nm actions. Delegated to DeviceExecutor."""
         self.executor.execute_mirror_box(action, params, component, mirror_box)
 
@@ -291,7 +291,7 @@ class GeneralExperimentMethod:
                 self.log_to_csv(dh2000_name or "DH2000", "shutdown_error", f"success={success}", f"FAILED: {e}")
         # --- MirrorBox365nm: always dim to 255 (off) on shutdown ---
         for name, instance in self.instruments.items():
-            if isinstance(instance, LightSourceBase):
+            if isinstance(instance, PhotoReactor):
                 try:
                     instance.set_dimmer(255)
                     self.log_to_csv(name, "shutdown_set_dimmer", "value=255", "OK",

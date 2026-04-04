@@ -9,10 +9,10 @@
 import time
 import serial
 
-from devices.custom_components.light_source.light_source_base import LightSourceBase
+from devices.custom_components.light_source.light_source_base import PhotoReactor
 
 
-class MirrorBox365nm(LightSourceBase):
+class MirrorBox365nm(PhotoReactor):
     """
     Serial wrapper for the custom Arduino-based mirror box 365nm light source.
 

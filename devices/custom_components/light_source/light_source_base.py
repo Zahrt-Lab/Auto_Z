@@ -8,7 +8,7 @@
 from abc import ABC, abstractmethod
 
 
-class LightSourceBase(ABC):
+class PhotoReactor(ABC):
     """Abstract interface for custom light source components."""
 
     @abstractmethod

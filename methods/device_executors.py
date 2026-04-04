@@ -26,7 +26,7 @@ from devices.industry_components.temperature_controller.temperature_controller i
 from devices.industry_components.syringe_pumps.syringe_pumps import SyringePump
 from devices.industry_components.uv_detectors.dh2000_base import DH2000Controller
 from devices.industry_components.uv_detectors.uv_detector_base import UVDetector
-from devices.custom_components.light_source.light_source_base import LightSourceBase
+from devices.custom_components.light_source.light_source_base import PhotoReactor
 
 
 class DeviceExecutor:
@@ -325,7 +325,7 @@ class DeviceExecutor:
             self.log_to_csv(component, action, params, f"Error: {e}")
             raise
 
-    def execute_mirror_box(self, action, params, component, mirror_box: LightSourceBase):
+    def execute_mirror_box(self, action, params, component, mirror_box: PhotoReactor):
         """
         MirrorBox365nm actions usable in the method CSV.
         Actions: set_dimmer, status, read_temperature
