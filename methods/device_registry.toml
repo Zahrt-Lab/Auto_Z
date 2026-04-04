@@ -1,0 +1,330 @@
+# ==============================================================================
+# AUTO_ZAHRT — Device Registry
+# ==============================================================================
+# Add a new device by copying an existing [devices.XXX] block and editing it.
+# No Python changes required for devices that fit an existing abstract class.
+#
+# Fields per device:
+#   import_path  — Python module path to the concrete class
+#   class_name   — Name of the class within that module
+#   group        — Executor/GUI group (must match a [groups.XXX] entry below)
+#   port_kwarg   — (optional) kwarg name for the COM port; omit if not used
+#   name_kwarg   — (optional) kwarg name for the instrument name; omit if not used
+#   [devices.XXX.fixed_kwargs]   — hard-coded constructor values
+#   [devices.XXX.context_kwargs] — values injected at runtime (key = context dict key)
+# ==============================================================================
+
+
+# ── Liquid Handlers ────────────────────────────────────────────────────────────
+
+[devices.GX281]
+import_path = "devices.industry_components.liquid_handlers.gx281.gx281"
+class_name  = "GX281"
+group       = "LiquidHandler"
+name_kwarg  = "name"
+
+[devices.Ender3_Liquid_Handler]
+import_path = "devices.industry_components.liquid_handlers.ender3_liquid_handler.ender3_liquid_handler"
+class_name  = "Ender3LiquidHandler"
+group       = "LiquidHandler"
+port_kwarg  = "port"
+name_kwarg  = "name"
+
+
+# ── Pumps ─────────────────────────────────────────────────────────────────────
+
+[devices.VICI_M6_Pump]
+import_path = "devices.industry_components.pumps.vici_m6_pump.vici_m6_pump"
+class_name  = "VICI_M6_Pumps"
+group       = "Pump"
+port_kwarg  = "port"
+# Note: VICI_M6_Pumps does not accept 'name' in its constructor;
+#       the name is set as an attribute after construction automatically.
+
+[devices.Isametic]
+import_path = "devices.industry_components.pumps.isametic_pump.isametic_pump"
+class_name  = "IsmaticPump"
+group       = "Pump"
+port_kwarg  = "port"
+name_kwarg  = "name"
+
+[devices.Tricontinental_C24000]
+import_path = "devices.industry_components.pumps.tricontinental_c24000.tricontinental_c24000"
+class_name  = "TricontinentalC24000"
+group       = "Pump"
+port_kwarg  = "port"
+name_kwarg  = "name"
+
+
+# ── Syringe Pumps ─────────────────────────────────────────────────────────────
+
+[devices.PhdUltraPump]
+import_path = "devices.industry_components.syringe_pumps.phd_ultra_pumps.phd_ultra_pumps"
+class_name  = "PhdUltraPump"
+group       = "Pump"
+port_kwarg  = "port"
+name_kwarg  = "name"
+
+
+# ── Valves ────────────────────────────────────────────────────────────────────
+# Each valve size is a separate entry so valve_type can be hard-coded.
+
+[devices.Valve6Way]
+import_path = "devices.industry_components.valves.vici_valves.vici_valves"
+class_name  = "ViciValve"
+group       = "Valve"
+port_kwarg  = "port"
+
+[devices.Valve6Way.fixed_kwargs]
+valve_type = "6-way"
+
+[devices.Valve10Way]
+import_path = "devices.industry_components.valves.vici_valves.vici_valves"
+class_name  = "ViciValve"
+group       = "Valve"
+port_kwarg  = "port"
+
+[devices.Valve10Way.fixed_kwargs]
+valve_type = "10-way"
+
+[devices.Valve24Way]
+import_path = "devices.industry_components.valves.vici_valves.vici_valves"
+class_name  = "ViciValve"
+group       = "Valve"
+port_kwarg  = "port"
+
+[devices.Valve24Way.fixed_kwargs]
+valve_type = "24-way"
+
+
+# ── Temperature Controllers ───────────────────────────────────────────────────
+
+[devices.Temperature]
+import_path = "devices.industry_components.temperature_controller.tc720.tc720"
+class_name  = "TC720"
+group       = "Temperature"
+port_kwarg  = "port"
+name_kwarg  = "name"
+
+
+# ── UV / Light Sources ────────────────────────────────────────────────────────
+
+[devices.DH2000]
+import_path = "devices.industry_components.uv_detectors.dh2000"
+class_name  = "DH2000LightSource"
+group       = "DH2000"
+port_kwarg  = "port"
+
+[devices.DH2000.fixed_kwargs]
+baudrate = 9600
+timeout  = 2.0
+retries  = 10
+
+[devices.OceanOptics_UVVis]
+import_path = "devices.industry_components.uv_detectors.uv_detector"
+class_name  = "Ocean_Optics_UV_vis"
+group       = "OceanOptics"
+# No COM port — Ocean Optics uses USB auto-detection
+
+[devices.OceanOptics_UVVis.context_kwargs]
+output_dir = "experiment_subdir"
+
+[devices.OceanOptics_UVVis.fixed_kwargs]
+integration_time    = 100000
+num_scans           = 10
+target_wavelengths  = [409.0]
+save_file_path      = "UV_detection.csv"
+measurement_interval = 20.0
+
+
+# ── Custom Components ─────────────────────────────────────────────────────────
+
+[devices.MirrorBox365nm]
+import_path = "devices.custom_components.light_source.mirror_box_365nm.mirror_box_365nm"
+class_name  = "MirrorBox365nm"
+group       = "MirrorBox"
+port_kwarg  = "port"
+
+[devices.MirrorBox365nm.fixed_kwargs]
+baudrate = 9600
+timeout  = 2.0
+
+
+# ==============================================================================
+# Groups — executor categories and GUI metadata
+# ==============================================================================
+# actions: ordered list shown in the GUI action dropdown
+# params.<action>: ordered key=label pairs for the parameter builder
+# (actions/params with no parameters simply have no [groups.X.params.Y] entry)
+# ==============================================================================
+
+[groups.LiquidHandler]
+actions = ["set_bedlayout", "move_home", "move_z_height", "move_xy", "move_z"]
+
+[groups.LiquidHandler.params.set_bedlayout]
+bed         = "Bed"
+rack_layout = "Rack Layout"
+
+[groups.LiquidHandler.params.move_z_height]
+height = "Height (Z)"
+
+[groups.LiquidHandler.params.move_xy]
+bed  = "Bed"
+well = "Well"
+
+[groups.LiquidHandler.params.move_z]
+bed  = "Bed"
+well = "Well"
+
+
+[groups.Pump]
+actions = ["aspirate", "dispense", "select_syringe"]
+
+[groups.Pump.params.aspirate]
+flow_rate = "Flow rate (µL/min)"
+volume    = "Volume (µL)"
+
+[groups.Pump.params.dispense]
+flow_rate = "Flow rate (µL/min)"
+volume    = "Volume (µL)"
+
+[groups.Pump.params.select_syringe]
+volume_ml = "Syringe Volume (mL)"
+
+
+[groups.Valve]
+actions = ["go_to_position", "move_home"]
+
+[groups.Valve.params.go_to_position]
+position = "Position"
+
+
+[groups.Temperature]
+actions = ["set_temperature", "get_temperature", "wait_convergence"]
+
+[groups.Temperature.params.set_temperature]
+temp = "Temperature (°C)"
+
+[groups.Temperature.params.wait_convergence]
+target_temp = "Target (°C)"
+tolerance   = "Tolerance (±°C)"
+duration    = "Stable time (s)"
+
+
+[groups.DH2000]
+actions = ["shutter_open", "shutter_close", "halogen_toggle", "deuterium_toggle", "status", "safe_shutdown"]
+
+
+[groups.OceanOptics]
+actions = ["init", "record_blank", "record_dark", "load_blank_csv", "load_dark_csv",
+           "measure_absorbance", "start_continuous", "stop_continuous", "set_params", "status"]
+
+[groups.OceanOptics.params.load_blank_csv]
+path = "Blank CSV Path"
+
+[groups.OceanOptics.params.load_dark_csv]
+path            = "Dark CSV Path"
+apply_to_device = "Apply to device (True/False)"
+
+[groups.OceanOptics.params.start_continuous]
+name                  = "Name (optional)"
+stop_upon_convergence = "Stop on convergence (True/False)"
+
+[groups.OceanOptics.params.set_params]
+integration_time   = "Integration time (µs)"
+num_scans          = "Num scans"
+measurement_interval = "Interval (s)"
+target_wavelengths = "Targets (e.g., 409;450)"
+
+
+[groups.MirrorBox]
+actions = ["set_dimmer", "status", "read_temperature"]
+
+[groups.MirrorBox.params.set_dimmer]
+value = "Dimmer value (0=brightest, 255=off)"
+
+
+[groups.SYNC]
+actions = ["wait_for_pumps"]
+
+
+# ==============================================================================
+# Default rows for the Instrument CSV Builder (GUI pre-population)
+# ==============================================================================
+
+[[defaults]]
+InstrumentType = "GX281"
+DeviceNumber   = "1"
+Name           = "GX-281"
+COMPort        = "COM2"
+OtherParams    = ""
+
+[[defaults]]
+InstrumentType = "VICI_M6_Pump"
+DeviceNumber   = "1"
+Name           = "Pump"
+COMPort        = "COM17"
+OtherParams    = ""
+
+[[defaults]]
+InstrumentType = "Isametic"
+DeviceNumber   = "1"
+Name           = "IsameticPump"
+COMPort        = "COM4"
+OtherParams    = ""
+
+[[defaults]]
+InstrumentType = "Valve6Way"
+DeviceNumber   = "1"
+Name           = "VICI-6Way"
+COMPort        = "COM7"
+OtherParams    = ""
+
+[[defaults]]
+InstrumentType = "Valve6Way"
+DeviceNumber   = "2"
+Name           = "VICI-6Way"
+COMPort        = "COM11"
+OtherParams    = ""
+
+[[defaults]]
+InstrumentType = "Valve24Way"
+DeviceNumber   = "1"
+Name           = "VICI-24Way"
+COMPort        = "COM13"
+OtherParams    = ""
+
+[[defaults]]
+InstrumentType = "Valve24Way"
+DeviceNumber   = "2"
+Name           = "VICI-24Way"
+COMPort        = "COM14"
+OtherParams    = ""
+
+[[defaults]]
+InstrumentType = "Temperature"
+DeviceNumber   = "1"
+Name           = "Temperature"
+COMPort        = "COM12"
+OtherParams    = ""
+
+[[defaults]]
+InstrumentType = "DH2000"
+DeviceNumber   = "1"
+Name           = "DH2000"
+COMPort        = "COM9"
+OtherParams    = ""
+
+[[defaults]]
+InstrumentType = "OceanOptics_UVVis"
+DeviceNumber   = "1"
+Name           = "OceanOptics"
+COMPort        = ""
+OtherParams    = ""
+
+[[defaults]]
+InstrumentType = "Tricontinental_C24000"
+DeviceNumber   = "1"
+Name           = "Tricontinental"
+COMPort        = "COM5"
+OtherParams    = ""

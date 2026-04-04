@@ -24,9 +24,9 @@ from devices.industry_components.pumps.pumps import Pump
 from devices.industry_components.valves.valves import Valves
 from devices.industry_components.temperature_controller.temperature_controller import TemperatureController
 from devices.industry_components.syringe_pumps.syringe_pumps import SyringePump
-from devices.industry_components.uv_detectors.dh2000 import DH2000LightSource
-from devices.industry_components.uv_detectors.uv_detector import Ocean_Optics_UV_vis
-from devices.custom_components.light_source.mirror_box_365nm.mirror_box_365nm import MirrorBox365nm
+from devices.industry_components.uv_detectors.dh2000_base import DH2000Controller
+from devices.industry_components.uv_detectors.uv_detector_base import UVDetector
+from devices.custom_components.light_source.light_source_base import LightSourceBase
 
 
 class DeviceExecutor:
@@ -292,7 +292,7 @@ class DeviceExecutor:
                 self.log_to_csv(component, "wait_convergence", "", f"Error: {e}")
                 time.sleep(check_interval)
     
-    def execute_dh2000(self, action, params, component, dh: DH2000LightSource):
+    def execute_dh2000(self, action, params, component, dh: DH2000Controller):
         """
         DH2000 actions usable in the method CSV.
         Actions:
@@ -325,7 +325,7 @@ class DeviceExecutor:
             self.log_to_csv(component, action, params, f"Error: {e}")
             raise
 
-    def execute_mirror_box(self, action, params, component, mirror_box: MirrorBox365nm):
+    def execute_mirror_box(self, action, params, component, mirror_box: LightSourceBase):
         """
         MirrorBox365nm actions usable in the method CSV.
         Actions: set_dimmer, status, read_temperature
@@ -365,7 +365,7 @@ class DeviceExecutor:
             self.log_to_csv(component, action, params, f"Error: {e}")
             raise
 
-    def execute_ocean_optics(self, action, params, component, uv: Ocean_Optics_UV_vis):
+    def execute_ocean_optics(self, action, params, component, uv: UVDetector):
         """
         Actions:
         init

@@ -26,6 +26,7 @@ dependencies = [
     "pyserial>=3.5",
     "matplotlib>=3.5.0",
     "numpy>=1.23.0",
+    "tomli>=2.0.0; python_version < '3.11'",
 ]
 
 [project.optional-dependencies]
@@ -43,7 +44,7 @@ where = ["."]
 exclude = [".conda*", "test*", "docs*", "*.egg-info*"]
 
 [tool.setuptools.package-data]
-"*" = ["*.txt", "*.md"]
+"*" = ["*.txt", "*.md", "*.toml"]
 
 [tool.ruff]
 line-length = 120

@@ -62,7 +62,10 @@ except ImportError as e:
     print(f"Warning: Could not import OceanDirect SDK: {e}. Ocean Optics UV-Vis functionality will be limited.")
 ####################################################################################################################################
 #Object for Ocean Optics to connect to the rest of the platform
-class Ocean_Optics_UV_vis:
+from devices.industry_components.uv_detectors.uv_detector_base import UVDetector
+
+
+class Ocean_Optics_UV_vis(UVDetector):
 
     #Initiates the platform
     def __init__(self, output_dir, baseline_intensity = 10000, integration_time = 100000, num_scans = 10, target_wavelengths = None, save_file_path="UV_detection.csv", measurement_interval =20.0):

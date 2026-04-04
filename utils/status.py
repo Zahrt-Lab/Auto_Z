@@ -15,32 +15,7 @@ import pandas as pd
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
-# Instrument group helpers (same logic as in main GUI)
-LIQUID_HANDLER_TYPES = {"GX281", "Ender3_Liquid_Handler"}
-PUMP_TYPES = {"VICI_M6_Pump", "Isametic", "PhdUltraPump", "Tricontinental_C24000"}
-VALVE_TYPES = {"Valve6Way", "Valve10Way", "Valve24Way"}
-TEMP_TYPES = {"Temperature"}
-DH2000_TYPES = {"DH2000"}
-OCEANOPTICS_TYPES = {"OceanOptics_UVVis"}
-MIRRORBOX_TYPES = {"MirrorBox365nm"}
-
-
-def group_for_instrument_type(inst_type: str) -> Optional[str]:
-    if inst_type in LIQUID_HANDLER_TYPES:
-        return "LiquidHandler"
-    if inst_type in PUMP_TYPES:
-        return "Pump"
-    if inst_type in VALVE_TYPES:
-        return "Valve"
-    if inst_type in TEMP_TYPES:
-        return "Temperature"
-    if inst_type in DH2000_TYPES:
-        return "DH2000"
-    if inst_type in OCEANOPTICS_TYPES:
-        return "OceanOptics"
-    if inst_type in MIRRORBOX_TYPES:
-        return "MirrorBox"
-    return None
+from methods.registry_loader import get_group as group_for_instrument_type
 
 
 class StatusMonitorWindow(tk.Toplevel):

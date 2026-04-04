@@ -47,26 +47,17 @@ except ModuleNotFoundError:
 
 # Optional: existing status utilities (if you have them)
 try:
-    from utils.status import open_status_monitor as open_csv_status_monitor, group_for_instrument_type  # type: ignore
+    from utils.status import open_status_monitor as open_csv_status_monitor  # type: ignore
 except Exception:
     open_csv_status_monitor = None
-    def group_for_instrument_type(inst_type: str) -> str:
-        # Fallback grouping if utils.status is unavailable
-        if inst_type in ("GX281", "Ender3_Liquid_Handler"):
-            return "LiquidHandler"
-        if inst_type in ("VICI_M6_Pump", "Isametic", "PhdUltraPump", "Tricontinental_C24000"):
-            return "Pump"
-        if inst_type in ("Valve6Way", "Valve10Way", "Valve24Way"):
-            return "Valve"
-        if inst_type in ("Temperature",):
-            return "Temperature"
-        if inst_type in ("DH2000",):
-            return "DH2000"
-        if inst_type in ("OceanOptics_UVVis",):
-            return "OceanOptics"
-        if inst_type in ("MirrorBox365nm",):
-            return "MirrorBox"
-        return "Other"
+
+from methods.registry_loader import (
+    get_all_types,
+    get_group as group_for_instrument_type,
+    get_actions,
+    get_param_fields,
+    get_default_rows,
+)
 
 try:
     from utils.status_monitor_gui import open_status_monitor as open_live_status_monitor  # type: ignore
@@ -79,35 +70,8 @@ except Exception:
 
 COLUMNS = ("InstrumentType", "DeviceNumber", "Name", "COMPort", "OtherParams")
 
-INSTRUMENT_CHOICES = [
-    "GX281",
-    "Ender3_Liquid_Handler",
-    "VICI_M6_Pump",
-    "Isametic",
-    "Tricontinental_C24000",
-    "PhdUltraPump",
-    "Valve6Way",
-    "Valve10Way",
-    "Valve24Way",
-    "Temperature",
-    "DH2000",
-    "OceanOptics_UVVis",
-    "MirrorBox365nm",
-]
-
-DEFAULT_ROWS = [
-    ("GX281",       "1", "GX-281",       "COM2",  ""),
-    ("VICI_M6_Pump","1", "Pump",         "COM17", ""),
-    ("Isametic",    "1", "IsameticPump", "COM4",  ""),
-    ("Valve6Way",   "1", "VICI-6Way",    "COM7",  ""),
-    ("Valve6Way",   "2", "VICI-6Way",    "COM11", ""),
-    ("Valve24Way",  "1", "VICI-24Way",   "COM13", ""),
-    ("Valve24Way",  "2", "VICI-24Way",   "COM14", ""),
-    ("Temperature", "1", "Temperature",  "COM12", ""),
-    ("DH2000",       "1", "DH2000",        "COM9",  ""),
-    ("OceanOptics_UVVis", "1", "OceanOptics", "",   ""),
-    ("Tricontinental_C24000", "1", "Tricontinental", "COM5", "")
-]
+INSTRUMENT_CHOICES = get_all_types()
+DEFAULT_ROWS = get_default_rows()
 
 
 class InstrumentCSVBuilder(tk.Toplevel):
@@ -329,70 +293,7 @@ def launch_instrument_csv_builder(
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Command/action mapping
-
-ACTIONS_BY_GROUP: dict[str, list[str]] = {
-    "LiquidHandler": ["set_bedlayout", "move_home", "move_z_height", "move_xy", "move_z"],
-    "Pump": ["aspirate", "dispense", "select_syringe"],
-    "Valve": ["go_to_position", "move_home"],
-    "Temperature": ["set_temperature", "get_temperature", "wait_convergence"],
-    "DH2000": ["shutter_open", "shutter_close", "halogen_toggle", "deuterium_toggle", "status", "safe_shutdown"],
-    "OceanOptics": ["init", "record_blank", "record_dark", "load_blank_csv", "load_dark_csv",
-                    "measure_absorbance", "start_continuous", "stop_continuous", "set_params", "status"],
-    "MirrorBox": ["set_dimmer", "status", "read_temperature"],
-    "SYNC": ["wait_for_pumps"],
-}
-
-PARAM_FIELDS: dict[tuple[str, str], list[tuple[str, str]]] = {
-    ("LiquidHandler", "set_bedlayout"): [("bed", "Bed"), ("rack_layout", "Rack Layout")],
-    ("LiquidHandler", "move_z_height"): [("height", "Height (Z)")],
-    ("LiquidHandler", "move_xy"): [("bed", "Bed"), ("well", "Well")],
-    ("LiquidHandler", "move_z"): [("bed", "Bed"), ("well", "Well")],
-
-    ("Pump", "aspirate"): [("flow_rate", "Flow rate (µL/min)"), ("volume", "Volume (µL)")],
-    ("Pump", "dispense"): [("flow_rate", "Flow rate (µL/min)"), ("volume", "Volume (µL)")],
-    ("Pump", "select_syringe"): [("volume_ml", "Syringe Volume (mL)")],
-
-    ("Valve", "go_to_position"): [("position", "Position")],
-    ("Valve", "move_home"): [],
-
-    ("Temperature", "set_temperature"): [("temp", "Temperature (°C)")],
-    ("Temperature", "get_temperature"): [],
-    ("Temperature", "wait_convergence"): [
-        ("target_temp", "Target (°C)"),
-        ("tolerance", "Tolerance (±°C)"),
-        ("duration", "Stable time (s)"),
-    ],
-
-    ("DH2000", "shutter_open"): [],
-    ("DH2000", "shutter_close"): [],
-    ("DH2000", "halogen_toggle"): [],
-    ("DH2000", "deuterium_toggle"): [],
-    ("DH2000", "status"): [],
-    ("DH2000", "safe_shutdown"): [],
-
-    ("OceanOptics", "init"): [],
-    ("OceanOptics", "record_blank"): [],
-    ("OceanOptics", "record_dark"): [],
-    ("OceanOptics", "load_blank_csv"): [("path", "Blank CSV Path")],
-    ("OceanOptics", "load_dark_csv"): [("path", "Dark CSV Path"), ("apply_to_device", "Apply to device (True/False)")],
-    ("OceanOptics", "measure_absorbance"): [],
-    ("OceanOptics", "start_continuous"): [("name", "Name (optional)"), ("stop_upon_convergence", "Stop on convergence (True/False)")],
-    ("OceanOptics", "stop_continuous"): [],
-    ("OceanOptics", "set_params"): [
-        ("integration_time", "Integration time (µs)"),
-        ("num_scans", "Num scans"),
-        ("measurement_interval", "Interval (s)"),
-        ("target_wavelengths", "Targets (e.g., 409;450)"),
-    ],
-    ("OceanOptics", "status"): [],
-
-    ("MirrorBox", "set_dimmer"): [("value", "Dimmer value (0=brightest, 255=off)")],
-    ("MirrorBox", "status"): [],
-    ("MirrorBox", "read_temperature"): [],
-
-    ("SYNC", "wait_for_pumps"): [],
-}
+# Command/action mapping — loaded from device_registry.toml via registry_loader
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -599,7 +500,7 @@ class AutoZahrtGUI(tk.Tk):
                 self._rebuild_param_fields()
                 return
             
-            actions = ACTIONS_BY_GROUP.get(grp, [])
+            actions = get_actions(grp)
             self.act_cb["values"] = actions
             if actions:
                 self.act_var.set(actions[0])
@@ -626,7 +527,7 @@ class AutoZahrtGUI(tk.Tk):
         if grp is None or not act:
             return
 
-        fields = PARAM_FIELDS.get((grp, act), [])
+        fields = get_param_fields(grp, act)
         for row, (key, label) in enumerate(fields):
             ttk.Label(self.param_frame, text=f"{label}:").grid(row=row, column=0, sticky=tk.W)
             ent = ttk.Entry(self.param_frame, width=28)
