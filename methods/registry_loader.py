@@ -17,6 +17,7 @@ for devices that fit an existing abstract base class.
 
 import importlib
 from pathlib import Path
+from typing import List, Optional, Tuple
 
 try:
     import tomllib
@@ -24,7 +25,7 @@ except ImportError:
     import tomli as tomllib  # type: ignore[no-redef]
 
 _REGISTRY_PATH = Path(__file__).parent / "device_registry.toml"
-_registry: dict | None = None
+_registry: Optional[dict] = None
 
 
 def _load() -> dict:
@@ -37,24 +38,24 @@ def _load() -> dict:
 
 # ── Device type queries ────────────────────────────────────────────────────────
 
-def get_all_types() -> list[str]:
+def get_all_types() -> List[str]:
     """Return all registered instrument type strings (for GUI dropdowns)."""
     return list(_load()["devices"].keys())
 
 
-def get_group(instrument_type: str) -> str | None:
+def get_group(instrument_type: str) -> Optional[str]:
     """Return the executor/GUI group for a given instrument type, or None."""
     return _load()["devices"].get(instrument_type, {}).get("group")
 
 
 # ── GUI metadata ───────────────────────────────────────────────────────────────
 
-def get_actions(group: str) -> list[str]:
+def get_actions(group: str) -> List[str]:
     """Return the ordered action list for a group (used by GUI action dropdown)."""
     return _load()["groups"].get(group, {}).get("actions", [])
 
 
-def get_param_fields(group: str, action: str) -> list[tuple[str, str]]:
+def get_param_fields(group: str, action: str) -> List[Tuple[str, str]]:
     """
     Return ordered (key, label) pairs for a group+action combination.
     Returns an empty list if the action takes no parameters.
@@ -65,7 +66,7 @@ def get_param_fields(group: str, action: str) -> list[tuple[str, str]]:
 
 # ── Default rows ───────────────────────────────────────────────────────────────
 
-def get_default_rows() -> list[tuple[str, ...]]:
+def get_default_rows() -> List[Tuple[str, ...]]:
     """
     Return default instrument CSV rows for the GUI's InstrumentCSVBuilder.
     Each row is a tuple of (InstrumentType, DeviceNumber, Name, COMPort, OtherParams).
@@ -85,7 +86,7 @@ def get_default_rows() -> list[tuple[str, ...]]:
 
 # ── Device instantiation ───────────────────────────────────────────────────────
 
-def build_instance(instrument_type: str, csv_row, context: dict | None = None) -> object:
+def build_instance(instrument_type: str, csv_row, context: Optional[dict] = None) -> object:
     """
     Instantiate a device from the registry.
 

@@ -7,7 +7,7 @@
 
 from abc import ABC, abstractmethod
 
-
+# TODO : The PhotoReactor should be generic, but currenltly only has MirrorBox365nm implmentenation. Need to make more generic
 class PhotoReactor(ABC):
     """Abstract interface for custom light source components."""
 
