@@ -32,7 +32,7 @@ class TestPhotoReactorABC:
 
     def test_abstract_methods_defined(self):
         abstract_methods = getattr(PhotoReactor, "__abstractmethods__", set())
-        expected = {"connect", "close", "set_dimmer", "status", "read_temperature_stream"}
+        expected = {"connect", "close", "set_dimmer", "status", "read_temperature_stream", "safe_shutdown"}
         assert expected == abstract_methods
 
     def test_partial_subclass_cannot_be_instantiated(self):
@@ -97,6 +97,9 @@ class SimLightSource(PhotoReactor):
 
     def read_temperature_stream(self) -> dict:
         return self._temp.copy()
+
+    def safe_shutdown(self, success: bool) -> None:
+        self.set_dimmer(255)
 
 
 class TestSimLightSource:

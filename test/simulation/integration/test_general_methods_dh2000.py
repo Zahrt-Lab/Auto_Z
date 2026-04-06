@@ -85,7 +85,7 @@ def _run(gm) -> pd.DataFrame:
     """Run the experiment and return the action log as a DataFrame."""
     with patch(_SM_START), patch(_SLEEP), patch(_DRAIN):
         gm.run_experiment()
-    return pd.read_csv(gm.log_filename)
+    return pd.read_csv(gm.logger.log_filename)
 
 
 # ---------------------------------------------------------------------------
@@ -122,5 +122,5 @@ class TestErrorHandling:
         bad_gm = _build_gm(tmp_path, mock_dh, "DH2000_1,nonexistent_action,,,0.0\n")
         with patch(_SM_START), patch(_SLEEP), patch(_DRAIN):
             bad_gm.run_experiment()
-        log = pd.read_csv(bad_gm.log_filename)
+        log = pd.read_csv(bad_gm.logger.log_filename)
         assert log["Output"].str.contains("Error", na=False).any()

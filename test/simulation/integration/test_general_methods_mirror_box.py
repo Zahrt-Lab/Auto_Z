@@ -90,7 +90,7 @@ def _run(gm) -> pd.DataFrame:
     """Run experiment with StatusMonitor patched out, return the log CSV as a DataFrame."""
     with patch(_SM_START):
         gm.run_experiment()
-    return pd.read_csv(gm.log_filename)
+    return pd.read_csv(gm.logger.log_filename)
 
 
 # ---------------------------------------------------------------------------
@@ -187,7 +187,7 @@ class TestLogOutput:
         log = _run(gm)
         shutdown_row = log[
             (log["Component"] == "MirrorBox365nm_1")
-            & (log["Action"] == "shutdown_set_dimmer")
+            & (log["Action"] == "shutdown")
         ]
         assert len(shutdown_row) > 0
 
@@ -230,7 +230,7 @@ class TestErrorHandling:
         with patch(_SM_START):
             bad_gm.run_experiment()
 
-        log = pd.read_csv(bad_gm.log_filename)
+        log = pd.read_csv(bad_gm.logger.log_filename)
         error_rows = log[log["Output"].str.contains("Error", na=False)]
         assert len(error_rows) > 0, "Expected at least one Error row in the log"
 
@@ -289,6 +289,6 @@ class TestExecuteMirrorBox:
 
     def test_unknown_action_raises_and_logs_error(self, executor, mock_mb):
         mock_mb.ser.readline.side_effect = [b""] * 20
-        with pytest.raises(ValueError, match="Unknown MirrorBox action"):
+        with pytest.raises(ValueError, match="Unknown PhotoReactor action"):
             executor.execute_mirror_box("bad_action", "", "MirrorBox365nm_1", mock_mb)
         assert any("Error" in e["output"] for e in executor._logged)

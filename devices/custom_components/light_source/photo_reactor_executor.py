@@ -13,10 +13,11 @@ Actions: set_dimmer, status, read_temperature.
 """
 
 from devices.custom_components.light_source.light_source_base import PhotoReactor
+from methods.parameter_parser import parse_params
 
 # TODO : The PhotoReactor should be generic, but currenltly only has MirrorBox365nm implmentenation. Need to make more generic
 class PhotoReactorExecutor:
-    """Executes CSV method actions for PhotoReactor devices (e.g. MirrorBox365nm)."""
+    """Executes CSV method actions for PhotoReactor devices."""
 
     def __init__(self, log_callback):
         """
@@ -29,12 +30,11 @@ class PhotoReactorExecutor:
         """Route action string to the appropriate PhotoReactor method."""
         try:
             if action == "set_dimmer":
-                param_dict = {k.strip(): v.strip() for k, v in
-                              (p.split('=') for p in params.split(','))}
-                dimmer_value = int(param_dict.get('value', 255))
+                dimmer_value = int(parse_params(params).get('value'))  
                 response = mirror_box.set_dimmer(dimmer_value)
                 self.log_to_csv(component, action, params, response or "OK")
 
+            # TODO : There needs to be a more generic way to handle status and temperature reading for different photo reactors. 
             elif action == "status":
                 st = mirror_box.status()
                 notes = (f"L1={'ON' if st.get('light1_on') else 'OFF'} "
@@ -43,6 +43,7 @@ class PhotoReactorExecutor:
                          f"TC4={st.get('temp_light2_c')}C")
                 self.log_to_csv(component, action, params, str(st), notes=notes)
 
+            # Needs to be a more generic way to handle temperature reading for different photo reactors.
             elif action == "read_temperature":
                 temp_data = mirror_box.read_temperature_stream()
                 if 'error' in temp_data:
@@ -54,8 +55,8 @@ class PhotoReactorExecutor:
 
             else:
                 self.log_to_csv(component, action, params,
-                                f"Error: Unknown MirrorBox action '{action}'")
-                raise ValueError(f"Unknown MirrorBox action '{action}'")
+                                f"Error: Unknown PhotoReactor action '{action}'")
+                raise ValueError(f"Unknown PhotoReactor action '{action}'")
 
         except Exception as e:
             self.log_to_csv(component, action, params, f"Error: {e}")

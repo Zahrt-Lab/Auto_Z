@@ -725,6 +725,9 @@ class Ocean_Optics_UV_vis(UVDetector):
     def close(self):
         self.close_device()
 
+    def safe_shutdown(self, success: bool) -> None:
+        pass
+
 
 '''
 od = OceanDirectAPI()

@@ -37,6 +37,7 @@ class DH2000LightSource(DH2000Controller):
         self.name = "DH2000"
 
         self.ser = None
+        self.control_file_path: str = None  # Set by GeneralExperimentMethod after construction
 
         # TODO: A coarser lock like this prevents races between the StatusMonitor thread and
         # main-thread commands, but a smarter approach would be a dedicated serial I/O thread
@@ -169,12 +170,27 @@ class DH2000LightSource(DH2000Controller):
 
         return {"shutter_open": shutter, "halogen_on": hal, "deuterium_on": deut, "arduino_output": dh2000_components_status}
 
-    def safe_shutdown(self):
+    def safe_shutdown(self, success: bool) -> None:
         """
-        Failure policy: close shutter + both lamps OFF.
-        Uses status lines to avoid wrong-direction toggles.
-        Retries up to self.retries, but caller should catch errors and continue shutdown.
+        success=True  → leave DH2000 state unchanged (lights stay as-is).
+        success=False → check control_file_path:
+            True  (or unset) → skip shutdown (leave lights on).
+            False            → close shutter + both lamps OFF.
+        Retries up to self.retries; caller should catch and continue.
         """
+        if success:
+            return
+
+        # Check whether the operator wants us to skip shutdown (e.g. keep lights on after failure)
+        if self.control_file_path:
+            try:
+                with open(self.control_file_path, 'r') as f:
+                    skip = f.read().strip().lower() == "true"
+                if skip:
+                    return
+            except Exception:
+                pass  # If we can't read the file, proceed with shutdown
+
         last_error = None
         for _ in range(self.retries):
             try:

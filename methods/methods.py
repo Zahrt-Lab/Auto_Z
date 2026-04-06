@@ -19,10 +19,6 @@
 import pandas as pd
 import time
 from datetime import datetime
-from pathlib import Path
-
-import sys
-sys.path.insert(0, str(Path.cwd().parent.parent))
 
 # Import helper modules
 from .experiment_logger import ExperimentLogger
@@ -39,9 +35,6 @@ from devices.industry_components.syringe_pumps.syringe_pumps import SyringePump
 from devices.industry_components.uv_detectors.dh2000_base import DH2000Controller
 from devices.industry_components.uv_detectors.uv_detector_base import UVDetector
 from devices.custom_components.light_source.light_source_base import PhotoReactor
-
-# Import concrete implementations (needed for bed layout and shutdown)
-from devices.industry_components.liquid_handlers.bed_layout import BedLayout
 
 
 # TODO can't find syringe pump and isamatic scripts and need to add this script later
@@ -63,11 +56,6 @@ class GeneralExperimentMethod:
 
         # Initialize experiment logger
         self.logger = ExperimentLogger(input_file, output_dir, output_file)
-        self.start_time = self.logger.start_time
-        self.output_dir = self.logger.output_dir
-        self.experiment_subdir = self.logger.experiment_subdir
-        self.log_filename = self.logger.log_filename
-        self.status_log_filename = self.logger.status_log_filename
 
         # Initialize control files to True at the start of each experiment run
         ExperimentLogger.initialize_control_file(self.instrument_control_file)
@@ -80,14 +68,17 @@ class GeneralExperimentMethod:
         # Initialize instrument manager and get instruments
         self.instrument_manager = InstrumentManager(
             instrument_config_file=instrument_config_file,
-            experiment_subdir=self.experiment_subdir
+            experiment_subdir=self.logger.experiment_subdir
         )
-        self.instruments = self.instrument_manager.instruments
-        self.instrument_types = self.instrument_manager.instrument_types
         
         # Set instruments as attributes on self for backward compatibility
-        for attr_name, obj in self.instruments.items():
+        for attr_name, obj in self.instrument_manager.instruments.items():
             setattr(self, attr_name, obj)
+
+        # Give DH2000 instances their control file path so they own the skip logic
+        for device in self.instrument_manager.instruments.values():
+            if isinstance(device, DH2000Controller):
+                device.control_file_path = self.dh2000_light_source_control_file
 
         # Control flag for experiment execution
         self._continue_experiment = True
@@ -96,16 +87,16 @@ class GeneralExperimentMethod:
         self.executor = DeviceExecutor(
             bed_layouts=self.bed_layouts,
             log_callback=self.log_to_csv,
-            start_time=self.start_time,
+            start_time=self.logger.start_time,
             continue_flag_getter=lambda: self._continue_experiment
         )
         
         # Initialize status monitor
         self.status_monitor = StatusMonitor(
-            instruments=self.instruments,
-            status_log_filename=self.status_log_filename,
+            instruments=self.instrument_manager.instruments,
+            status_log_filename=self.logger.status_log_filename,
             status_interval=self.status_interval,
-            start_time=self.start_time,
+            start_time=self.logger.start_time,
             instrument_control_file=self.instrument_control_file,
             log_callback=self.log_to_csv,
             continue_flag_callback=self._set_continue_flag
@@ -152,173 +143,69 @@ class GeneralExperimentMethod:
                     self.emergency_stop()
                     return  # Exit immediately
 
-                component = row['Component']
-                action = row['Action']
-                params = row['Parameters']
-                notes = row['Notes']
-
                 try:
                     self.delay = float(row['delay']) if 'delay' in row and not pd.isna(row['delay']) else 0.5
                 except ValueError:
                     self.delay = 0.5  # Default delay if conversion fails
 
-                if component.upper() == "SYNC" and action == "wait_for_pumps":
+                if row['Component'].upper() == "SYNC" and row['Action'] == "wait_for_pumps":
                     self.executor.wait_for_pumps()
                     continue
                 
                 # Get the device instance from instruments
-                device = self.instruments.get(component)
+                device = self.instrument_manager.instruments.get(row['Component'])
                 if device is None:
-                    self.log_to_csv(component, action, params, f"Error: Device '{component}' not found")
+                    self.log_to_csv(row['Component'], row['Action'], row['Parameters'], f"Error: Device '{row['Component']}' not found")
                     continue
                 
                 # Route to appropriate executor based on device type
                 if isinstance(device, LiquidHandler):
-                    self.executor.execute_liquid_handler(action, params, component, device)
+                    self.executor.execute_liquid_handler(row['Action'], row['Parameters'], row['Component'], device)
                 elif isinstance(device, Pump):
-                    self.executor.execute_pump(action, params, component, device)
+                    self.executor.execute_pump(row['Action'], row['Parameters'], row['Component'], device)
                 elif isinstance(device, SyringePump):
-                    self.executor.execute_pump(action, params, component, device)
+                    self.executor.execute_pump(row['Action'], row['Parameters'], row['Component'], device)
                 elif isinstance(device, Valves):
-                    self.executor.execute_valve(action, params, component, device)
+                    self.executor.execute_valve(row['Action'], row['Parameters'], row['Component'], device)
                 elif isinstance(device, TemperatureController):
-                    self.executor.execute_temperature(action, params, component, device)
+                    self.executor.execute_temperature(row['Action'], row['Parameters'], row['Component'], device)
                 elif isinstance(device, DH2000Controller):
-                    self.executor.execute_dh2000(action, params, component, device)
+                    self.executor.execute_dh2000(row['Action'], row['Parameters'], row['Component'], device)
                 elif isinstance(device, UVDetector):
-                    self.executor.execute_ocean_optics(action, params, component, device)
+                    self.executor.execute_ocean_optics(row['Action'], row['Parameters'], row['Component'], device)
                 elif isinstance(device, PhotoReactor):
-                    self.executor.execute_mirror_box(action, params, component, device)
+                    self.executor.execute_mirror_box(row['Action'], row['Parameters'], row['Component'], device)
                 else:
-                    self.log_to_csv(component, action, params, f"Error: Unknown device type for '{component}'")
+                    self.log_to_csv(row['Component'], row['Action'], row['Parameters'], f"Error: Unknown device type for '{row['Component']}'")
 
                 time.sleep(self.delay)
             
+            # TODO : Is self.executor.wait_for_pumps() need if we use it earlier in the method with the SYNC command?
             self.executor.wait_for_pumps()
             self.shutdown(success=True)
 
         except Exception as e:
             self.log_to_csv("SYSTEM", "run_experiment_error", "", f"FAILED: {e}")
-            self.stop_status_monitoring()
-            self.close_all_connections()
+            self.shutdown(success=False)
 
-    # Execute methods - delegate to DeviceExecutor for actual implementation
-    def execute_liquid_handler(self, action, params, component, liquid_handler: LiquidHandler):
-        """Execute liquid handler actions. Delegated to DeviceExecutor."""
-        self.executor.execute_liquid_handler(action, params, component, liquid_handler)
-
-    def execute_pump(self, action, params, component, pump: Pump):
-        """Execute pump actions. Delegated to DeviceExecutor."""
-        self.executor.execute_pump(action, params, component, pump)
-
-    def execute_valve(self, action, params, component, valve: Valves):
-        """Execute valve actions. Delegated to DeviceExecutor."""
-        self.executor.execute_valve(action, params, component, valve)
-
-    def wait_for_pumps(self):
-        """Wait for all pump operations to complete. Delegated to DeviceExecutor."""
-        self.executor.wait_for_pumps()
-
-    def execute_temperature(self, action, params, component, temp_ctrl: TemperatureController):
-        """Execute temperature controller actions. Delegated to DeviceExecutor."""
-        self.executor.execute_temperature(action, params, component, temp_ctrl)
-
-    def execute_dh2000(self, action, params, component, dh: DH2000Controller):
-        """Execute DH2000 light source actions. Delegated to DeviceExecutor."""
-        self.executor.execute_dh2000(action, params, component, dh)
-
-    def execute_ocean_optics(self, action, params, component, uv: UVDetector):
-        """Execute Ocean Optics UV-Vis actions. Delegated to DeviceExecutor."""
-        self.executor.execute_ocean_optics(action, params, component, uv)
-
-    def execute_mirror_box(self, action, params, component, mirror_box: PhotoReactor):
-        """Execute MirrorBox365nm actions. Delegated to DeviceExecutor."""
-        self.executor.execute_mirror_box(action, params, component, mirror_box)
-
+    
     def shutdown(self, success: bool):
-        """
-        success=True:
-            - do NOT change DH2000 state (no toggles, no shutter commands)
-            - optional: log status
-        success=False:
-            - if dh2000_light_source_control_file is True => force safe_shutdown()
-            - if dh2000_light_source_control_file is False => do nothing to lights
-        Always continues shutting down other devices even if DH2000 fails.
-        """
-        # Find DH2000 instance if present
-        dh2000_name = None
-        dh2000 = None
-        for name, instance in self.instruments.items():
-            if self.instrument_types.get(name) == "DH2000":
-                dh2000_name = name
-                dh2000 = instance
-                break
-
-        # --- DH2000 policy ---
-        if dh2000 is not None:
-            try:
-                skip_dh2000 = self._check_continue_flag(self.dh2000_light_source_control_file)
-
-                if success:
-                    # Don't touch state. Just log it (optional but useful).
-                    dh2000_status = dh2000.status()
-                    self.log_to_csv(dh2000_name, "shutdown_success_noop", "", str(dh2000_status),
-                                    notes="Success: leaving DH2000 state unchanged")
-                else:
-                    # Failure path: only act if the light control file is True
-                    # True  => do NOT touch DH2000 (skip)
-                    # False => force safe_shutdown()
-                    if skip_dh2000:
-                        self.log_to_csv(
-                            dh2000_name,
-                            "shutdown_failure_skipped",
-                            "",
-                            "SKIPPED",
-                            notes=f"{self.dh2000_light_source_control_file}=True; leaving DH2000 unchanged"
-                        )
-                    else:
-                        dh2000.safe_shutdown()
-                        self.log_to_csv(
-                            dh2000_name,
-                            "shutdown_failure_safe",
-                            "",
-                            "OK",
-                            notes="Failure: shutter closed + lamps off"
-                        )
-
-            except Exception as e:
-                # retries happen inside safe_shutdown(); if still failing, log and continue
-                self.log_to_csv(dh2000_name or "DH2000", "shutdown_error", f"success={success}", f"FAILED: {e}")
-        # --- MirrorBox365nm: always dim to 255 (off) on shutdown ---
-        for name, instance in self.instruments.items():
-            if isinstance(instance, PhotoReactor):
-                try:
-                    instance.set_dimmer(255)
-                    self.log_to_csv(name, "shutdown_set_dimmer", "value=255", "OK",
-                                    notes="MirrorBox dimmed to 255 (off) at shutdown")
-                except Exception as e:
-                    self.log_to_csv(name, "shutdown_set_dimmer", "value=255", f"FAILED: {e}")
-
-        # --- stop monitoring and close other instruments ---
         self.stop_status_monitoring()
 
-        for name, instance in self.instruments.items():
+        for name, device in self.instrument_manager.instruments.items():
+            try:
+                device.safe_shutdown(success)
+                self.log_to_csv(name, "shutdown", f"success={success}", "OK")
+            except Exception as e:
+                self.log_to_csv(name, "shutdown_error", f"success={success}", f"FAILED: {e}")
+
+        for name, instance in self.instrument_manager.instruments.items():
             if hasattr(instance, 'close') and callable(instance.close):
                 try:
                     instance.close()
                     self.log_to_csv("Close", "Connection closed at shutdown", name, "OK")
                 except Exception as e:
                     self.log_to_csv("Close", f"Failed to close {name}: {e}", name, "FAILED")
-
-    ############################################################################################
-
-    def set_bedlayout(self, bed, rack_layout):
-        """Set the layout for a specific bed with the given rack_layout."""
-        bed_layout = BedLayout(bed_number=bed, rack_layout=rack_layout)
-        self.bed_layouts[bed] = bed_layout
-        self.log_to_csv("SetBedLayout", f"Bed {bed} layout set with rack_layout {rack_layout}", "", "OK")
-
-    ###########################################################################################
 
     def emergency_stop(self):
         """
@@ -327,33 +214,23 @@ class GeneralExperimentMethod:
         """
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         self.log_to_csv("EmergencyStop", f"[{timestamp}] EMERGENCY STOP - Stopping all devices and closing connections", "", "OK")
-        
-        # Stop all devices using their stop() method
-        for name, device in self.instruments.items():
+
+        for name, device in self.instrument_manager.instruments.items():
             if hasattr(device, 'stop') and callable(device.stop):
                 try:
                     device.stop()
                     self.log_to_csv("EmergencyStop", f"Stopped device: {name}", "", "OK")
-                    self.log_to_csv("EmergencyStop", f"Device stopped at {timestamp}", "", "OK")
                 except Exception as e:
                     self.log_to_csv("EmergencyStop", f"Error stopping device: {e}", "", "FAILED")
-        
-        # Close all connections
-        self.close_all_connections()
-        
-        print(f"[{timestamp}] EMERGENCY STOP COMPLETED")
 
-    def close_all_connections(self):
-        """
-        Close serial connections on all initialized instruments.
-        """
-        # Stop status monitoring if it's running
         self.stop_status_monitoring()
-        
-        for name, inst in self.instruments.items():
+
+        for name, inst in self.instrument_manager.instruments.items():
             if hasattr(inst, 'close') and callable(inst.close):
                 try:
                     inst.close()
                     self.log_to_csv("Close", f"Connection closed for {name}", name, "OK")
                 except Exception as e:
                     self.log_to_csv("Close", f"Failed to close {name}: {e}", name, "FAILED")
+
+        print(f"[{timestamp}] EMERGENCY STOP COMPLETED")

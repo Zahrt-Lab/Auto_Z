@@ -296,7 +296,7 @@ class TestSafeShutdownParsing:
         ] * 5
         dh = _make_device(status_lines)
         with patch(_SLEEP_PATH), patch(_DRAIN_PATH):
-            dh.safe_shutdown()  # must not raise
+            dh.safe_shutdown(success=False)  # must not raise
 
     def test_safe_shutdown_closes_shutter_when_open(self):
         """If shutter is open, safe_shutdown must send the 'c' (shutter_close) command.
@@ -318,7 +318,7 @@ class TestSafeShutdownParsing:
         ]
         dh = _make_device(readline_responses)
         with patch(_SLEEP_PATH), patch(_DRAIN_PATH):
-            dh.safe_shutdown()
+            dh.safe_shutdown(success=False)
         written = [c.args[0] for c in dh.ser.write.call_args_list]
         assert b"c" in written  # shutter_close command sent
 
@@ -342,7 +342,7 @@ class TestSafeShutdownParsing:
         ]
         dh = _make_device(readline_responses)
         with patch(_SLEEP_PATH), patch(_DRAIN_PATH):
-            dh.safe_shutdown()
+            dh.safe_shutdown(success=False)
         written = [c.args[0] for c in dh.ser.write.call_args_list]
         assert b"h" in written
 
@@ -366,6 +366,6 @@ class TestSafeShutdownParsing:
         ]
         dh = _make_device(readline_responses)
         with patch(_SLEEP_PATH), patch(_DRAIN_PATH):
-            dh.safe_shutdown()
+            dh.safe_shutdown(success=False)
         written = [c.args[0] for c in dh.ser.write.call_args_list]
         assert b"d" in written

@@ -21,6 +21,7 @@ Sub-executor locations (each sits next to its abstract base class):
 """
 
 from devices.industry_components.liquid_handlers.liquid_handler_executor import LiquidHandlerExecutor
+from devices.industry_components.liquid_handlers.bed_layout import BedLayout
 from devices.industry_components.pumps.pump_executor import PumpExecutor
 from devices.industry_components.valves.valve_executor import ValveExecutor
 from devices.industry_components.temperature_controller.temperature_executor import TemperatureExecutor
@@ -50,6 +51,8 @@ class DeviceExecutor:
             start_time: Experiment start time (datetime) — reserved for future sub-executor use.
             continue_flag_getter: Callable returning bool — passed to TemperatureExecutor.
         """
+        self._bed_layouts = bed_layouts
+        self._log_callback = log_callback
         self._liquid_handler = LiquidHandlerExecutor(bed_layouts, log_callback)
         self._pump = PumpExecutor(log_callback)
         self._valve = ValveExecutor(log_callback)
@@ -85,3 +88,9 @@ class DeviceExecutor:
 
     def execute_mirror_box(self, action, params, component, mirror_box: PhotoReactor):
         self._photo_reactor.execute(action, params, component, mirror_box)
+
+    def set_bedlayout(self, bed, rack_layout):
+        """Set the layout for a specific bed with the given rack_layout."""
+        bed_layout = BedLayout(bed_number=bed, rack_layout=rack_layout)
+        self._bed_layouts[bed] = bed_layout
+        self._log_callback("SetBedLayout", f"Bed {bed} layout set with rack_layout {rack_layout}", "", "OK")

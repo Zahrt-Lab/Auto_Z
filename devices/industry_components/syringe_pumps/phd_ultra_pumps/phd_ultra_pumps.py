@@ -314,6 +314,9 @@ class PhdUltraPump(SyringePump):
             self._connected = False
             self._last_status_msg = "Closed"
 
+    def safe_shutdown(self, success: bool) -> None:
+        pass
+
 
 # ----------------------------------------------------------------------
 # Self-test harness (executes if you `python phd_ultra.py`)

@@ -37,7 +37,7 @@ dev = [
 ]
 
 [project.scripts]
-auto-zahrt-gui = "methods.methods_gui:main"
+auto-zahrt-gui = "user_interface.methods_gui:main"
 
 [tool.setuptools.packages.find]
 where = ["."]

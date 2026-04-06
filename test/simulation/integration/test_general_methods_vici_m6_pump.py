@@ -92,7 +92,7 @@ def _run(gm: GeneralExperimentMethod) -> pd.DataFrame:
     """Run the experiment and return the log as a DataFrame."""
     with patch("methods.status_monitor.StatusMonitor.start"), patch("time.sleep"):
         gm.run_experiment()
-    return pd.read_csv(gm.log_filename)
+    return pd.read_csv(gm.logger.log_filename)
 
 
 # ---------------------------------------------------------------------------
@@ -260,5 +260,5 @@ class TestErrorHandling:
         )
         with patch("methods.status_monitor.StatusMonitor.start"), patch("time.sleep"):
             bad_gm.run_experiment()
-        log = pd.read_csv(bad_gm.log_filename)
-        assert log["Output"].str.contains("skipped|FAILED", na=False).any()
+        log = pd.read_csv(bad_gm.logger.log_filename)
+        assert log["Output"].str.contains("Error", na=False).any()

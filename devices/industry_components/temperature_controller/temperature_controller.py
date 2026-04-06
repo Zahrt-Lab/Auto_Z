@@ -43,3 +43,7 @@ class TemperatureController(abc.ABC):
     @abc.abstractmethod
     def close(self) -> None:
         """Convenience: shutdown the temperature controller (default: call `disconnect()`)."""
+
+    @abc.abstractmethod
+    def safe_shutdown(self, success: bool) -> None:
+        """Device-specific state cleanup called before close() during shutdown."""

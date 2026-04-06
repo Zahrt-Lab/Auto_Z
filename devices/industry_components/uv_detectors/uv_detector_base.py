@@ -19,3 +19,6 @@ class UVDetector(ABC):
 
     @abstractmethod
     def status(self) -> dict: ...
+
+    @abstractmethod
+    def safe_shutdown(self, success: bool) -> None: ...

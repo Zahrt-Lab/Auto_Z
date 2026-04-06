@@ -44,11 +44,7 @@ class TemperatureExecutor:
             self.log_to_csv(component, action, params, f"Current temperature: {current_temp}°C")
 
         elif action == 'wait_convergence':
-            param_dict = {key.strip(): float(value.strip()) for key, value in
-                          (param.split('=') for param in params.split(','))}
-            target_temp = param_dict['target_temp']
-            tolerance = param_dict.get('tolerance', 2.0)
-            duration = param_dict.get('duration', 120.0)
+            target_temp, tolerance, duration = parse_params(params).get('target_temp'), parse_params(params).get('tolerance'), parse_params(params).get('duration')
 
             self.log_to_csv(component, action, params,
                             f"Waiting for temperature to converge to {target_temp}±{tolerance}°C "

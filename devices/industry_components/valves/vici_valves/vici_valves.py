@@ -149,6 +149,9 @@ class ViciValve(Valves):
         """Closes the serial connection."""
         self.ser.close()
 
+    def safe_shutdown(self, success: bool) -> None:
+        pass
+
 
 class Multi_VICIValveController:
     """Helper to broadcast the same command to multiple valves."""

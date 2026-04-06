@@ -279,6 +279,9 @@ class IsmaticPump(Pump):
             self._connected = False
             self._last_status_msg = "Closed"
 
+    def safe_shutdown(self, success: bool) -> None:
+        pass
+
 
 # ----------------------------------------------------------------------
 # Example standalone usage

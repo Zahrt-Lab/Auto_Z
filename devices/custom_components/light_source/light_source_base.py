@@ -25,3 +25,6 @@ class PhotoReactor(ABC):
 
     @abstractmethod
     def read_temperature_stream(self) -> dict: ...
+
+    @abstractmethod
+    def safe_shutdown(self, success: bool) -> None: ...

@@ -83,3 +83,9 @@ Re-evaluated after code changes (2026-04-05). Original review: 2026-04-03.
 - Abstract device base classes (`Pump`, `Valves`, etc.) are the right approach — enforce them more strictly
 - Pump async threading with `wait_for_pumps` works correctly — no changes needed there
 - `parse_params()` uses `split('=', 1)` and skips malformed entries — use it consistently across all executors
+
+
+## Future TODO List Based on manual inspection
+
+- Break methods up into smaller functions to make sure it's atleast around 200 lines of code or less.
+- Make a new GUI directory breaking it up into multiple files to make it cleaner to digest for users. 

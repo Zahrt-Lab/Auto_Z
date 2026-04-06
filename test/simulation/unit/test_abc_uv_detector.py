@@ -35,7 +35,7 @@ class TestUVDetectorABC:
 
     def test_abstract_methods_defined(self):
         abstract_methods = getattr(UVDetector, "__abstractmethods__", set())
-        assert {"connect", "close", "status"} == abstract_methods
+        assert {"connect", "close", "status", "safe_shutdown"} == abstract_methods
 
     def test_partial_subclass_cannot_be_instantiated(self):
         class PartialUV(UVDetector):
@@ -94,6 +94,9 @@ class SimUVDetector(UVDetector):
             "initialized": self._connected,
             "model": self._model,
         }
+
+    def safe_shutdown(self, success: bool) -> None:
+        pass
 
 
 class TestSimUVDetector:

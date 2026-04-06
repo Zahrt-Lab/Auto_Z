@@ -266,6 +266,9 @@ class TricontinentalC24000(Pump):
             self._connected = False
             print(f"{self.name}: Closed")
 
+    def safe_shutdown(self, success: bool) -> None:
+        pass
+
     # Helper methods (device-specific)
     def _convert_flow_rate(self, ul_min: float) -> int:
         """Convert µL/min to device-specific rate units (counts/second).

@@ -228,6 +228,9 @@ class VICI_M6_Pumps(Pump):
         """Closes the serial connection."""
         self.ser.close()
 
+    def safe_shutdown(self, success: bool) -> None:
+        pass
+
 '''
 
 pump = VICI_M6_Pumps(port='COM21')

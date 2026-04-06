@@ -51,3 +51,7 @@ class SyringePump(abc.ABC):
     @abc.abstractmethod
     def close(self) -> None:
         """Convenience: shutdown the pump (default: call `disconnect()`)."""
+
+    @abc.abstractmethod
+    def safe_shutdown(self, success: bool) -> None:
+        """Device-specific state cleanup called before close() during shutdown."""
