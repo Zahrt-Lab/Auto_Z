@@ -267,7 +267,9 @@ class TricontinentalC24000(Pump):
             print(f"{self.name}: Closed")
 
     def safe_shutdown(self, success: bool) -> None:
-        pass
+        """Safe shutdown procedure."""
+        self.stop()
+        self.close()
 
     # Helper methods (device-specific)
     def _convert_flow_rate(self, ul_min: float) -> int:

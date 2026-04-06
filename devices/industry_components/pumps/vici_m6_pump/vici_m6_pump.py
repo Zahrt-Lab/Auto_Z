@@ -229,5 +229,6 @@ class VICI_M6_Pumps(Pump):
         self.ser.close()
 
     def safe_shutdown(self, success: bool) -> None:
-        pass
+        self.stop()
+        self.close()
 

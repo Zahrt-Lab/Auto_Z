@@ -139,7 +139,8 @@ class TC720(TemperatureController):
         print(f"Disconnected from TC-720 on {self.ser.port}")
 
     def safe_shutdown(self, success: bool) -> None:
-        pass
+        self.set_temperature(25.0)  # Set to safe temperature on shutdown
+        self.close()
 
     # ---- Status monitoring ---------------------------------------------------
     def status(self) -> dict:
