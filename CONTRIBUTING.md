@@ -6,7 +6,7 @@
 
 **Ari Bortman** — MirrorBox 365nm code adapted from their Arduino source code.
 
-**Paul Tuertscher** — Test design and methodology inspiration.
+**Paul Tuertscher** — Test design inspirated from their python code.
 
 ---
 
