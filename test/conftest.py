@@ -364,3 +364,21 @@ def make_uv_detector_device():
     mock_ser = MagicMock()
     mock_ser.is_open = True
     return mock_ser
+
+def make_mirror_box_response() -> bytes:
+    """Helper to create a byte response for MirrorBox365nm unit tests."""
+    return "OK (dimmer set)\r\n".encode("ascii")
+
+def make_mirror_box_365nm_device():
+    """Return a MirrorBox365nm with a mock serial port for unit tests."""
+    from devices.custom_components.photo_reactor.mirror_box_365nm.mirror_box_365nm import MirrorBox365nm
+    mb = MirrorBox365nm(port="COM_TEST")
+    mock_ser = MagicMock()
+    mock_ser.is_open = True
+    mock_ser.in_waiting = 0
+    mock_ser.timeout = 2.0
+    mock_ser.readline.side_effect = [b"OK (dimmer set)\r\n"] + [b""] * 20
+    mb.ser = mock_ser
+    return mb
+
+

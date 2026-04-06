@@ -32,7 +32,10 @@ class MirrorBox365nm(PhotoReactor):
         self.ser = None
 
     def connect(self):
-        self.ser = serial.Serial(self.port, baudrate=self.baudrate, timeout=self.timeout)
+        try:
+            self.ser = serial.Serial(self.port, baudrate=self.baudrate, timeout=self.timeout)
+        except Exception as e:
+            raise ConnectionError(f"Failed to connect to MirrorBox365nm on {self.port}: {e}") from e
         time.sleep(2.0)  # Wait for Arduino reset
         self.drain(1.0)  # Clear startup messages
 
@@ -83,6 +86,8 @@ class MirrorBox365nm(PhotoReactor):
 
     def set_dimmer(self, dimmer_value: int) -> str:
         """Set dimmer (0=brightest, 255=off). Value is clamped to 0–255."""
+        if not isinstance(dimmer_value, int) or isinstance(dimmer_value, bool):
+            raise ValueError(f"set_dimmer expects an int, got {type(dimmer_value).__name__!r}")
         dimmer_value = max(0, min(255, dimmer_value))
         self.ser.write(f"dim {dimmer_value}\n".encode('utf-8'))
         return self._read_response()
