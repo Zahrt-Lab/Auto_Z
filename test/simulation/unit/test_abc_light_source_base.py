@@ -12,8 +12,8 @@ Verifies that:
 import pytest
 from abc import ABC
 
-from devices.custom_components.light_source.light_source_base import PhotoReactor
-from devices.custom_components.light_source.mirror_box_365nm.mirror_box_365nm import MirrorBox365nm
+from devices.custom_components.photo_reactor.photo_reactor_base import PhotoReactor
+from devices.custom_components.photo_reactor.mirror_box_365nm.mirror_box_365nm import MirrorBox365nm
 
 
 # ---------------------------------------------------------------------------

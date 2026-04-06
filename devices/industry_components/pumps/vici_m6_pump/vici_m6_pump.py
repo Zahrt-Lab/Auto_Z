@@ -92,7 +92,7 @@ class VICI_M6_Pumps(Pump):
             self.VM = abs(int(self.steps_per_ul * self.flow_rate_sec))
 
             print(f"{direction.capitalize()} at {self.flow_rate_min} uL/min")
-            print(f"Steps per uL: {self.steps_per_ul}, VM: {self.SL} steps/sec")
+            print(f"Steps per uL: {self.steps_per_ul}, VM: {self.VM} steps/sec")
 
         except ValueError:
             raise
@@ -231,15 +231,3 @@ class VICI_M6_Pumps(Pump):
     def safe_shutdown(self, success: bool) -> None:
         pass
 
-'''
-
-pump = VICI_M6_Pumps(port='COM21')
-
-pump.start()
-
-#pump.set_flow_rate(1000, "aspirating")
-pump.set_flow_rate(1000, "dispensing")
-pump.pump_solution(2000)
-
-pump.stop_connection()
-'''

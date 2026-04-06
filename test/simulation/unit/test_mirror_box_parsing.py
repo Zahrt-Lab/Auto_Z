@@ -8,7 +8,7 @@ Each test covers a single piece of logic in isolation.
 import pytest
 from unittest.mock import MagicMock, patch
 
-from devices.custom_components.light_source.mirror_box_365nm.mirror_box_365nm import (
+from devices.custom_components.photo_reactor.mirror_box_365nm.mirror_box_365nm import (
     MirrorBox365nm,
 )
 

@@ -27,7 +27,7 @@ from devices.industry_components.valves.valve_executor import ValveExecutor
 from devices.industry_components.temperature_controller.temperature_executor import TemperatureExecutor
 from devices.industry_components.uv_detectors.dh2000_executor import DH2000Executor
 from devices.industry_components.uv_detectors.ocean_optics_executor import OceanOpticsExecutor
-from devices.custom_components.light_source.photo_reactor_executor import PhotoReactorExecutor
+from devices.custom_components.photo_reactor.photo_reactor_executor import PhotoReactorExecutor
 
 # Abstract base classes (kept here so methods.py can isinstance-check against them)
 from devices.industry_components.liquid_handlers.liquid_handlers import LiquidHandler
@@ -37,7 +37,7 @@ from devices.industry_components.temperature_controller.temperature_controller i
 from devices.industry_components.syringe_pumps.syringe_pumps import SyringePump
 from devices.industry_components.uv_detectors.dh2000_base import DH2000Controller
 from devices.industry_components.uv_detectors.uv_detector_base import UVDetector
-from devices.custom_components.light_source.light_source_base import PhotoReactor
+from devices.custom_components.photo_reactor.photo_reactor_base import PhotoReactor
 
 
 class DeviceExecutor:

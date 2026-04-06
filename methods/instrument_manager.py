@@ -26,35 +26,37 @@ class InstrumentManager:
         """
         Initialize the instrument manager.
 
-        Args:
-            instrument_config_file: Path to the instrument configuration CSV
-            experiment_subdir: Optional subdirectory for instruments that need output paths
+        Parameters:
+         - instrument_config_file: Path to the instrument configuration CSV
+         - experiment_subdir: Optional subdirectory for instruments that need output paths
+        
+        Returns:
+         - None
         """
         self.instrument_config_file = instrument_config_file
         self.experiment_subdir = experiment_subdir
 
-        self.instruments = {}       # {attr_name: device_instance}
-        self.instrument_types = {}  # {attr_name: InstrumentType}
+        self.instruments = {}       # {attr_name: device_instance} # e.g. {"Pump1": <VICI M6 Pump object>, "Pump2": <VICI M6 Pump object>)}
+        self.instrument_types = {}  # {attr_name: InstrumentType} # e.g. {"Pump1": "Pump", "Pump2": "Pump"}
 
         self.instrument_config = self.load_instrument_config(self.instrument_config_file)
         self.initialize_instruments(self.instrument_config)
         self.connect_all_instruments()
 
     def load_instrument_config(self, config_file):
-        """Load the instrument configuration CSV and return a DataFrame."""
+        """Load the instrument configuration CSV and return a DataFrame of the device configuration info."""
         try:
             config_df = pd.read_csv(config_file)
-            print(f"Loaded instrument configuration from {config_file}")
+            print(f"LOADING INSTRUMENT CONFIGURATION FILE: {config_file}")
             return config_df
         except Exception as e:
-            print(f"Error loading instrument configuration: {e}")
-            return None
+            print(f"ERROR LOADING INSTRUMENT CONFIGURATION: {e}")
 
     def initialize_instruments(self, config_df):
         """Instantiate devices from the configuration DataFrame using the device registry."""
         self.instruments = {}
         if config_df is None:
-            print("No instrument configuration available.")
+            print("ERROR: NO INSTRUMENT CONFIGURATION FILE LOADED.")
             return
 
         context = {"experiment_subdir": self.experiment_subdir}
@@ -84,6 +86,6 @@ class InstrumentManager:
             if hasattr(device, "connect"):
                 try:
                     device.connect()
-                    print(f"Connected to {name}")
+                    print(f"connected to {name}")
                 except Exception as e:
-                    print(f"Failed to connect to {name}: {e}")
+                    print(f"FAILED TO CONNECT TO {name}: {e}")

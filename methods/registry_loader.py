@@ -90,14 +90,13 @@ def build_instance(instrument_type: str, csv_row, context: Optional[dict] = None
     """
     Instantiate a device from the registry.
 
-    Args:
-        instrument_type: The InstrumentType string from the instrument config CSV.
-        csv_row:         A pandas Series (or dict-like) for the instrument CSV row.
-        context:         Runtime values injected by InstrumentManager, e.g.
-                         {"experiment_subdir": "/path/to/run/dir"}.
+    Parameters:
+     - instrument_type: The InstrumentType string from the instrument config CSV.
+     - csv_row: A pandas Series (or dict-like) for the instrument CSV row.
+     - context: Runtime values injected by InstrumentManager, e.g.
 
     Returns:
-        The constructed device object.
+     - The device object.
 
     Raises:
         ValueError: If instrument_type is not in the registry.

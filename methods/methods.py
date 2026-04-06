@@ -7,15 +7,6 @@
 # All rights reserved.
 # ------------------------------------------------------------------------------
 
-# TODO : Need to incorporate the new tricontinental code as part of these commands
-
-# TODO : Perform Final validation with this TODO list
-# TODO : Need to incorporate the UV-detector into the methods code so that this calibration step can also be automated as well. 
-# TODO : Need to incorporate new light source with tunable parameters to the AutoZahrt
-# TODO : Need to program light source within methods so it stays on regardless of whether the light turns on and off again.
-# TODO : Need to program methods so light source stays on at the end of each of method
-
-
 import pandas as pd
 import time
 from datetime import datetime
@@ -34,11 +25,7 @@ from devices.industry_components.temperature_controller.temperature_controller i
 from devices.industry_components.syringe_pumps.syringe_pumps import SyringePump
 from devices.industry_components.uv_detectors.dh2000_base import DH2000Controller
 from devices.industry_components.uv_detectors.uv_detector_base import UVDetector
-from devices.custom_components.light_source.light_source_base import PhotoReactor
-
-
-# TODO can't find syringe pump and isamatic scripts and need to add this script later
-#    PhdUltraPump  # Imports the commands for the harvard aparatus PhD Ultra syringe pumps
+from devices.custom_components.photo_reactor.photo_reactor_base import PhotoReactor
 
 class GeneralExperimentMethod:
     def __init__(self, input_file, instrument_config_file, output_dir="Experimental_Data//Outputs",
@@ -48,7 +35,7 @@ class GeneralExperimentMethod:
         
         # Load the CSV file
         self.input_file = input_file
-        self.method = pd.read_csv(self.input_file)
+        self.method = pd.read_csv(input_file)
         self.delay = delay  # Global delay parameter
         self.status_interval = status_interval  # Status check interval in seconds
         self.instrument_control_file = instrument_control_file  # File path to check for continue/stop signal
@@ -189,6 +176,16 @@ class GeneralExperimentMethod:
             self.shutdown(success=False)
 
     
+    def _close_all_instruments(self):
+        """Close serial connections for all instruments that have a close() method."""
+        for name, instance in self.instrument_manager.instruments.items():
+            if hasattr(instance, 'close') and callable(instance.close):
+                try:
+                    instance.close()
+                    self.log_to_csv("Close", "Connection closed at shutdown", name, "OK")
+                except Exception as e:
+                    self.log_to_csv("Close", f"Failed to close {name}: {e}", name, "FAILED")
+
     def shutdown(self, success: bool):
         self.stop_status_monitoring()
 
@@ -199,13 +196,7 @@ class GeneralExperimentMethod:
             except Exception as e:
                 self.log_to_csv(name, "shutdown_error", f"success={success}", f"FAILED: {e}")
 
-        for name, instance in self.instrument_manager.instruments.items():
-            if hasattr(instance, 'close') and callable(instance.close):
-                try:
-                    instance.close()
-                    self.log_to_csv("Close", "Connection closed at shutdown", name, "OK")
-                except Exception as e:
-                    self.log_to_csv("Close", f"Failed to close {name}: {e}", name, "FAILED")
+        self._close_all_instruments()
 
     def emergency_stop(self):
         """
@@ -223,14 +214,7 @@ class GeneralExperimentMethod:
                 except Exception as e:
                     self.log_to_csv("EmergencyStop", f"Error stopping device: {e}", "", "FAILED")
 
-        self.stop_status_monitoring()
-
-        for name, inst in self.instrument_manager.instruments.items():
-            if hasattr(inst, 'close') and callable(inst.close):
-                try:
-                    inst.close()
-                    self.log_to_csv("Close", f"Connection closed for {name}", name, "OK")
-                except Exception as e:
-                    self.log_to_csv("Close", f"Failed to close {name}: {e}", name, "FAILED")
+        # TODO: Does this turn off the light source of the DH2000 as well?
+        self.shutdown(success=False)
 
         print(f"[{timestamp}] EMERGENCY STOP COMPLETED")

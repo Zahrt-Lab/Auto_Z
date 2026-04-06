@@ -9,7 +9,7 @@
 import time
 import serial
 
-from devices.custom_components.light_source.light_source_base import PhotoReactor
+from devices.custom_components.photo_reactor.photo_reactor_base import PhotoReactor
 
 
 class MirrorBox365nm(PhotoReactor):

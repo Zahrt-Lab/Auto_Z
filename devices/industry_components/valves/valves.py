@@ -11,11 +11,7 @@ from __future__ import annotations
 import abc
 
 class Valves(abc.ABC):
-    """Abstract high-level interface for TemperatureController used within the lab space.
-
-    Units:
-    - flow_rate: microliters per minute (µL/min)
-    - volume: microliters (µL)
+    """Abstract high-level interface for Valves used within the lab space.
 
     Implementations must implement the Device lifecycle methods and set
     `self._connected = True` on successful `connect()`.

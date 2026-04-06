@@ -16,7 +16,7 @@ from datetime import datetime
 
 from methods.methods import GeneralExperimentMethod
 from methods.device_executors import DeviceExecutor
-from devices.custom_components.light_source.mirror_box_365nm.mirror_box_365nm import (
+from devices.custom_components.photo_reactor.mirror_box_365nm.mirror_box_365nm import (
     MirrorBox365nm,
 )
 

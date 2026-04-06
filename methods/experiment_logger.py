@@ -26,10 +26,13 @@ class ExperimentLogger:
         """
         Initialize the experiment logger.
         
-        Args:
-            input_file: Path to the input CSV method file
-            output_dir: Base directory for experimental outputs
-            output_file: Base name for output log files
+        Parameters:
+         - input_file: Path to the input CSV method file
+         - output_dir: Base directory for experimental outputs
+         - output_file: Base name for output log files
+
+        Returns:
+         - None
         """
         self.input_file = input_file
         self.start_time = datetime.now()

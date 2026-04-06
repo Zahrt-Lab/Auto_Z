@@ -12,7 +12,7 @@ Executor for PhotoReactor (MirrorBox365nm) actions.
 Actions: set_dimmer, status, read_temperature.
 """
 
-from devices.custom_components.light_source.light_source_base import PhotoReactor
+from devices.custom_components.photo_reactor.photo_reactor_base import PhotoReactor
 from methods.parameter_parser import parse_params
 
 # TODO : The PhotoReactor should be generic, but currenltly only has MirrorBox365nm implmentenation. Need to make more generic
