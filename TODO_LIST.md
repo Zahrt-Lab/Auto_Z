@@ -6,17 +6,7 @@
 
 3) Currently with the status button, this causes a lot errors if two commands run at the same time, threading is being used currently but async should be used in the future to prevent any of this conflict.
 
-4) The methods directory is a bit messy right now to get everything to work, need to clean this up and make it easier to add new instruments for future users. 
-
 5) A lot of the pump logic is the same, can maybe include some general purpose math for all our test ases to ensure everything is working. 
-
-6) Directories are getting crowded should be cleaned up and organized to make it cleaner for people. 
-   Vision of new directory setup, hardware/devices directory of all the equipment needed.
-
-   Have a test directory with simulation and hardware commands, one to test unit individual devices another to test the integration into the code.
-   Is the autozahrt.eff-info really needed.
-
-7) Clean up code to focus mostly on the most relevant scripts
 
 ---
 

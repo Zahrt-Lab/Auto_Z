@@ -1,7 +1,0 @@
-include README.md
-include control.txt
-include LICENSE
-recursive-include Experimental_Data *.md
-recursive-include uv_detectors *.ino *.txt
-recursive-exclude * __pycache__
-recursive-exclude * *.py[co]
