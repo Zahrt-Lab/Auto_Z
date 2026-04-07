@@ -5,20 +5,42 @@
 # Contributions by graduate students Scott Laverty and David Polefrone are acknowledged.
 # All rights reserved.
 # ------------------------------------------------------------------------------
+from pathlib import Path
+
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib  # type: ignore[no-redef]
+
 from devices.industry_components.liquid_handlers.wells import Well
+
+_OFFSETS_PATH = Path(__file__).parent / "bed_offsets.toml"
+_offsets_cache: dict | None = None
+
+
+def _load_offsets() -> dict:
+    """Load bed_offsets.toml once and cache the result."""
+    global _offsets_cache
+    if _offsets_cache is None:
+        with open(_OFFSETS_PATH, "rb") as f:
+            _offsets_cache = tomllib.load(f)
+    return _offsets_cache
+
 
 class BedLayout():
 
-    #The bed number has a fixed location of 1, 2, 3, 4, 5, 6 which needs to be fixed in the code; user should not be able to edit this
+    #The bed number has a fixed location of 1, 2, 3, 4, 5 and 6 which needs to be fixed in the code; user should not be able to edit this
     #The rack_layout the user should need to input to make sure they use the correct layout
-    def __init__(self, bed_number, rack_layout):
+    def __init__(self, bed_number, rack_layout, device_type='GX271'):
 
-        #Sets the location bed number on the GX281 liquid handler
+        #Sets the location bed number on the GX271 liquid handler
         # The far left is labeled 1 and far right is labeled 6
         self.bed_number=bed_number
 
         #Determines the layout of the racks, to feed into
         self.rack_layout=rack_layout
+
+        self.device_type = device_type
 
         self.wells={}
         self.X=[]
@@ -27,25 +49,41 @@ class BedLayout():
 
         self.coordinates=[]
 
-        self.x_offset = [] #[22.2, 141.8, 261.3, 380.9, 500.5, 620]
+        self.x_offset = []
+        self.y_offset = 0.0
 
         self.num_wells=None
+
+        # Load device-specific offsets from TOML (Ender3 rack 301 manages its own offsets)
+        if rack_layout != 301:
+            rack_key = f"rack_{rack_layout}"
+            offsets = _load_offsets()
+            if device_type not in offsets:
+                raise ValueError(
+                    f"Device type {device_type!r} not found in bed_offsets.toml. "
+                    f"Known types: {list(offsets.keys())}"
+                )
+            if rack_key not in offsets[device_type]:
+                raise ValueError(
+                    f"Rack layout {rack_layout!r} not found for device {device_type!r} "
+                    f"in bed_offsets.toml."
+                )
+            self.x_offset = offsets[device_type][rack_key]["x_offset"]
+            self.y_offset = offsets[device_type][rack_key]["y_offset"]
 
         if rack_layout == 204:
             self.X = [0, 31.8, 63.6]
             self.Y = [103.4, 135.2, 166.9, 198.7, 230.4, 262.1, 293.9,325.6,357.4]
             self.Z = 60
             self.num_wells = 27
-            self.x_offset = [22.2, 141.8, 261.3, 380.9, 500.5, 620]
-            [[self.coordinates.append([x + self.x_offset[self.bed_number - 1], y]) for y in self.Y] for x in self.X]
+            [[self.coordinates.append([x + self.x_offset[self.bed_number - 1], y + self.y_offset]) for y in self.Y] for x in self.X]
 
         elif rack_layout==207:
             self.X = [0, 19.3, 38.6, 57.9, 77.2]
             self.Y = [95, 114.3, 133.6, 152.9, 172.2, 191.5, 210.8, 230.1, 249.4, 268.7, 288, 307.3, 326.6, 345.9, 365]
             self.Z = 115
             self.num_wells = 75
-            self.x_offset = [15, 134.6, 254.2, 373.8, 493.4, 613]
-            [[self.coordinates.append([x + self.x_offset[self.bed_number - 1], y]) for y in self.Y] for x in self.X]
+            [[self.coordinates.append([x + self.x_offset[self.bed_number - 1], y + self.y_offset]) for y in self.Y] for x in self.X]
 
         elif rack_layout==209:
             self.X = [0, 16.6, 33.2, 49.8, 66.4, 83]
@@ -53,14 +91,13 @@ class BedLayout():
                 self.Y.append(93 + 17.7 * i)
             self.Z = 86
             self.num_wells = 96
-            self.x_offset = [13, 132.6, 252.2, 371.8, 491.4, 611]
             self.stagger = 8.5
             for x_index, x in enumerate(self.X):
                 for y in self.Y:
                     if x_index % 2 == 0:
-                        self.coordinates.append([x + self.x_offset[self.bed_number - 1], y])
+                        self.coordinates.append([x + self.x_offset[self.bed_number - 1], y + self.y_offset])
                     else:
-                        self.coordinates.append([x + self.x_offset[self.bed_number -1], y + self.stagger])
+                        self.coordinates.append([x + self.x_offset[self.bed_number -1], y + self.y_offset + self.stagger])
 
         elif rack_layout == 301:
             # 20-vial rack for Ender3 liquid handler
@@ -87,7 +124,7 @@ class BedLayout():
             raise ValueError(f"Invalid bed layout type {self.rack_layout}. Currently supported types: 204, 207, 209, and 301.")
 
 
-        
+
         for i in range(1, self.num_wells + 1):
             self.wells[i] = Well(i)
 
@@ -103,6 +140,3 @@ class BedLayout():
 
     def get_well(self,index):
         return self.wells[index]
-
-
-

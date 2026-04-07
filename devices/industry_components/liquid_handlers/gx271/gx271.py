@@ -30,6 +30,8 @@ _VALID_MOTOR_CHARS = set("ERUP")
 
 
 class GX271(LiquidHandler):
+    DEVICE_TYPE = 'GX271'
+
     def __init__(self,
                  name: str,
                  uid: int = 35,
@@ -387,7 +389,7 @@ class GX271(LiquidHandler):
     def _ensure_conn(self) -> None:
         if not self._connected:
             raise RuntimeError("GX-271 is not connected. Call connect() first.")    
-        
+'''
 if __name__ == "__main__":
     gx = GX271(name="GX-271", uid=35, debug=True)
     gx.connect()
@@ -411,3 +413,4 @@ if __name__ == "__main__":
 
     print(gx.status())
     gx.disconnect()
+'''

@@ -9,8 +9,12 @@
 """
 Integration tests for general methods that use VICI valves.
 
-Every test goes through the run_experiment() no direct VICI valve method calls.
-InstrumentManager is patched to inject a VICI valve with serial commands
+Every test goes through run_experiment() — no direct VICI valve method calls.
+InstrumentManager is patched to inject the real vici_valve_device fixture so
+commands travel through GeneralExperimentMethod → DeviceExecutor → ViciValve.
+
+Safety constraint: movements are limited to positions 1–2 to minimise
+plumbing changes during testing.
 """
 
 import re
@@ -19,8 +23,6 @@ import pandas as pd
 from unittest.mock import patch
 
 from methods.methods import GeneralExperimentMethod
-
-pytestmark = [pytest.mark.hardware, pytest.mark.vici_valve]
 
 pytestmark = [pytest.mark.hardware, pytest.mark.vici_valve]
 
@@ -50,10 +52,11 @@ def _build_gm(tmp_path, vici_valve_device, method_rows: str) -> GeneralExperimen
             input_file=str(method_csv),
             instrument_config_file=str(config_csv),
             output_dir=str(tmp_path / "output"),
-            instrument_control_file=str(tmp_path / "instrument_control.csv"),
-            dh2000_light_source_control_file=str(tmp_path / "dh2000_light_source_control.csv"),
-        )   
-    
+            instrument_control_file=str(tmp_path / "instrument_control.txt"),
+            dh2000_light_source_control_file=str(tmp_path / "dh2000_light_source_control.txt"),
+        )
+
+
 def _run(gm) -> pd.DataFrame:
     """Run the experiment and return the logged data as a DataFrame."""
     with patch(_SM_START):
@@ -61,58 +64,94 @@ def _run(gm) -> pd.DataFrame:
     return pd.read_csv(gm.logger.log_filename)
 
 
-#---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
 # Safety test — full run must complete without exception
-#---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
 
 
 class TestSafetyHardware:
 
     def test_full_run_completes_without_exception(self, tmp_path, vici_valve_device):
-        """run_experiment() with go_to_position must not raise.""":
+        """Full experiment with go_to_position + move_home must not raise."""
         gm = _build_gm(
             tmp_path,
             vici_valve_device,
             "VICI_VALVE_1,go_to_position,position=1,,0.5\n"
-            "VICI_VALVE_1,go_to_position,position=3,,0.5\n"
+            "VICI_VALVE_1,go_to_position,position=2,,0.5\n"
             "VICI_VALVE_1,move_home,,,0.5\n"
             "VICI_VALVE_1,get_position,,,0.5\n"
         )
-        _run(gm)  # must not raise error
+        _run(gm)  # must not raise
 
 
 # ---------------------------------------------------------------------------
 # Log output — correct values written to the CSV log from real hardware
-#---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
 
 
 class TestLogOutputHardware:
 
     @pytest.fixture
     def log(self, tmp_path, vici_valve_device):
-        """Run a method and return the log DataFrame."""
+        """Run a method with positions 1 and 2, move_home, get_position; return log."""
         gm = _build_gm(
             tmp_path,
             vici_valve_device,
+            "VICI_VALVE_1,go_to_position,position=1,,0.5\n"
             "VICI_VALVE_1,go_to_position,position=2,,0.5\n"
+            "VICI_VALVE_1,move_home,,,0.5\n"
             "VICI_VALVE_1,get_position,,,0.5\n"
         )
         return _run(gm)
-    
-    def test_go_to_position_logged(self, log):
-        """Check that go_to_position action is logged with correct position."""
-        go_rows = log[log['Action'] == 'go_to_position']
-        assert len(go_rows) == 1
-        assert re.search(r'position=2', go_rows.iloc[0]['Parameters'])
 
-    def test_get_position_logged(self, log):
-        """Check that get_position action is logged."""
-        get_rows = log[log['Action'] == 'get_position']
-        assert len(get_rows) == 1
-    
-    def test_go_to_position_invalid_position_logged_as_error(self, log):
-        """If an invalid position is given, it should be logged with an error."""
-        go_rows = log[log['Action'] == 'go_to_position']
-        assert len(go_rows) == 1
-        assert re.search(r'position=2', go_rows.iloc[0]['Parameters'])
-        # The actual error handling would depend on how the method logs errors; this is just a placeholder.
+    @pytest.mark.parametrize("position", [1, 2])
+    def test_go_to_position_logged(self, log, position):
+        """Each go_to_position command must appear in the log with its position parameter."""
+        rows = log[
+            (log["Action"] == "go_to_position") &
+            (log["Parameters"].str.contains(f"position={position}", na=False))
+        ]
+        assert len(rows) == 1
+
+    def test_move_home_logged(self, log):
+        """move_home must appear exactly once in the log."""
+        rows = log[log["Action"] == "move_home"]
+        assert len(rows) == 1
+
+    def test_get_position_logged_with_output(self, log):
+        """get_position must appear in the log and return a non-empty output value."""
+        rows = log[log["Action"] == "get_position"]
+        assert len(rows) == 1
+        assert str(rows.iloc[0]["Output"]).strip() != ""
+
+
+# ---------------------------------------------------------------------------
+# Error handling — invalid inputs must log errors without crashing
+# ---------------------------------------------------------------------------
+
+
+class TestErrorHandlingHardware:
+
+    def test_unknown_action_logged_as_error(self, tmp_path, vici_valve_device):
+        """An unrecognised action (e.g. 'spin') must log an error row, not raise."""
+        gm = _build_gm(
+            tmp_path,
+            vici_valve_device,
+            "VICI_VALVE_1,spin,,,0.5\n"
+        )
+        log = _run(gm)
+        row = log[log["Action"] == "spin"]
+        assert not row.empty
+        assert "error" in str(row.iloc[0]["Output"]).lower()
+
+    def test_invalid_position_logged_as_error(self, tmp_path, vici_valve_device):
+        """position=0 is out of range (valid: 1–6); must log an error, not crash."""
+        gm = _build_gm(
+            tmp_path,
+            vici_valve_device,
+            "VICI_VALVE_1,go_to_position,position=0,,0.5\n"
+        )
+        log = _run(gm)
+        row = log[log["Action"] == "go_to_position"]
+        assert not row.empty
+        assert "error" in str(row.iloc[0]["Output"]).lower()

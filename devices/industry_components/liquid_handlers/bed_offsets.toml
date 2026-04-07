@@ -1,0 +1,38 @@
+# ==============================================================================
+# AUTO_ZAHRT — Bed Offsets
+# ==============================================================================
+# x_offset: list of per-bed X offsets in mm (index 0 = bed 1, index 1 = bed 2, etc.)
+# y_offset: single scalar Y offset in mm applied uniformly to all wells on all beds
+#
+# GX281: 6 bed positions. Values are measured/confirmed.
+# GX271: 3 bed positions. Values are placeholders (TODO: measure on instrument).
+#
+# Rack 301 (Ender3) is intentionally omitted — the Ender3 executor path manages
+# its own bed layout and does not use this file.
+# ==============================================================================
+
+[GX281.rack_204]
+x_offset = [22.2, 141.8, 261.3, 380.9, 500.5, 620.0]
+y_offset  = 0.0
+
+[GX281.rack_207]
+x_offset = [15.0, 134.6, 254.2, 373.8, 493.4, 613.0]
+y_offset  = 0.0
+
+[GX281.rack_209]
+x_offset = [13.0, 132.6, 252.2, 371.8, 491.4, 611.0]
+y_offset  = 0.0
+
+# TODO: All GX271 values below are placeholders — measure on the instrument.
+
+[GX271.rack_204]
+x_offset = [0.0, 0.0, 0.0]  # 3 bed positions
+y_offset  = 0.0
+
+[GX271.rack_207]
+x_offset = [0.0, 0.0, 0.0]
+y_offset  = 0.0
+
+[GX271.rack_209]
+x_offset = [0.0, 0.0, 0.0]
+y_offset  = 0.0

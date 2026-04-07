@@ -281,6 +281,73 @@ def tricontinental_device(tricontinental_port: str):
 
 
 # ---------------------------------------------------------------------------
+# VICI Valve fixtures
+# ---------------------------------------------------------------------------
+
+def _detect_vici_valve_port() -> Optional[str]:
+    """
+    Scan all COM ports for a VICI selector valve at 9600 baud.
+    Sends 'VR\\r' (firmware version query) and accepts the first port
+    that returns a non-empty response — VICI valves always answer VR.
+    """
+    for port_info in serial.tools.list_ports.comports():
+        port = port_info.device
+        ser = None
+        try:
+            ser = serial.Serial(port, baudrate=9600,
+                                parity=serial.PARITY_NONE,
+                                stopbits=serial.STOPBITS_ONE,
+                                bytesize=serial.EIGHTBITS,
+                                timeout=1)
+            time.sleep(0.2)
+            ser.reset_input_buffer()
+            ser.write(b"VR\r")
+            ser.flush()
+            time.sleep(0.2)
+            resp = ser.readline().decode("ascii", errors="ignore").strip()
+            if resp:
+                return port
+        except (serial.SerialException, OSError):
+            continue
+        finally:
+            if ser is not None:
+                try:
+                    ser.close()
+                except Exception:
+                    pass
+    return None
+
+
+@pytest.fixture(scope="session")
+def vici_valve_port() -> Optional[str]:
+    """
+    Detect the COM port of a connected VICI selector valve.
+    Skips the entire hardware test session if no device is found.
+    """
+    port = _detect_vici_valve_port()
+    if port is None:
+        pytest.skip("VICI valve not detected on any COM port — skipping hardware tests")
+    return port
+
+
+@pytest.fixture(scope="session")
+def vici_valve_device(vici_valve_port: str):
+    """
+    Connected ViciValve instance (6-way), shared across the hardware test session.
+    Moves to home position and closes the serial port cleanly on teardown.
+    """
+    from devices.industry_components.valves.vici_valves.vici_valves import ViciValve
+    valve = ViciValve(port=vici_valve_port, valve_type="6-way")
+    valve.connect()
+    yield valve
+    try:
+        valve.move_home()
+    except Exception:
+        pass
+    valve.close()
+
+
+# ---------------------------------------------------------------------------
 # GeneralExperimentMethod fixtures (inject mock devices for integration tests)
 # ---------------------------------------------------------------------------
 

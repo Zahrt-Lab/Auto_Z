@@ -74,6 +74,8 @@ def _parse_z(s: str) -> float:
 # ---------- device class ----------
 
 class GX281(LiquidHandler):
+    DEVICE_TYPE = 'GX281'
+
     def __init__(self, name: str, uid: int = 25):
         super().__init__(name)
         self.uid = uid

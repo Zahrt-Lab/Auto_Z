@@ -33,15 +33,20 @@ class LiquidHandlerExecutor:
         from methods.parameter_parser import parse_params
 
         if action == 'set_bedlayout':
-            # TODO: Handle both GX281 and Ender3 bed layout settings for consistency
+            # TODO: Handle both GX271 and Ender3 bed layout settings for consistency
             bed = parse_params(params).get('bed')
             rack_layout = parse_params(params).get('rack_layout')
             if hasattr(liquid_handler, 'set_bedlayout'):
                 liquid_handler.set_bedlayout(bed, rack_layout)
             else:
-                # Fallback for GX281 — store layout in shared dict
+                # Fallback for GX271 — store layout in shared dict
                 from devices.industry_components.liquid_handlers.bed_layout import BedLayout
-                self.bed_layouts[bed] = BedLayout(bed_number=bed, rack_layout=rack_layout)
+                device_type = getattr(liquid_handler, 'DEVICE_TYPE', 'GX271')
+                self.bed_layouts[bed] = BedLayout(
+                    bed_number=bed,
+                    rack_layout=rack_layout,
+                    device_type=device_type,
+                )
                 print(f"Bed {bed} layout set with rack_layout {rack_layout}")
             self.log_to_csv(component, action, params, f"Setting bed {bed} to bed layout {rack_layout}")
 
@@ -65,7 +70,7 @@ class LiquidHandlerExecutor:
             self.log_to_csv(component, action, params,
                             f"Moving liquid handler needle up before XY move: z={safe_z}")
 
-            # TODO: Check consistency between GX281 and Ender3
+            # TODO: Check consistency between GX271 and Ender3
             if hasattr(liquid_handler, 'move_to_well'):
                 liquid_handler.move_to_well(bed, well)
             else:
@@ -78,7 +83,7 @@ class LiquidHandlerExecutor:
             bed = parse_params(params).get('bed')
             well = parse_params(params).get('well')
 
-            # TODO: Check consistency between GX281 and Ender3
+            # TODO: Check consistency between GX271 and Ender3
             if hasattr(liquid_handler, 'get_well_z'):
                 z = liquid_handler.get_well_z(bed, well)
             else:

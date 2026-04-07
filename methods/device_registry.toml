@@ -17,6 +17,12 @@
 
 # ── Liquid Handlers ────────────────────────────────────────────────────────────
 
+[devices.GX271]
+import_path = "devices.industry_components.liquid_handlers.gx271.gx271"
+class_name  = "GX271"
+group       = "LiquidHandler"
+name_kwarg  = "name"
+
 [devices.GX281]
 import_path = "devices.industry_components.liquid_handlers.gx281.gx281"
 class_name  = "GX281"
@@ -257,6 +263,13 @@ InstrumentType = "GX281"
 DeviceNumber   = "1"
 Name           = "GX-281"
 COMPort        = "COM2"
+OtherParams    = ""
+
+[[defaults]]
+InstrumentType = "GX271"
+DeviceNumber   = "1"
+Name           = "GX-271"
+COMPort        = ""
 OtherParams    = ""
 
 [[defaults]]
