@@ -67,6 +67,11 @@ class GeneralExperimentMethod:
             if isinstance(device, DH2000Controller):
                 device.control_file_path = self.dh2000_light_source_control_file
 
+        # Give UV detector instances the instrument control file path for convergence stop
+        for device in self.instrument_manager.instruments.values():
+            if isinstance(device, UVDetector):
+                device.instrument_control_file = self.instrument_control_file
+
         # Control flag for experiment execution
         self._continue_experiment = True
         

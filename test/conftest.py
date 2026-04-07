@@ -281,7 +281,7 @@ def tricontinental_device(tricontinental_port: str):
 
 
 # ---------------------------------------------------------------------------
-# Shared TC720 test helpers (used by unit and integration tests)
+# GeneralExperimentMethod fixtures (inject mock devices for integration tests)
 # ---------------------------------------------------------------------------
 
 def make_tc720_response(temp_celsius: float) -> bytes:

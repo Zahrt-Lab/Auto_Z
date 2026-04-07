@@ -64,6 +64,17 @@ class OceanOpticsExecutor:
             uv.stop_continuous()
             self.log_to_csv(component, action, params, "OK")
 
+        elif action == "load_blank_csv":
+            path = uv_params.get("path", "")
+            uv.load_blank_spectrum_from_csv(path)
+            self.log_to_csv(component, action, params, "OK")
+
+        elif action == "load_dark_csv":
+            path = uv_params.get("path", "")
+            apply = str(uv_params.get("apply_to_device", "True")).lower() == "true"
+            uv.load_dark_spectrum_from_csv(path, apply_to_device=apply)
+            self.log_to_csv(component, action, params, "OK")
+
         elif action == "set_params":
             if "integration_time" in uv_params:
                 uv.integration_time = int(uv_params["integration_time"])
@@ -75,6 +86,18 @@ class OceanOpticsExecutor:
                 uv.set_measurement_interval(uv_params["measurement_interval"])
             if "target_wavelengths" in uv_params:
                 uv.set_target_wavelength(uv_params["target_wavelengths"])
+            if "convergence_enabled" in uv_params:
+                uv.convergence_enabled = str(uv_params["convergence_enabled"]).lower() == "true"
+            if "spike_level" in uv_params:
+                uv.spike_level = float(uv_params["spike_level"])
+            if "convergence_threshold" in uv_params:
+                uv.convergence_threshold = float(uv_params["convergence_threshold"])
+            if "convergence_time" in uv_params:
+                uv.convergence_time = float(uv_params["convergence_time"])
+            if "max_outliers" in uv_params:
+                uv.max_outliers = int(uv_params["max_outliers"])
+            if "max_convergence_wait" in uv_params:
+                uv.max_convergence_wait = float(uv_params["max_convergence_wait"])
             self.log_to_csv(component, action, params, "OK")
 
         elif action == "status":

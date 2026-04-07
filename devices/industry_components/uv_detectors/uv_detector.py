@@ -138,11 +138,13 @@ class Ocean_Optics_UV_vis(UVDetector):
         self.convergence_threshold = 0.05
         self.convergence_time = 5 * 60  # 5 minutes in seconds
         self.max_outliers = 2  # Allow up to 2 outliers during convergence period
+        self.max_convergence_wait = None  # Optional timeout in seconds (None = no limit)
+        self.instrument_control_file = None  # Injected by GeneralExperimentMethod
         self._convergence_state = {
             'previous': None,
             'spike_seen': False,
             'converged_start': None,
-            'outliers': {},  # Dictionary: {outlier_number: timestamp}
+            'outliers': [],  # List of timestamps for outlier points
             'done': False
         }
 
@@ -546,6 +548,7 @@ class Ocean_Optics_UV_vis(UVDetector):
         self._start_time = datetime.now()
 
         def _worker():
+            convergence_start_time = time.time()
             try:
                 while not self._stop_flag.is_set():
                     self.recording_UV_VIS_Spectrum()
@@ -558,11 +561,15 @@ class Ocean_Optics_UV_vis(UVDetector):
                     t = (datetime.now() - self._start_time).total_seconds()
                     self._csv_writer.writerow([t] + A.tolist())
                     self._csv_file_path.flush()  # Ensure data is written for convergence check
-                    
-                    if self._stop_upon_convergence and self.check_convergence_from_csv():
-                        self._update_control_file()
-                        break
-                    
+
+                    if self._stop_upon_convergence:
+                        if self.max_convergence_wait and (time.time() - convergence_start_time) > self.max_convergence_wait:
+                            print("UV convergence timed out — stopping monitoring")
+                            break
+                        if self.check_convergence_from_csv():
+                            self._update_control_file()
+                            break
+
                     time.sleep(self.measurement_interval)
             except Exception:
                 print("Error in continuous monitoring worker")
@@ -619,17 +626,18 @@ class Ocean_Optics_UV_vis(UVDetector):
             )
     
     def _update_control_file(self):
-        """Update control.txt to change True to False when convergence is met."""
+        """Write False to instrument_control.txt to stop the experiment on convergence."""
         try:
-            # Go up one directory from output_dir to find control.txt
-            control_file = self.output_dir.parent / "control.txt"
+            if not self.instrument_control_file:
+                return
+            control_file = Path(self.instrument_control_file)
             if control_file.exists():
                 content = control_file.read_text().strip()
                 if content == "True":
                     control_file.write_text("False")
                     print(f"Updated {control_file}: True -> False (convergence met)")
         except Exception as e:
-            print(f"Warning: Could not update control.txt: {e}")
+            print(f"Warning: Could not update control file: {e}")
     
     def check_convergence_from_csv(self):
         """
@@ -679,16 +687,14 @@ class Ocean_Optics_UV_vis(UVDetector):
             # Clean up outliers outside the convergence time window, if it's already past the time window it's no longer relevant
             if self._convergence_state['converged_start'] is not None:
                 window_start = current_time - self.convergence_time
-                outliers_to_remove = [outlier for outlier, time_stamp in self._convergence_state['outliers'].items() if time_stamp < window_start]
-                for outlier in outliers_to_remove:
-                    del self._convergence_state['outliers'][outlier]
-            
+                self._convergence_state['outliers'] = [ts for ts in self._convergence_state['outliers'] if ts >= window_start]
+
             if max(diffs) < self.convergence_threshold:
                 # Good point - within threshold
                 if self._convergence_state['converged_start'] is None:
                     # Start convergence timer
                     self._convergence_state['converged_start'] = current_time
-                    self._convergence_state['outliers'] = {}  # Reset outliers when starting fresh
+                    self._convergence_state['outliers'] = []  # Reset outliers when starting fresh
                 else:
                     # Check elapsed time since convergence started
                     elapsed = current_time - self._convergence_state['converged_start']
@@ -703,16 +709,15 @@ class Ocean_Optics_UV_vis(UVDetector):
                 # Outlier detected - exceeds threshold
                 if self._convergence_state['converged_start'] is not None:
                     # Convergence is in progress - record this outlier with timestamp
-                    outlier_num = len(self._convergence_state['outliers']) + 1
-                    self._convergence_state['outliers'][outlier_num] = current_time
-                    
+                    self._convergence_state['outliers'].append(current_time)
+
                     # Check if too many outliers within the convergence window
                     num_outliers = len(self._convergence_state['outliers'])
                     if num_outliers > self.max_outliers:
                         # Too many outliers - reset convergence
                         print(f"Convergence reset: too many outliers ({num_outliers}) within {self.convergence_time}s window")
                         self._convergence_state['converged_start'] = None
-                        self._convergence_state['outliers'] = {}
+                        self._convergence_state['outliers'] = []
                     # else: allow the outlier, continue convergence timer
             
             self._convergence_state['previous'] = current_absorbance_values_each_wavelength

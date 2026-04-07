@@ -1,6 +1,6 @@
 # ------------------------------------------------------------------------------
 # Software: AUTO_ZAHRT
-# Copyright: (C) 2025 by Professor Andrew Zahrt
+# Copyright: (C) 2026 by Professor Andrew Zahrt
 # This software is the intellectual property of Professor Andrew Zahrt
 # Contributions by graduate students Scott Laverty are acknowledged.
 # All rights reserved.
@@ -78,34 +78,25 @@ class TestOceanOpticsInitialization:
             "previous": None,
             "spike_seen": False,
             "converged_start": None,
-            "outliers": {},
+            "outliers": [],
             "done": False,
         }
-
-    def test_invalid_integration_time_raises(self):
-        """integration_time <= 0 raises ValueError."""
-        with patch(_OCEAN_API_PATH, MagicMock()):
-            with pytest.raises(ValueError):
-                Ocean_Optics_UV_vis(output_dir=tempfile.mkdtemp(), integration_time=-1)
-
-    def test_invalid_num_scans_raises(self):
-        """num_scans <= 0 raises ValueError."""
-        with patch(_OCEAN_API_PATH, MagicMock()):
-            with pytest.raises(ValueError):
-                Ocean_Optics_UV_vis(output_dir=tempfile.mkdtemp(), num_scans=0)
-
-    def test_invalid_measurement_interval_raises(self):
-        """measurement_interval <= 0 raises ValueError."""
-        with patch(_OCEAN_API_PATH, MagicMock()):
-            with pytest.raises(ValueError):
-                Ocean_Optics_UV_vis(
-                    output_dir=tempfile.mkdtemp(), measurement_interval=0
-                )
 
     def test_custom_target_wavelengths(self):
         """target_wavelengths passed at init are stored as floats."""
         uv = _make_device(target_wavelengths=[250, 300, 350])
         assert uv.target_wavelengths == [250.0, 300.0, 350.0]
+
+    @pytest.mark.parametrize("kwarg, value", [
+        ("integration_time", -1),
+        ("num_scans", 0),
+        ("measurement_interval", 0),
+    ])
+    def test_invalid_parameter_raises(self, kwarg, value):
+        """Initialization with an invalid parameter raises ValueError."""
+        with patch(_OCEAN_API_PATH, MagicMock()):
+            with pytest.raises(ValueError):
+                Ocean_Optics_UV_vis(output_dir=tempfile.mkdtemp(), **{kwarg: value})
 
 
 # ---------------------------------------------------------------------------
@@ -120,11 +111,6 @@ class TestSetNumberOfScans:
         uv.set_number_of_scans(10)
         assert uv.num_scans == 10
 
-    def test_set_number_of_scans_updates(self):
-        uv = _make_device(num_scans=5)
-        uv.set_number_of_scans(20)
-        assert uv.num_scans == 20
-
 
 # ---------------------------------------------------------------------------
 # set_target_wavelength
@@ -137,11 +123,6 @@ class TestSetTargetWavelength:
         uv = _make_device()
         uv.set_target_wavelength([250.0, 300.0, 350.0])
         assert uv.target_wavelengths == [250.0, 300.0, 350.0]
-
-    def test_set_target_wavelength_single(self):
-        uv = _make_device()
-        uv.set_target_wavelength([409.0])
-        assert uv.target_wavelengths == [409.0]
 
 
 # ---------------------------------------------------------------------------
@@ -160,3 +141,41 @@ class TestSetMeasurementInterval:
         uv = _make_device()
         uv.set_measurement_interval(60)
         assert uv.measurement_interval == 60.0
+
+
+# ---------------------------------------------------------------------------
+# status()
+# ---------------------------------------------------------------------------
+
+
+class TestStatusParsing:
+
+    def test_status_keys(self):
+        """status() returns a dict with all expected keys."""
+        uv = _make_device()
+        result = uv.status()
+        assert set(result.keys()) == {
+            "initialized", "model", "serial",
+            "integration_time_us", "num_scans", "targets_nm", "interval_s",
+        }
+
+    def test_status_defaults(self):
+        """status() reflects unconnected default state."""
+        uv = _make_device()
+        result = uv.status()
+        assert result["initialized"] is False
+        assert result["model"] is None
+        assert result["serial"] is None
+        assert result["num_scans"] == 10
+        assert result["targets_nm"] == [409.0]
+
+    def test_status_reflects_updated_values(self):
+        """status() reflects values changed via setters."""
+        uv = _make_device()
+        uv.set_number_of_scans(25)
+        uv.set_target_wavelength([300.0, 400.0])
+        uv.set_measurement_interval(60.0)
+        result = uv.status()
+        assert result["num_scans"] == 25
+        assert result["targets_nm"] == [300.0, 400.0]
+        assert result["interval_s"] == 60.0
