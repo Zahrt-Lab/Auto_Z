@@ -17,7 +17,7 @@ from pathlib import Path
 from devices.industry_components.uv_detectors.uv_detector_base import UVDetector
 
 
-class OceanOpticsExecutor:
+class UvDetectorExecutor:
     """Executes CSV method actions for Ocean Optics UV-Vis spectrometer devices."""
 
     def __init__(self, log_callback):

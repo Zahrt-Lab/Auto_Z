@@ -23,7 +23,7 @@ from devices.industry_components.pumps.pumps import Pump
 from devices.industry_components.valves.valves import Valves
 from devices.industry_components.temperature_controller.temperature_controller import TemperatureController
 from devices.industry_components.syringe_pumps.syringe_pumps import SyringePump
-from devices.industry_components.uv_detectors.dh2000_base import DH2000Controller
+from devices.industry_components.uv_detectors.uv_detector_light_source_base import uv_detector_light_source_base
 from devices.industry_components.uv_detectors.uv_detector_base import UVDetector
 from devices.custom_components.photo_reactor.photo_reactor_base import PhotoReactor
 
@@ -64,7 +64,7 @@ class GeneralExperimentMethod:
 
         # Give DH2000 instances their control file path so they own the skip logic
         for device in self.instrument_manager.instruments.values():
-            if isinstance(device, DH2000Controller):
+            if isinstance(device, uv_detector_light_source_base):
                 device.control_file_path = self.dh2000_light_source_control_file
 
         # Give UV detector instances the instrument control file path for convergence stop
@@ -161,10 +161,10 @@ class GeneralExperimentMethod:
                     self.executor.execute_valve(row['Action'], row['Parameters'], row['Component'], device)
                 elif isinstance(device, TemperatureController):
                     self.executor.execute_temperature(row['Action'], row['Parameters'], row['Component'], device)
-                elif isinstance(device, DH2000Controller):
-                    self.executor.execute_dh2000(row['Action'], row['Parameters'], row['Component'], device)
+                elif isinstance(device, uv_detector_light_source_base):
+                    self.executor.execute_uv_detector_light_source(row['Action'], row['Parameters'], row['Component'], device)
                 elif isinstance(device, UVDetector):
-                    self.executor.execute_ocean_optics(row['Action'], row['Parameters'], row['Component'], device)
+                    self.executor.execute_uv_detector(row['Action'], row['Parameters'], row['Component'], device)
                 elif isinstance(device, PhotoReactor):
                     self.executor.execute_mirror_box(row['Action'], row['Parameters'], row['Component'], device)
                 else:

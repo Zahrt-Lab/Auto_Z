@@ -16,10 +16,9 @@ import serial
 import time
 import threading
 
-from devices.industry_components.uv_detectors.dh2000_base import DH2000Controller
+from devices.industry_components.uv_detectors.uv_detector_light_source_base import uv_detector_light_source_base
 
-
-class DH2000LightSource(DH2000Controller):
+class DH2000LightSource(uv_detector_light_source_base):
     """
     Wraps the Arduino DH-2000 TTL controller.
 

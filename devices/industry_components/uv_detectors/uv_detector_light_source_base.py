@@ -8,8 +8,8 @@
 from abc import ABC, abstractmethod
 
 
-class DH2000Controller(ABC):
-    """Abstract interface for DH-2000 broadband light source controllers."""
+class uv_detector_light_source_base(ABC):
+    """Abstract interface for uv detector light source controllers."""
 
     @abstractmethod
     def connect(self) -> None: ...
