@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "auto-zahrt"
+version = "3.0.0"
+description = "Automated laboratory instrumentation control system for chemical experiments"
+readme = { file = "README.md", content-type = "text/markdown" }
+requires-python = ">=3.9"
+authors = [
+  { name = "Professor Andrew Zahrt" }
+]
+keywords = ["automation", "chemistry", "laboratory", "instrumentation"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering :: Chemistry",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11"
+]
+dependencies = [
+  "pandas>=2.0.0",
+  "pyserial>=3.5",
+  "matplotlib>=3.5.0",
+  "numpy>=1.23.0",
+  "tomli>=2.0.0; python_version < '3.11'"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.0",
+  "pytest-cov>=4.0",
+  "ruff>=0.4.0"
+]
+
+[project.scripts]
+auto-zahrt-gui = "user_interface.methods_gui:main"
+
+[tool.setuptools]
+license-files = ["license.txt"]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = [
+  "devices*",
+  "methods*",
+  "user_interface*",
+  "utils*"
+]
+
+[tool.setuptools.package-data]
+methods = ["device_registry.toml"]
