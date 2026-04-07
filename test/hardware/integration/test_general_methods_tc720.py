@@ -72,7 +72,7 @@ def _run(gm) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
-# Safety smoke test — full run must complete without exception
+# Safety test — full run must complete without exception
 # ---------------------------------------------------------------------------
 
 
@@ -86,7 +86,7 @@ class TestSafetyHardware:
             "TC720_1,set_temperature,temp=25.0,,0.5\n"
             "TC720_1,get_temperature,,,0.5\n",
         )
-        _run(gm)  # must not raise
+        _run(gm)  # must not raise error
 
 
 # ---------------------------------------------------------------------------
