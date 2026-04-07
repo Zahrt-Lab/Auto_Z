@@ -6,6 +6,7 @@
 # All rights reserved.
 # ------------------------------------------------------------------------------
 from pathlib import Path
+from typing import Optional
 
 try:
     import tomllib
@@ -15,7 +16,7 @@ except ImportError:
 from devices.industry_components.liquid_handlers.wells import Well
 
 _OFFSETS_PATH = Path(__file__).parent / "bed_offsets.toml"
-_offsets_cache: dict | None = None
+_offsets_cache: Optional[dict] = None
 
 
 def _load_offsets() -> dict:
