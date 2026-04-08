@@ -144,7 +144,9 @@ class MirrorBox365nm(PhotoReactor):
 
     def safe_shutdown(self, success: bool) -> None:
         """Dim to 255 (off) on shutdown regardless of success/failure."""
-        self.set_dimmer(255)
+        # TODO: Future versions should provide an option to skip setting a safe dimmer value on shutdown
+        #self.set_dimmer(255)
+        self.close()
 
     def read_temperature_stream(self, timeout: float = 2.0) -> dict:
         """Read one temperature CSV line from the Arduino stream.
