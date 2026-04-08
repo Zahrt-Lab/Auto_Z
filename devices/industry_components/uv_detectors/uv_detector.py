@@ -244,10 +244,14 @@ class Ocean_Optics_UV_vis(UVDetector):
     def set_target_wavelength(self, target_wavelengths):
         #This input is a list of target wavelengths that we wish to record to track the progress of the reaction
         try:
-            self.target_wavelengths = target_wavelengths
+            if isinstance(target_wavelengths, str):
+                target_wavelengths_normalized = target_wavelengths.replace(",", ";")
+                wls = [wl.strip() for wl in target_wavelengths_normalized.split(";") if wl.strip()]
+                self.target_wavelengths = [float(wl) for wl in wls]
+            # TODO : Should change this to a log message in the future
             print(f"Set target wavelengths to {self.target_wavelengths}")
         except:
-            print(f"Failed to set target wavelengths to {target_wavelengths}")
+            print(f"FAILED TO SET TARGET WAVELENGTHS TO {target_wavelengths}")
 
     #This sets how frequently things are being recorded on the device
     def set_measurement_interval(self, measurement_interval):

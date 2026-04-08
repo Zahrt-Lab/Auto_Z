@@ -124,6 +124,16 @@ class TestSetTargetWavelength:
         uv.set_target_wavelength([250.0, 300.0, 350.0])
         assert uv.target_wavelengths == [250.0, 300.0, 350.0]
 
+        def test_set_target_wavelength_from_semicolon_string_parses_values(self):
+            uv = _make_device()
+            uv.set_target_wavelength("409;506")
+            assert uv.target_wavelengths == [409.0, 506.0]
+
+        def test_set_target_wavelength_from_single_string_parses_value(self):
+            uv = _make_device()
+            uv.set_target_wavelength("409")
+            assert uv.target_wavelengths == [409.0]
+
 
 # ---------------------------------------------------------------------------
 # set_measurement_interval
