@@ -121,7 +121,7 @@ class TestSetTargetWavelength:
 
     def test_set_target_wavelength(self):
         uv = _make_device()
-        uv.set_target_wavelength([250.0, 300.0, 350.0])
+        uv.set_target_wavelength("250.0;300.0;350.0")
         assert uv.target_wavelengths == [250.0, 300.0, 350.0]
 
         def test_set_target_wavelength_from_semicolon_string_parses_values(self):
@@ -183,7 +183,7 @@ class TestStatusParsing:
         """status() reflects values changed via setters."""
         uv = _make_device()
         uv.set_number_of_scans(25)
-        uv.set_target_wavelength([300.0, 400.0])
+        uv.set_target_wavelength("300.0;400.0")
         uv.set_measurement_interval(60.0)
         result = uv.status()
         assert result["num_scans"] == 25
