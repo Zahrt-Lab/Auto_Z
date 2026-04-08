@@ -453,6 +453,7 @@ def check_status(ser, pump)-> str:
     full_command = f"/{pump_addr}{status_cmd}\r" 
     ser.write(full_command.encode())
     response = read_response(ser)
+    print(f"Status of pump {pump}: {response}")
     
     return response
 
