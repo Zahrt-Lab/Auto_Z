@@ -146,7 +146,7 @@ measurement_interval = 20.0
 # ── Custom Components ─────────────────────────────────────────────────────────
 
 [devices.MirrorBox365nm]
-import_path = "devices.custom_components.light_source.mirror_box_365nm.mirror_box_365nm"
+import_path = "devices.custom_components.photo_reactor.mirror_box_365nm.mirror_box_365nm"
 class_name  = "MirrorBox365nm"
 group       = "MirrorBox"
 port_kwarg  = "port"
@@ -340,4 +340,11 @@ InstrumentType = "Tricontinental_C24000"
 DeviceNumber   = "1"
 Name           = "Tricontinental"
 COMPort        = "COM5"
+OtherParams    = ""
+
+[[defaults]]
+InstrumentType = "MirrorBox365nm"
+DeviceNumber   = "1"
+Name           = "MirrorBox365nm"
+COMPort        = "COM18"
 OtherParams    = ""
