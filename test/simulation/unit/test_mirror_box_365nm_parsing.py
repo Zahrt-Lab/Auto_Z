@@ -12,6 +12,8 @@ from unittest.mock import patch, MagicMock
 from devices.custom_components.photo_reactor.mirror_box_365nm.mirror_box_365nm import MirrorBox365nm
 from conftest import (make_mirror_box_response, make_mirror_box_365nm_device)
 
+# TODO: This is too much code for a simple test, need to simplify this device code. 
+
 # ---------------------------------------------------------------------------
 # Communication Connect and Close
 # ---------------------------------------------------------------------------
