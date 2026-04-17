@@ -61,6 +61,12 @@ group       = "Pump"
 port_kwarg  = "port"
 name_kwarg  = "name"
 
+[devices.Tecan_pump]
+import_path = "devices.industry_components.pumps.tecan_pump.tecan_pump"
+class_name  = "Tecan_pump"
+group       = "Pump"
+port_kwarg  = "port"
+name_kwarg  = "name"
 
 # ── Syringe Pumps ─────────────────────────────────────────────────────────────
 
@@ -340,6 +346,13 @@ InstrumentType = "Tricontinental_C24000"
 DeviceNumber   = "1"
 Name           = "Tricontinental"
 COMPort        = "COM5"
+OtherParams    = ""
+
+[[defaults]]
+InstrumentType = "Tecan_pump"
+DeviceNumber   = "1"
+Name           = "Tecan_pump"
+COMPort        = "COM7"
 OtherParams    = ""
 
 [[defaults]]
