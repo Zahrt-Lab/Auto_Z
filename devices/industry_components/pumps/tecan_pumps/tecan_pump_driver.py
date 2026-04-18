@@ -6,9 +6,7 @@
 # All rights reserved.
 # ------------------------------------------------------------------------------
 
-from turtle import speed
-
-from utils.serial_DT_transporter import Serial_DT_Transporter as serial_DT
+from utils.serial_DT_transporter import SerialDTTransport as serial_DT
 
 class Tecan_driver():
 
@@ -26,7 +24,15 @@ class Tecan_driver():
     self.address_A  = 1
     self.address_B = 2
 
+  def decode_pump_address(self, pump: str) -> int:
 
+    if pump == "A":
+      return self.address_A
+    elif pump == "B":
+      return self.address_B
+    else:
+      raise ValueError("Invalid pump selection. Choose 'A' or 'B'.")
+    
   def connect(self) -> None:
 
     if self.is_connected:
@@ -43,39 +49,25 @@ class Tecan_driver():
     if self.is_connected:
       self.ser.disconnect()
       self.is_connected = False
-    self.ser = None
-
+    
   def initialize_pump(self, pump: str = "A", resolution: int = 0) -> None:
 
     if not self.is_connected:
       print("Serial connection not established. Cannot initialize pump.")
       return
     try:
-      if pump == "A":
-        addr = self.address_A
-      elif pump == "B":
-        addr = self.address_B
-      else:
-        print("Invalid pump selection. Choose 'A' or 'B'.")
-        return
+      addr = self.decode_pump_address(pump)
       self.ser.send_command(f"/{addr}N{resolution}ZR")
     except Exception as e:
       print(f"Error initializing pump: {e}")
 
-  #todo:implement run pump method
   def start_pump(self, speed: float, pump: str = "A",) -> None:
 
     if not self.is_connected:
       print("Serial connection not established. Cannot run pump.")
       return
     try:
-      if pump == "A":
-        addr = self.address_A
-      elif pump == "B":
-        addr = self.address_B
-      else:
-        print("Invalid pump selection. Choose 'A' or 'B'.")
-        return
+      addr = self.decode_pump_address(pump)
       command = f"/{addr}V{speed}IA3000gOA0IA3000GR"
       self.ser.send_command(command)
     except Exception as e:
@@ -87,18 +79,10 @@ class Tecan_driver():
       print("Serial connection not established. Cannot stop pump.")
       return
     try:
-      if pump == "A":
-        addr = self.address_A
-      elif pump == "B":
-        addr = self.address_B
-      else:
-        print("Invalid pump selection. Choose 'A' or 'B'.")
-        return
+      addr = self.decode_pump_address(pump)
       self.ser.send_command(f"/{addr}T")
     except Exception as e:
       print(f"Error stopping pump: {e}")
-
-  #todo: implement send command method
 
   def send_command(self, command: str) -> None:
 
@@ -117,16 +101,14 @@ class Tecan_driver():
       print("Serial connection not established. Cannot check initialization status.")
       return False
     try:
-      if pump == "A":
-        addr = self.address_A
-      elif pump == "B":
-        addr = self.address_B
-      else:
-        print("Invalid pump selection. Choose 'A' or 'B'.")
-        return False
+      addr = self.decode_pump_address(pump)
       self.ser.send_command(f"/{addr}Q")
       response = self.ser.read_response()
-      return response == "7"
+      decoded_response = self.ser.parse_dt_response(response)
+      status_char = decoded_response["status"]
+      error_code = ord(status_char) & 0x0F # Extract the error code from the status character
+      return error_code != 7 #According to the Tecan documentation, error code 7 indicates "Pump not initialized"
+    
     except Exception as e:
       print(f"Error checking initialization status: {e}")
       return False
