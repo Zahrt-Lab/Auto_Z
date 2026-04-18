@@ -9,11 +9,9 @@
 import serial
 import time
 
-class Serial_DT_Transporter():
+class SerialDTTransport():
 
-    '''This class serves as a low-level driver for the serial communication with the DT transporter.
-        It handles serial communication and direct control of the transporter hardware.
-    '''      
+    """Low-level serial transport for DT/Tecan communication."""     
 
     def __init__(self,port='COM16', baud_rate=9600, timeout=1):
 
@@ -21,11 +19,14 @@ class Serial_DT_Transporter():
         self.baud_rate = baud_rate
         self.timeout = timeout
         self.ser = None
-        self.is_connected = False
 
+    @property
+    def is_connected(self) -> bool:
+        return self.ser is not None and self.ser.is_open
+    
     def connect(self) -> None:
 
-        if self.ser is not None and self.ser.is_open:
+        if self.is_connected:
             print("Serial connection already established.")
             return
         try:
@@ -35,15 +36,14 @@ class Serial_DT_Transporter():
   
     def disconnect(self) -> None:
 
-        if self.ser is not None and self.ser.is_open:
+        if self.is_connected:
             self.ser.close()
             self.ser = None
 
     def send_command(self, command: str) -> None:
 
-      if self.ser is None or not self.ser.is_open:
-        print("Serial connection not established. Cannot send command.")
-        return
+      if not self.is_connected:
+        raise RuntimeError("Serial connection not established. Cannot send command.") 
       try:
         self.ser.write(command.encode())
       except serial.SerialException as e:
@@ -51,14 +51,52 @@ class Serial_DT_Transporter():
     
     def read_response(self) -> str:
 
-      if self.ser is None or not self.ser.is_open:
-        print("Serial connection not established. Cannot read response.")
-        return ""
-      try:
-        response = self.ser.readline().decode().strip()
-        return response
-      except serial.SerialException as e:
-        print(f"Error reading response: {e}")
-        return ""
+      if not self.is_connected:
+        raise RuntimeError("Serial connection not established.")
 
+      raw = self.ser.read_until(b"\x03")   # read through ETX
+      tail = self.ser.read(2)              # consume CR LF
+
+      if not raw:
+        raise TimeoutError("No response from pump.")
+
+      full_response = raw + tail
+      return full_response.decode("ascii", errors="replace")
+
+    def query(self, command: str) -> str:
+
+      self.send_command(command)
+      time.sleep(0.5)  # Small delay to allow device to process command
+      return self.read_response()
   
+    def parse_dt_response(response: str) -> dict:
+
+      """
+      Parse a DT protocol response string.
+
+      Expected format:
+        /0<status><data><ETX><CR><LF>
+
+      Returns only the important parts.
+      """
+      
+      if not response:
+        raise ValueError("Empty response (no data received).")
+
+      if response[0] != "/":
+        raise ValueError(f"Invalid start of response: {response!r}")
+
+      if len(response) < 3:
+        raise ValueError(f"Incomplete response (no status): {response!r}")
+
+      etx_index = response.find("\x03")
+      if etx_index == -1:
+        raise ValueError(f"Incomplete response (missing ETX): {response!r}")
+
+      status = response[2]  # always exists if valid
+      data = response[3:etx_index]
+
+      return {
+        "status": status,
+        "data": data,
+      }
