@@ -112,6 +112,17 @@ class Tecan_driver():
     except Exception as e:
       print(f"Error checking initialization status: {e}")
       return False
+    
+    def check_until_initialized(self, pump: str = "A", timeout: float = 60.0) -> bool:
+      """Check if the specified pump is initialized, with a timeout."""
+      start_time = time.time()
+      while time.time() - start_time < timeout:
+        if self.is_initialized(pump):
+          return True
+        print(f"Waiting for pump {pump} to initialize...")
+        time.sleep(5)  # Wait for 5 seconds before checking again
+      print(f"Timeout reached while waiting for pump {pump} to initialize.")
+      return False
   
   def is_running(self, pump: str = "A") -> bool:
     #todo: implement method to check if pumps are running
