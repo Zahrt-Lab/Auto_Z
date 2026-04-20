@@ -45,7 +45,12 @@ class SerialDTTransport():
       if not self.is_connected:
         raise RuntimeError("Serial connection not established. Cannot send command.") 
       try:
-        self.ser.write(command.encode())
+        self.ser.reset_input_buffer()  # Clear any existing data
+        self.ser.reset_output_buffer() # Clear any existing data
+        full_command = command + "\r"  # Append ETX, CR, LF
+        self.ser.write(full_command.encode())
+        self.ser.flush()  # Ensure command is sent immediately
+        time.sleep(0.1)  # Small delay to allow device to process command
       except serial.SerialException as e:
         print(f"Error sending command: {e}")
     
@@ -60,7 +65,7 @@ class SerialDTTransport():
       if not raw:
         raise TimeoutError("No response from pump.")
 
-      full_response = raw + tail
+      full_response = raw #+ tail
       return full_response.decode("ascii", errors="replace")
 
     def query(self, command: str) -> str:
@@ -69,7 +74,7 @@ class SerialDTTransport():
       time.sleep(0.5)  # Small delay to allow device to process command
       return self.read_response()
   
-    def parse_dt_response(response: str) -> dict:
+    def parse_dt_response(self, response: str) -> dict:
 
       """
       Parse a DT protocol response string.
