@@ -20,7 +20,6 @@ class Tecan_pump(Pump):
   the pump hardware.'''
 
   def __init__(self, port='COM16', baud_rate=9600, timeout=1):
-    #todo: initialize Tecan_driver with the provided connection parameters
     try:
       self.driver = driver(port=port, baud_rate=baud_rate, timeout=timeout)
     except Exception as e:
@@ -52,18 +51,14 @@ class Tecan_pump(Pump):
     print("Aspirate command is not supported by Tecan pump.")
     pass
 
-  def dispense(self, flow_rate_ul_min: float, volume_ul: float) -> None:
+  def dispense(self, volume_ul: float) -> None:
     #todo: implement dispense logic using Tecan_driver
     #The dispense command in the Tecan Pump is the continuous flow command
       time_sec = self._calculate_time_for_volume(volume_ul)
-      speed = self._calculate_speed_for_flow_rate()
-      self.driver.run_continuous_flow(resolution=2,
-                                      initial_speed=speed,
-                                      aspirate_speed=None, 
-                                      dispense_speed=speed, 
-                                      initial_position=0, 
-                                      final_position=24000, 
-                                      j_value=1000) #I am not sure if this pump uses the small j value
+      speed = int (self._calculate_speed_for_flow_rate())
+      print(f"Time (s): {time_sec}")
+      print(f"Speed: {speed}")
+      self.driver.run_continuous_flow(dispense_speed=speed)
 
       time.sleep(time_sec)  # Wait for the calculated time
       self.stop()  # Stop the pump after dispensing the desired volume
@@ -75,10 +70,11 @@ class Tecan_pump(Pump):
   
   def _calculate_speed_for_flow_rate(self) -> float:
     """Helper method to calculate the pump speed setting for a given flow rate."""
-    # Considering the resolution = 2, the relationship of steps (up to 24000) and pulses (speed) is approximate
-    # 3.6 steps/pulse. The relationship of steps to uL depends on the syringe and the calibration.
-    # Considering the 1 mL syringe, 24000 steps corresponds to 1000 uL, so 1 step corresponds to 0.04167 uL. Therefore, 1 pulse (at resolution 2) corresponds to 0.15 uL.
-    uL_per_pulse = 0.15
+    #For the tecan pump, the speed is independent of the resolution.
+    # Considering the resolution = 0, the relationship of steps (up to 3000) and pulses (speed) is approximate
+    # 0.45 steps/pulse. The relationship of steps to uL depends on the syringe and the calibration.
+    # Considering the 500 uL syringe, 3000 steps corresponds to 500 uL, so 1 step corresponds to 0.1667 uL. Therefore, 1 pulse (at resolution 0) corresponds to 0.075 uL.
+    uL_per_pulse = 0.075
     pulse_per_uL = 1 / uL_per_pulse
     #if flow rate is uL/min, then speed in pulses per minute is flow_rate_ul_min * pulse_per_uL
     pulses_per_minute = self.flow_rate_ul_min * pulse_per_uL
@@ -90,8 +86,8 @@ class Tecan_pump(Pump):
     self.flow_rate_ul_min = flow_rate_ul_min
 
   def stop(self) -> None:
-    self.driver.stop(pump="A")
-    self.driver.stop(pump="B")
+    self.driver.stop_pump(pump="A")
+    self.driver.stop_pump(pump="B")
 
   def status(self) -> str:
     #todo: implement status logic using Tecan_driver
