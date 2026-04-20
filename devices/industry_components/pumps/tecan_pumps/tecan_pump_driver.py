@@ -7,6 +7,7 @@
 # ------------------------------------------------------------------------------
 
 from utils.serial_DT_transporter import SerialDTTransport as serial_DT
+import time
 
 class Tecan_driver():
 
@@ -94,66 +95,94 @@ class Tecan_driver():
     except Exception as e:
       print(f"Error sending command: {e}")
   
-  def is_initialized(self, pump: str = "A") -> bool:
+  def read_response(self) -> str:
 
+    if not self.is_connected:
+      print("Serial connection not established. Cannot read response.")
+      return ""
+    try:
+      return self.ser.read_response()
+    except Exception as e:
+      print(f"Error reading response: {e}")
+      return ""
+  
+  def query(self, command: str) -> str:
+
+    if not self.is_connected:
+      print("Serial connection not established. Cannot query pump.")
+      return ""
+    try:
+      return self.ser.query(command)
+    except Exception as e:
+      print(f"Error querying pump: {e}")
+      return ""
+  
+  def is_initialized(self, pump: str = "A") -> bool:
+   
     #Require some testing with actual hardware
     if not self.is_connected:
       print("Serial connection not established. Cannot check initialization status.")
       return False
-    try:
-      addr = self.decode_pump_address(pump)
-      self.ser.send_command(f"/{addr}Q")
-      response = self.ser.read_response()
-      decoded_response = self.ser.parse_dt_response(response)
-      status_char = decoded_response["status"]
-      error_code = ord(status_char) & 0x0F # Extract the error code from the status character
-      return error_code != 7 #According to the Tecan documentation, error code 7 indicates "Pump not initialized"
+    is_initialized = False
+    for i in range(2): # Try up to 2 times to check initialization status
+      try:
+        addr = self.decode_pump_address(pump)
+        self.ser.send_command(f"/{addr}S14D1R") # For some reason, the command must be sent twice
+        time.sleep(0.1) # Small delay to allow device to process command
+        response = self.ser.read_response()
+        decoded_response = self.ser.parse_dt_response(response)
+        status_char = decoded_response["status"]
+        error_code = ord(status_char) & 0x0F # Extract the error code from the status character
+        #return status_char, error_code
+        if error_code != 7 and status_char != "O":
+           #According to the Tecan documentation, error code 7 indicates "Pump not initialized"
+           is_initialized = True
+           
     
-    except Exception as e:
-      print(f"Error checking initialization status: {e}")
-      return False
+      except Exception as e:
+        print(f"Error checking initialization status: {e}")
+        return False
+    return is_initialized
     
-    def check_until_initialized(self, pump: str = "A", timeout: float = 60.0) -> bool:
-      """Check if the specified pump is initialized, with a timeout."""
-      start_time = time.time()
-      while time.time() - start_time < timeout:
-        if self.is_initialized(pump):
-          return True
-        print(f"Waiting for pump {pump} to initialize...")
-        time.sleep(5)  # Wait for 5 seconds before checking again
-      print(f"Timeout reached while waiting for pump {pump} to initialize.")
-      return False
+  def check_until_initialized(self, pump: str = "A", timeout: float = 60.0) -> None:
+    """Check if the specified pump is initialized, with a timeout."""
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+      if self.is_initialized(pump):
+        print(f"Pump {pump} is initialized? {self.is_initialized(pump)}.")
+        return True
+      print(f"Waiting for pump {pump} to initialize...")
+      time.sleep(5)  # Wait for 5 seconds before checking again
+    print(f"Timeout reached while waiting for pump {pump} to initialize.")
   
   def is_running(self, pump: str = "A") -> bool:
     #todo: implement method to check if pumps are running
     pass
 
   def run_continuous_flow(self,
-                          resolution: int = 0,
-                          initial_speed: float = 26000,
+                          resolution: int = 1,
                           aspirate_speed: float = None,
-                          dispense_speed: float = 1000,
+                          dispense_speed: float = 3000,
                           initial_position: int = 0,
-                          final_position: int = 3000,
-                          j_value: int = 1000) -> None:
+                          final_position: int = 24000) -> None:
     if not self.is_connected:
       print("Serial connection not established. Cannot run continuous flow.")
       return
     try:
-      command_A = self.compose_command_continuous_flow_A(resolution=resolution, initial_speed=initial_speed, aspirate_speed=aspirate_speed, dispense_speed=dispense_speed, initial_position=initial_position, final_position=final_position, j_value=j_value)
-      command_B = self.compose_command_continuous_flow_B(resolution=resolution, initial_speed=initial_speed, aspirate_speed=aspirate_speed, dispense_speed=dispense_speed, initial_position=final_position, final_position=final_position, j_value=j_value)
+      command_A = self.compose_command_continuous_flow_A(resolution=resolution, aspirate_speed=aspirate_speed, dispense_speed=dispense_speed, initial_position=initial_position, final_position=final_position)
+      command_B = self.compose_command_continuous_flow_B(resolution=resolution, aspirate_speed=aspirate_speed, dispense_speed=dispense_speed, initial_position=initial_position, final_position=final_position)
       self.ser.send_command(command_A)
+      time.sleep(0.1) # Small delay to allow device to process command
       self.ser.send_command(command_B)
     except Exception as e:
       print(f"Error running continuous flow: {e}")
 
-  def compose_command_continuous_flow_A(resolution = 2,
-                                      initial_speed = 26000,
-                                      aspirate_speed = None,
-                                        dispense_speed = 1000,
+  def compose_command_continuous_flow_A(self,
+                                        resolution = 2,
+                                        aspirate_speed = None,
+                                        dispense_speed = 3000,
                                         initial_position = 0,
-                                        final_position = 192000,
-                                        j_value = 1000) -> str:
+                                        final_position = 24000) -> str:
     """Compose a command string for continuous flow for pump A at the specified rate.
     Arguments:
         rate_counts_s : int
@@ -168,33 +197,31 @@ class Tecan_driver():
     if aspirate_speed < dispense_speed * 2:
         raise ValueError("Aspirate speed must be at least twice the dispense speed.")   
     
-    command = f"N{resolution}J7V{initial_speed}IA{final_position}OV{dispense_speed}j{j_value}0A{initial_position}IV{aspirate_speed}A{final_position}gJ7H0OV{dispense_speed}j{j_value}0A{initial_position}IV{aspirate_speed}A{final_position}GR"
+    command = f"/1N{resolution}J7V{aspirate_speed}IA{final_position}V{dispense_speed}OA{initial_position}J0V{aspirate_speed}IA{final_position}gH0J7V{dispense_speed}OA{initial_position}J0V{aspirate_speed}IA{final_position}GR"
     
     return command
 
-def compose_command_continuous_flow_B(resolution = 2,
-                                      initial_speed = 26000,
-                                      aspirate_speed = None,
-                                      dispense_speed = 1000, 
-                                      initial_position = 0, 
-                                      final_position = 192000, 
-                                      j_value = 1000) -> str:
-    """Compose a command string for continuous flow for pump B at the specified rate.
+  def compose_command_continuous_flow_B(self, resolution = 2,
+                                        aspirate_speed = None,
+                                        dispense_speed = 3000, 
+                                        initial_position = 0, 
+                                        final_position = 24000) -> str:
+      """Compose a command string for continuous flow for pump B at the specified rate.
     
-    Arguments:
-        rate_counts_s : int
-            The flow rate in counts per second.
-    Returns:
-        str
-            The composed command string for continuous flow.
-    """
-    if aspirate_speed is None:
+      Arguments:
+          rate_counts_s : int
+              The flow rate in counts per second.
+      Returns:
+          str
+              The composed command string for continuous flow.
+      """
+      if aspirate_speed is None:
         aspirate_speed = dispense_speed * 2
 
-    if aspirate_speed < dispense_speed * 2:
+      if aspirate_speed < dispense_speed * 2:
         raise ValueError("Aspirate speed must be at least twice the dispense speed.")
     
-    command = f"N{resolution}J7V{initial_speed}IA{final_position}gJ7H0OV{dispense_speed}j{j_value}0A{initial_position}IV{aspirate_speed}A{final_position}GR"
+      command = f"/2N{resolution}J7V{aspirate_speed}IA{final_position}gH0J7V{dispense_speed}OA{initial_position}J0V{aspirate_speed}IA{final_position}GR"
     
-    return command
+      return command
   
