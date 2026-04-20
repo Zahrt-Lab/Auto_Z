@@ -161,8 +161,8 @@ class Tecan_driver():
 
   def run_continuous_flow(self,
                           resolution: int = 1,
-                          aspirate_speed: float = None,
-                          dispense_speed: float = 3000,
+                          aspirate_speed: int = None,
+                          dispense_speed: int = 3000,
                           initial_position: int = 0,
                           final_position: int = 24000) -> None:
     if not self.is_connected:
@@ -225,3 +225,6 @@ class Tecan_driver():
     
       return command
   
+  #todo: implement method to detect if valve is in output position. This will be used to determine when start counting the volume ispensed in the continous flow
+  def is_valve_in_output_position(self, pump: str = "A") -> bool:
+    pass
