@@ -118,5 +118,31 @@ class Tecan_pump(Pump):
     self.stop()  # Ensure the pump is stopped before closing the connection
     self.driver.disconnect()
 
+  def calibrate(self, speed: float = 1000, time_sec: float = 60) -> None:
+    '''Method to calibrate the pump. It takes volume, speed and time as input
+    the experimentalist should runt the calibration method and measure the amount of water
+    dispensed by the pump at different speeds. This will allow the experimentalist to create 
+    a relationship between speed and uL/min
+    '''
+    self.driver.run_continuous_flow(dispense_speed=speed)
+
+    while not self.driver.is_valve_in_output_position(pump="A"):
+      print("Waiting for pump A valve to be in output position...")
+      time.sleep(0.5)  # Wait for 0.5 seconds before checking again
+    start_time = time.monotonic()
+    while True:
+      elapsed_time = time.monotonic() - start_time
+      print(f"Elapsed Time: {elapsed_time:.2f} seconds / {time_sec:.2f} seconds")
+
+      remaining_time = time_sec - elapsed_time
+      if remaining_time <= 0:
+        break
+      time.sleep(min(10, remaining_time))
+
+    self.driver.stop_pump(pump="A")
+    self.driver.stop_pump(pump="B")
+
+    print(f"Calibration complete. Speed: {speed} pulses/s, Time: {time_sec} seconds")
+    print(f"Measure the actual volume dispensed and use this information to create a calibration curve relating speed to flow rate.")
 
 
