@@ -19,7 +19,8 @@ class Tecan_pump(Pump):
   required methods. It uses the Tecan_driver to communicate with 
   the pump hardware.'''
 
-  def __init__(self, port='COM16', baud_rate=9600, timeout=1):
+  def __init__(self, port='COM16', baud_rate=9600, timeout=1, name="Tecan_pump_1"):
+    self.name = name
     try:
       self.driver = driver(port=port, baud_rate=baud_rate, timeout=timeout)
     except Exception as e:
