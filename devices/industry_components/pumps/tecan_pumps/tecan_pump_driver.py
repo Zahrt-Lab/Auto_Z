@@ -227,4 +227,19 @@ class Tecan_driver():
   
   #todo: implement method to detect if valve is in output position. This will be used to determine when start counting the volume ispensed in the continous flow
   def is_valve_in_output_position(self, pump: str = "A") -> bool:
-    pass
+    # the command ?6 returs the valve position. I believe it is i for input and o for output.
+    # Check if is connected 
+    if not self.is_connected:
+      print("Serial connection not established. Cannot check valve position.")
+      return False
+    try:
+      addr = self.decode_pump_address(pump)
+      self.ser.send_command(f"/{addr}?6")
+      time.sleep(0.1) # Small delay to allow device to process command
+      response = self.ser.read_response()
+      decoded_response = self.ser.parse_dt_response(response)
+      valve_position = decoded_response["data"] # Assuming the valve position is in the "data" field of the response
+      return valve_position == "o" # Return True if valve is in output position, False otherwise
+    except Exception as e:
+      print(f"Error checking valve position: {e}")
+      return False
