@@ -47,10 +47,8 @@ experiment.run_experiment()
 Define your instruments in a CSV file:
 
 ```csv
-Component,Type,Port,Additional_Params
-GX281,GX281,COM3,
-Pump1,VICI_M6,COM4,
-Valve1,VICI_Valve,COM5,position=1
+InstrumentType,DeviceNumber,Name,COMPort,OtherParams
+Tecan_pump,1,Pump,COM3,
 ```
 
 ## Method CSV
