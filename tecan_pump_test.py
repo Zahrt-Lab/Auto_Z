@@ -1,19 +1,34 @@
 from devices.industry_components.pumps.tecan_pumps.tecan_pump_driver import Tecan_driver 
 from utils.serial_DT_transporter import SerialDTTransport
 from devices.industry_components.pumps.tecan_pumps.tecan_pump import Tecan_pump
+from methods.methods import GeneralExperimentMethod
 import time
 
-pump = Tecan_pump(port='COM3', baud_rate=9600, timeout=1)
-pump.connect()
-pump.set_flow_rate(flow_rate_ul_min=2000)
-pump.dispense(volume_ul=1000)
-pump.close()
+
+experiment = GeneralExperimentMethod(input_file="tecan_test_method.csv",
+                                     instrument_config_file="instrument_config.csv")
+
+experiment.run_experiment()
+# pump = Tecan_pump(port='COM3', baud_rate=9600, timeout=1)
+# pump.connect()
+# pump.stop() # Stop the pump before starting the test
+# pump.set_flow_rate(flow_rate_ul_min=1000) # Set flow rate to 1000 uL/min
+# pump.dispense(volume_ul=1000) # Dispense 1000 uL of liquid
+# pump.close()
 
 
 
 
 # driver = Tecan_driver(port='COM3', baud_rate=9600, timeout=1)
 # driver.connect()
+
+# output_A = driver.is_valve_in_output_position(pump="A")
+# print(f"Is valve in output position (Pump A): {output_A}")
+
+# output_B = driver.is_valve_in_output_position(pump="B")
+# print(f"Is valve in output position (Pump B): {output_B}")
+
+# driver.disconnect()
 # #driver.initialize_pump(pump="A", resolution=0)
 # #driver.initialize_pump(pump="B", resolution=0)
 
