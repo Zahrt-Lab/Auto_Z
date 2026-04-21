@@ -60,7 +60,24 @@ class Tecan_pump(Pump):
       print(f"Speed: {speed}")
       self.driver.run_continuous_flow(dispense_speed=speed)
 
-      time.sleep(time_sec)  # Wait for the calculated time
+      #The time should only start after the pump has filled its barrel and moved the valve to the output position.
+      #This is why we need check untill the valve is in the output mode
+
+      while not self.driver.is_valve_in_output_position(pump="A"):
+        print("Waiting for pump A valve to be in output position...")
+        time.sleep(0.5)  # Wait for 0.5 seconds before checking again
+
+      start_time = time.monotonic()
+      while True:
+        elapsed_time = time.monotonic() - start_time
+        dispensed_volume = min(volume_ul, (elapsed_time / time_sec) * volume_ul) if time_sec > 0 else volume_ul
+        print(f"Dispensed: {dispensed_volume:.2f} uL / {volume_ul:.2f} uL")
+
+        remaining_time = time_sec - elapsed_time
+        if remaining_time <= 0:
+          break
+        time.sleep(min(1, remaining_time))
+
       self.stop()  # Stop the pump after dispensing the desired volume
   
   def _calculate_time_for_volume(self, volume_ul: float) -> float:
