@@ -161,6 +161,7 @@ class Tecan_driver():
 
   def run_continuous_flow(self,
                           resolution: int = 1,
+                          initial_speed: int = 4000,
                           aspirate_speed: int = None,
                           dispense_speed: int = 3000,
                           initial_position: int = 0,
@@ -169,8 +170,8 @@ class Tecan_driver():
       print("Serial connection not established. Cannot run continuous flow.")
       return
     try:
-      command_A = self.compose_command_continuous_flow_A(resolution=resolution, aspirate_speed=aspirate_speed, dispense_speed=dispense_speed, initial_position=initial_position, final_position=final_position)
-      command_B = self.compose_command_continuous_flow_B(resolution=resolution, aspirate_speed=aspirate_speed, dispense_speed=dispense_speed, initial_position=initial_position, final_position=final_position)
+      command_A = self.compose_command_continuous_flow_A(resolution=resolution, initial_speed=initial_speed, aspirate_speed=aspirate_speed, dispense_speed=dispense_speed, initial_position=initial_position, final_position=final_position)
+      command_B = self.compose_command_continuous_flow_B(resolution=resolution, initial_speed=initial_speed, aspirate_speed=aspirate_speed, dispense_speed=dispense_speed, initial_position=initial_position, final_position=final_position)
       self.ser.send_command(command_A)
       time.sleep(0.1) # Small delay to allow device to process command
       self.ser.send_command(command_B)
@@ -179,6 +180,7 @@ class Tecan_driver():
 
   def compose_command_continuous_flow_A(self,
                                         resolution = 2,
+                                        initial_speed = 4000,
                                         aspirate_speed = None,
                                         dispense_speed = 3000,
                                         initial_position = 0,
@@ -197,11 +199,12 @@ class Tecan_driver():
     if aspirate_speed < dispense_speed * 2:
         raise ValueError("Aspirate speed must be at least twice the dispense speed.")   
     
-    command = f"/1N{resolution}J7V{aspirate_speed}IA{final_position}V{dispense_speed}OA{initial_position}J0V{aspirate_speed}IA{final_position}gH0J7V{dispense_speed}OA{initial_position}J0V{aspirate_speed}IA{final_position}GR"
+    command = f"/1N{resolution}J7V{initial_speed}IA{final_position}V{dispense_speed}OA{initial_position}J0V{aspirate_speed}IA{final_position}gH0J7V{dispense_speed}OA{initial_position}J0V{aspirate_speed}IA{final_position}GR"
     
     return command
 
   def compose_command_continuous_flow_B(self, resolution = 2,
+                                        initial_speed = 4000,
                                         aspirate_speed = None,
                                         dispense_speed = 3000, 
                                         initial_position = 0, 
@@ -221,7 +224,7 @@ class Tecan_driver():
       if aspirate_speed < dispense_speed * 2:
         raise ValueError("Aspirate speed must be at least twice the dispense speed.")
     
-      command = f"/2N{resolution}J7V{aspirate_speed}IA{final_position}gH0J7V{dispense_speed}OA{initial_position}J0V{aspirate_speed}IA{final_position}GR"
+      command = f"/2N{resolution}J7V{initial_speed}IA{final_position}gH0J7V{dispense_speed}OA{initial_position}J0V{aspirate_speed}IA{final_position}GR"
     
       return command
   
