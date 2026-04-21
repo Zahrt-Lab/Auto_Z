@@ -21,6 +21,8 @@ class Tecan_pump(Pump):
 
   def __init__(self, port='COM16', baud_rate=9600, timeout=1, name="Tecan_pump_1"):
     self.name = name
+    self.flow_rate_ul_min = 0
+    
     try:
       self.driver = driver(port=port, baud_rate=baud_rate, timeout=timeout)
     except Exception as e:
@@ -52,34 +54,33 @@ class Tecan_pump(Pump):
     print("Aspirate command is not supported by Tecan pump.")
     pass
 
-  def dispense(self, volume_ul: float) -> None:
-    #todo: implement dispense logic using Tecan_driver
+  def dispense(self, flow_rate_ul_min: float, volume_ul: float) -> None:
+    
+    self.set_flow_rate(flow_rate_ul_min) # Set the flow rate for the pump
     #The dispense command in the Tecan Pump is the continuous flow command
-      time_sec = self._calculate_time_for_volume(volume_ul)
-      speed = int (self._calculate_speed_for_flow_rate())
-      print(f"Time (s): {time_sec}")
-      print(f"Speed: {speed}")
-      self.driver.run_continuous_flow(dispense_speed=speed)
+    time_sec = self._calculate_time_for_volume(volume_ul)
+    speed = int (self._calculate_speed_for_flow_rate())
+    print(f"Time (s): {time_sec}")
+    print(f"Speed: {speed}")
+    self.driver.run_continuous_flow(dispense_speed=speed)
+    #The time should only start after the pump has filled its barrel and moved the valve to the output position.
+    #This is why we need check untill the valve is in the output mode
+    while not self.driver.is_valve_in_output_position(pump="A"):
+      print("Waiting for pump A valve to be in output position...")
+      time.sleep(0.1)  # Wait for 0.1 seconds before checking again
 
-      #The time should only start after the pump has filled its barrel and moved the valve to the output position.
-      #This is why we need check untill the valve is in the output mode
+    start_time = time.monotonic()
+    while True:
+      elapsed_time = time.monotonic() - start_time
+      dispensed_volume = min(volume_ul, (elapsed_time / time_sec) * volume_ul) if time_sec > 0 else volume_ul
+      print(f"Dispensed: {dispensed_volume:.2f} uL / {volume_ul:.2f} uL")
 
-      while not self.driver.is_valve_in_output_position(pump="A"):
-        print("Waiting for pump A valve to be in output position...")
-        time.sleep(0.1)  # Wait for 0.1 seconds before checking again
+      remaining_time = time_sec - elapsed_time
+      if remaining_time <= 0:
+        break
+      time.sleep(min(10, remaining_time))
 
-      start_time = time.monotonic()
-      while True:
-        elapsed_time = time.monotonic() - start_time
-        dispensed_volume = min(volume_ul, (elapsed_time / time_sec) * volume_ul) if time_sec > 0 else volume_ul
-        print(f"Dispensed: {dispensed_volume:.2f} uL / {volume_ul:.2f} uL")
-
-        remaining_time = time_sec - elapsed_time
-        if remaining_time <= 0:
-          break
-        time.sleep(min(10, remaining_time))
-
-      self.stop()  # Stop the pump after dispensing the desired volume
+    self.stop()  # Stop the pump after dispensing the desired volume
   
   def _calculate_time_for_volume(self, volume_ul: float) -> float:
     """Helper method to calculate the time required to dispense a given volume at a specified flow rate."""
@@ -96,6 +97,8 @@ class Tecan_pump(Pump):
     self.flow_rate_ul_min = flow_rate_ul_min
 
   def stop(self) -> None:
+    if not self.driver.is_connected:
+      return
     self.driver.stop_pump(pump="A")
     self.driver.stop_pump(pump="B")
 
@@ -104,10 +107,14 @@ class Tecan_pump(Pump):
     return "Status command is not implemented yet."
 
   def close(self) -> None:
+    if not self.driver.is_connected:
+      return
     self.stop()  # Ensure the pump is stopped before closing the connection
     self.driver.disconnect()
 
   def safe_shutdown(self, success: bool) -> None:
+    if not self.driver.is_connected:
+      return
     self.stop()  # Ensure the pump is stopped before closing the connection
     self.driver.disconnect()
 
