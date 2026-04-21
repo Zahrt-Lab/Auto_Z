@@ -65,7 +65,7 @@ class Tecan_pump(Pump):
 
       while not self.driver.is_valve_in_output_position(pump="A"):
         print("Waiting for pump A valve to be in output position...")
-        time.sleep(0.5)  # Wait for 0.5 seconds before checking again
+        time.sleep(0.1)  # Wait for 0.1 seconds before checking again
 
       start_time = time.monotonic()
       while True:
@@ -86,17 +86,9 @@ class Tecan_pump(Pump):
     return time_min * 60  # convert to seconds
   
   def _calculate_speed_for_flow_rate(self) -> float:
-    """Helper method to calculate the pump speed setting for a given flow rate."""
-    #For the tecan pump, the speed is independent of the resolution.
-    # Considering the resolution = 0, the relationship of steps (up to 3000) and pulses (speed) is approximate
-    # 0.45 steps/pulse. The relationship of steps to uL depends on the syringe and the calibration.
-    # Considering the 500 uL syringe, 3000 steps corresponds to 500 uL, so 1 step corresponds to 0.1667 uL. Therefore, 1 pulse (at resolution 0) corresponds to 0.075 uL.
-    uL_per_pulse = 0.075
-    pulse_per_uL = 1 / uL_per_pulse
-    #if flow rate is uL/min, then speed in pulses per minute is flow_rate_ul_min * pulse_per_uL
-    pulses_per_minute = self.flow_rate_ul_min * pulse_per_uL
-    #But Tecan pump speed is in pulses per second, so we need to convert minutes to seconds
-    speed = pulses_per_minute / 60  # convert to pulses per second  
+    """Helper method to calculate the pump speed setting for a given flow rate.
+    Calibration was performed by Joao on 2026-04-21, and found that speed (pulses/sec) = flow_rate (uL/min) * 0.2055"""
+    speed = self.flow_rate_ul_min * 0.2055
     return speed 
 
   def set_flow_rate(self, flow_rate_ul_min: float) -> None:
@@ -128,7 +120,7 @@ class Tecan_pump(Pump):
 
     while not self.driver.is_valve_in_output_position(pump="A"):
       print("Waiting for pump A valve to be in output position...")
-      time.sleep(0.5)  # Wait for 0.5 seconds before checking again
+      time.sleep(0.1)  # Wait for 0.1 seconds before checking again
     start_time = time.monotonic()
     while True:
       elapsed_time = time.monotonic() - start_time
