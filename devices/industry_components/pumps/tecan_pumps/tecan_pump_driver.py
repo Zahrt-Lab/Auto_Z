@@ -239,7 +239,7 @@ class Tecan_driver():
       response = self.ser.read_response()
       decoded_response = self.ser.parse_dt_response(response)
       valve_position = decoded_response["data"] # Assuming the valve position is in the "data" field of the response
-      return valve_position == "o" # Return True if valve is in output position, False otherwise
+      return valve_position == str(3) # Return True if valve is in output position, False otherwise
     except Exception as e:
       print(f"Error checking valve position: {e}")
       return False

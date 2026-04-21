@@ -76,7 +76,7 @@ class Tecan_pump(Pump):
         remaining_time = time_sec - elapsed_time
         if remaining_time <= 0:
           break
-        time.sleep(min(1, remaining_time))
+        time.sleep(min(10, remaining_time))
 
       self.stop()  # Stop the pump after dispensing the desired volume
   
