@@ -3,10 +3,15 @@ from utils.serial_DT_transporter import SerialDTTransport
 from devices.industry_components.pumps.tecan_pumps.tecan_pump import Tecan_pump
 from methods.methods import GeneralExperimentMethod
 import time
+from pathlib import Path
+
+instrument_config_file = Path(r"C:\Users\zahrtlab\AutoZahrt\AutoZahrt_experiments\Instrument_config_files\instrument_config_all_pumps.csv")
+method_file = Path(r"C:\Users\zahrtlab\AutoZahrt\AutoZahrt_experiments\methods\flow_tecan_1.csv")
 
 
-experiment = GeneralExperimentMethod(input_file="tecan_test_method.csv",
-                                     instrument_config_file="instrument_config.csv")
+
+experiment = GeneralExperimentMethod(input_file=method_file,
+                                     instrument_config_file=instrument_config_file)
 
 experiment.run_experiment()
 # pump = Tecan_pump(port='COM3', baud_rate=9600, timeout=1)
