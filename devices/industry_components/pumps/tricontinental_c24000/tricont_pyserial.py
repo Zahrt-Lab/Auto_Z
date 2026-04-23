@@ -526,9 +526,6 @@ def is_valve_output(ser, pump="A"):
 
 def test_tricontinental_pump():
     """Test the Tricontinental C24000 pump control functions."""
-    # Connect to the pump
-    port = 'COM9'
-    
     # Test
     composed_cmd_a = compose_command_continuous_flow_A(resolution=0,
                                                         aspirate_speed=6000,
@@ -543,7 +540,7 @@ def test_tricontinental_pump():
                                                         final_count=24000,
                                                         j_value=1000)
     # Connect to the pump
-    port = 'COM9'
+    port = 'COM15'
     ser = connect(port=port)
 
     print("Checking initialization status...")
@@ -585,3 +582,8 @@ def test_tricontinental_pump():
     is_running(ser, pump="B")
     disconnect(ser)
 
+ser = connect(port='COM15', baudrate=9600)
+send_command(ser, pump="A", command="ZR")
+#send_command(ser, pump="B", command="ZR")
+is_initialized(ser, pump="B")
+is_valve_output(ser, pump="B")
