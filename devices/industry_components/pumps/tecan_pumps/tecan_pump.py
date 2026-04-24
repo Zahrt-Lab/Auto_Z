@@ -91,6 +91,9 @@ class Tecan_pump(Pump):
     """Helper method to calculate the pump speed setting for a given flow rate.
     Calibration was performed by Joao on 2026-04-21, and found that speed (pulses/sec) = flow_rate (uL/min) * 0.2055"""
     speed = self.flow_rate_ul_min * 0.2055
+    #todo: find another way to constrain the speed. The speed should not be smaller that 5
+    if speed < 5:
+      speed = 5
     return speed 
 
   def set_flow_rate(self, flow_rate_ul_min: float) -> None:
