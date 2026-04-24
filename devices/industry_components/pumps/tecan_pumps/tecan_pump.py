@@ -65,10 +65,10 @@ class Tecan_pump(Pump):
     self.driver.run_continuous_flow(dispense_speed=speed)
     #The time should only start after the pump has filled its barrel and moved the valve to the output position.
     #This is why we need check untill the valve is in the output mode
+    print("Waiting for pump A valve to be in output position...")
     while not self.driver.is_valve_in_output_position(pump="A"):
-      print("Waiting for pump A valve to be in output position...")
       time.sleep(0.1)  # Wait for 0.1 seconds before checking again
-
+    print("Pump A valve is in output position. Starting dispense timer.")
     start_time = time.monotonic()
     while True:
       elapsed_time = time.monotonic() - start_time
