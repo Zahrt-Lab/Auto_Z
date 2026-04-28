@@ -58,7 +58,7 @@ class Tecan_driver():
       return
     try:
       addr = self.decode_pump_address(pump)
-      self.ser.send_command(f"/{addr}N{resolution}ZJ7R")
+      self.ser.send_command(f"/{addr}N{resolution}ZR")
     except Exception as e:
       print(f"Error initializing pump: {e}")
 

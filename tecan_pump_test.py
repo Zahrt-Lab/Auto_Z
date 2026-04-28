@@ -10,10 +10,10 @@ method_file = Path(r"C:\Users\zahrtlab\AutoZahrt\AutoZahrt_experiments\methods\f
 
 
 
-experiment = GeneralExperimentMethod(input_file=method_file,
-                                     instrument_config_file=instrument_config_file)
+# experiment = GeneralExperimentMethod(input_file=method_file,
+#                                      instrument_config_file=instrument_config_file)
 
-experiment.run_experiment()
+# experiment.run_experiment()
 # pump = Tecan_pump(port='COM3', baud_rate=9600, timeout=1)
 # pump.connect()
 # pump.stop() # Stop the pump before starting the test
@@ -24,8 +24,17 @@ experiment.run_experiment()
 
 
 
-# driver = Tecan_driver(port='COM3', baud_rate=9600, timeout=1)
-# driver.connect()
+driver = Tecan_driver(port='COM15', baud_rate=9600, timeout=1)
+driver.connect()
+driver.initialize_pump(pump="A", resolution=0)
+print("Initializing pump A.")
+driver.initialize_pump(pump="B", resolution=0)
+print("Initializing pump B.")
+driver.send_command("/1J7R") # Initialize pump A with resolution 0
+print("Initializing pump A.")
+time.sleep(0.1) # Wait for pump A to initialize
+driver.send_command("/2J7R") # Initialize pump B with resolution 0
+print("Initializing pump B.")
 
 # output_A = driver.is_valve_in_output_position(pump="A")
 # print(f"Is valve in output position (Pump A): {output_A}")
