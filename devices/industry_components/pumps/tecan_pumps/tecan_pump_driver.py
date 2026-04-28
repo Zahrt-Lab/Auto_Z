@@ -246,3 +246,89 @@ class Tecan_driver():
     except Exception as e:
       print(f"Error checking valve position: {e}")
       return False
+    
+  def compose_aspirate_command(self,
+                                pump: str = "A",
+                                resolution: int = 2,
+                                speed: int = 4000,
+                                position: int = 24000) -> str:
+    """Compose a command string for aspirating with the specified pump at the specified speed and position.
+    Arguments:
+        pump : str
+            The pump to use ("A" or "B").
+        resolution : int
+            The resolution to use for the command.
+        speed : int
+            The speed to use for the command.
+        position : int
+            The position to use for the command.
+    Returns:
+        str
+            The composed command string for aspirating.
+    """
+
+    addr = self.decode_pump_address(pump)
+    command = f"/{addr}N{resolution}V{speed}IA{position}R"
+    return command
+
+  def run_aspirate(self,
+                        pump: str = "A",
+                        resolution: int = 2,
+                        aspirate_speed: int = 4000,
+                        final_position: int = 24000) -> None:
+      
+      '''This method sends the command to the pump to start aspirating.
+      '''
+      if not self.is_connected:
+          print("Serial connection not established. Cannot run aspirate.")
+          return  
+      try:
+        address = self.decode_pump_address(pump)
+        command = self.compose_aspirate_command(pump, resolution, aspirate_speed, final_position)
+        self.send_command(command)
+      except Exception as e:
+        print(f"Error running aspirate: {e}")
+
+  def compose_dispense_command(self,
+                                pump: str = "A",
+                                resolution: int = 2,
+                                speed: int = 3000,
+                                position: int = 24000) -> str:
+    """Compose a command string for dispensing with the specified pump at the specified speed and position.
+    Arguments:
+        pump : str
+            The pump to use ("A" or "B").
+        resolution : int
+
+        speed : int
+            The speed to use for the command.
+        position : int
+            The position to use for the command.
+    Returns:
+        str
+            The composed command string for dispensing.
+    """
+    addr = self.decode_pump_address(pump)
+    command = f"/{addr}N{resolution}V{speed}OA{position}R"
+    return command
+  
+  def run_dispense(self,
+                        pump: str = "A",
+                        resolution: int = 2,
+                        initial_speed: int = 4000,
+                        aspirate_speed: int = 4000,
+                        dispense_speed: int = 3000,
+                        initial_position: int = 0,
+                        final_position: int = 24000) -> None:
+      
+      '''This method sends the command to the pump to start dispensing.
+      '''
+      if not self.is_connected:
+          print("Serial connection not established. Cannot run dispense.")
+          return  
+      try:
+        address = self.decode_pump_address(pump)
+        command = self.compose_dispense_command(pump, resolution, dispense_speed, final_position)
+        self.send_command(command)
+      except Exception as e:
+        print(f"Error running dispense: {e}")
