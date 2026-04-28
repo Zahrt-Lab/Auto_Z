@@ -21,9 +21,21 @@ from devices.industry_components.pumps.pumps import Pump
 
 class Regio_ICC_Isametic_Pump(Pump):
 
+    def __init__(self,  port='COM16', baud_rate=9600, timeout=1):
+        self.port = port
+        self.baud_rate = baud_rate
+        self.timeout = timeout
+        self.ser = None
+        self._connected = False
+
+    # Needs to be 9600 Baud Rate,
+    # 8 data bits
+    # 1 stop bit
+    # No parity
     def connect(self) -> None:
-        # Implement connection logic to the Regio ICC Isametic Pump
-        pass
+        self.ser = serial.Serial(port=self.port, baudrate=self.baud_rate, timeout=self.timeout, bytesize=serial.EIGHTBITS, stopbits=serial.STOPBITS_ONE, parity=serial.PARITY_NONE)
+        self._connected = True
+        print("Successfully connected to Regio ICC Isametic Pump.")
 
     def aspirate(self, flow_rate_ul_min: float, volume_ul: float) -> None:
         # Implement aspirate logic for the Regio ICC Isametic Pump
@@ -46,9 +58,14 @@ class Regio_ICC_Isametic_Pump(Pump):
         pass
 
     def close(self) -> None:
-        # Implement logic to close the connection to the Regio ICC Isametic Pump
-        pass
+        self.ser.close()
+        self._connected = False
+        print("Closed connection to Regio ICC Isametic Pump.")
 
     def safe_shutdown(self, success: bool) -> None:
         # Implement any device-specific state cleanup before shutdown
         pass
+
+test = Regio_ICC_Isametic_Pump(port='COM23', baud_rate=9600, timeout=1)
+test.connect()
+test.close()
