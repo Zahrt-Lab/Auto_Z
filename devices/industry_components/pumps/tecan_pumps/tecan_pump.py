@@ -54,8 +54,8 @@ class Tecan_pump(Pump):
     print("Aspirate command is not supported by Tecan pump.")
     pass
 
+    '''
   def dispense(self, flow_rate_ul_min: float, volume_ul: float) -> None:
-    
     self.set_flow_rate(flow_rate_ul_min) # Set the flow rate for the pump
     #The dispense command in the Tecan Pump is the continuous flow command
     time_sec = self._calculate_time_for_volume(volume_ul)
@@ -81,7 +81,56 @@ class Tecan_pump(Pump):
       time.sleep(min(10, remaining_time))
 
     self.stop()  # Stop the pump after dispensing the desired volume
+  '''
   
+  def dispense(self, flow_rate_ul_min: float, volume_ul: float) -> None:
+
+    self.set_flow_rate(flow_rate_ul_min) # Set the flow rate for the pump
+    #The dispense command in the Tecan Pump is the continuous flow command
+    time_sec = self._calculate_time_for_volume(volume_ul)
+    dispense_speed = int (self._calculate_speed_for_flow_rate())
+    print(f"Time (s): {time_sec}")
+    print(f"Speed: {dispense_speed}")
+    aspirate_speed = dispense_speed * 2
+    initial_aspirate_speed = 4000 #This is faster so the pump can reach the position to begin quickly
+    self.driver.run_aspirate(pump="A", resolution=2, aspirate_speed=initial_aspirate_speed, final_position=24000) # Start aspirating at a high speed to quickly reach the position
+    time.sleep(0.1) # Wait for a short time to allow the pump to start aspirating
+    self.driver.run_aspirate(pump="B", resolution=2, aspirate_speed=initial_aspirate_speed, final_position=24000) # Aspirate pump B
+    time.sleep(0.1) # Wait for a short time to allow the pump to start aspirating
+    while not self.driver.is_valve_in_output_position(pump="A"):
+      time.sleep(0.1)  # Wait for 0.1 seconds before checking again
+    print("Pump A valve is in output position. Starting dispense timer.")    
+    #The continuous flow control starts now
+    time_now = time.monotonic()
+    mode = 1 # 1: Pump A dispensing and B aspirating; 2: Pump A aspirating and B dispensing
+    while time.monotonic() - time_now < time_sec:
+      if mode == 1:
+        self.driver.run_dispense(pump="A", resolution=2, dispense_speed=dispense_speed, final_position=24000) # Start dispensing from pump A
+        time.sleep(0.1) # Wait for a short time to allow the pump to start dispensing
+        self.driver.run_aspirate(pump="B", resolution=2, aspirate_speed=aspirate_speed, final_position=24000) # Start aspirating from pump B
+        time.sleep(0.1) # Wait for a short time to allow the pump to start aspirating
+        while self.driver.is_valve_in_output_position(pump="A") and time.monotonic() - time_now < time_sec:
+          time.sleep(0.1)  # Wait for 0.1 seconds before checking again
+        mode = 2
+      else:
+        self.driver.run_aspirate(pump="A", resolution=2, aspirate_speed=aspirate_speed, final_position=24000) # Start aspirating from pump A
+        time.sleep(0.1) # Wait for a short time to allow the pump to start aspirating
+        self.driver.run_dispense(pump="B", resolution=2, dispense_speed=dispense_speed, final_position=24000) # Start dispensing from pump B
+        time.sleep(0.1) # Wait for a short time to allow the pump to start dispensing
+        while self.driver.is_valve_in_output_position(pump="B") and time.monotonic() - time_now < time_sec:
+          time.sleep(0.1)  # Wait for 0.1 seconds before checking again
+        mode = 1
+      elapsed_time = time.monotonic() - time_now
+      dispensed_volume = min(volume_ul, (elapsed_time / time_sec) * volume_ul) if time_sec > 0 else volume_ul
+      print(f"Dispensed: {dispensed_volume:.2f} uL / {volume_ul:.2f} uL")
+
+      remaining_time = time_sec - elapsed_time
+      if remaining_time <= 0:
+        break
+      time.sleep(min(10, remaining_time))
+    
+    self.stop()  # Stop the pump after dispensing the desired volume
+    
   def _calculate_time_for_volume(self, volume_ul: float) -> float:
     """Helper method to calculate the time required to dispense a given volume at a specified flow rate."""
     time_min = volume_ul / self.flow_rate_ul_min  # time in minutes
