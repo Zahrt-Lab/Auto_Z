@@ -77,6 +77,15 @@ group       = "Pump"
 port_kwarg  = "port"
 name_kwarg  = "name"
 
+# ── PeristalticPump ─────────────────────────────────────────────────────────────
+
+[devices.regio_icc_isametic_pumps]
+import_path = "devices.industry_components.peristaltic_pumps.regio_icc_isametic_pumps.regio_icc_isametic_pumps"
+class_name  = "Regio_icc_Isametic_Pump"
+group       = "PeristalticPump"
+port_kwarg  = "port"
+name_kwarg  = "name"
+
 
 # ── Valves ────────────────────────────────────────────────────────────────────
 # Each valve size is a separate entry so valve_type can be hard-coded.
@@ -202,6 +211,9 @@ volume    = "Volume (µL)"
 
 [groups.Pump.params.select_syringe]
 volume_ml = "Syringe Volume (mL)"
+
+[groups.Pump.params.select_tubing]
+tubing_size_mm = "Tubing Size (mm)"
 
 
 [groups.Valve]
@@ -353,6 +365,13 @@ InstrumentType = "Tecan_pump"
 DeviceNumber   = "1"
 Name           = "Tecan_pump"
 COMPort        = "COM7"
+OtherParams    = ""
+
+[[defaults]]
+InstrumentType = "Regio_icc_Isametic_Pump"
+DeviceNumber   = "1"
+Name           = "Regio_icc_Isametic_Pump"
+COMPort        = "COM23"
 OtherParams    = ""
 
 [[defaults]]
