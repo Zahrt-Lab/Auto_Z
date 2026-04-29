@@ -32,6 +32,9 @@ class Regio_ICC_Isametic_Pump(Pump):
         self.timeout = timeout
         self.ser = None
         self._connected = False
+
+        self._channel = 1
+        self._tubing_size_mm = 0.76  # Default tubing size, can be set with set_tubing_size()
     
     # ----------------------------------
     # Helper Functions
@@ -49,32 +52,34 @@ class Regio_ICC_Isametic_Pump(Pump):
             print("Pump set to time mode")
         else:
             print("Failed to set pump to time mode")
-            print(f"Pump response: {self.ser.readline().decode().strip()}")
+            print(f"Pump response: {self.ser.readline().decode().strip()}")  
 
-    def _set_rpm(self, rpm: float) -> None:
-        "Sets the RMP of the pump"
-        self.rpm = rpm
-        self.ser.write(f"{self.rpm}\r\n".encode())  
-    
-    def _set_direction(self, direction: str) -> None:
+    def _set_tubing_size_id(self, tubing_size_mm: float, channel: int) -> None:
+        "Sets the tubing size ID for the pump, which is used to calculate flow rate based on rpm"
+        self._tubing_size_mm = tubing_size_mm
+        self.ser.write(f"{channel}+{tubing_size_mm:04d}\r\n".encode())
+        if "*" == self.ser.readline().decode().strip():
+            print(f"Tubing size set to {tubing_size_mm} mm")
+
+    def _set_direction(self, direction: str, channel: int) -> None:
         "Sets the direction of the pump, either 'aspirating' or 'dispensing'"
         self.direction = direction
         if self.direction == 'aspirating':
-            self.ser.write("1K\r\n".encode())
+            self.ser.write(f"{channel}K\r\n".encode())
             if "*" == self.ser.readline().decode().strip():
                 print("Direction set to aspirating")
             else: 
                 print("Failed to set direction to aspirating")
         elif self.direction == 'dispensing':
-            self.ser.write("1J\r\n".encode())
+            self.ser.write(f"{channel}J\r\n".encode())
             if "*" == self.ser.readline().decode().strip():
                 print("Direction set to dispensing")
             else:
                 print("Failed to set direction to dispensing")
     
-    def _get_direction(self) -> str:
+    def _get_direction(self, channel: int) -> str:
         "Gets the current direction of the pump"
-        self.ser.write("1xD\r\n".encode())
+        self.ser.write(f"{channel}xD\r\n".encode())
         direction_response = self.ser.readline().decode().strip()
         if direction_response == "K":
             print("Current direction: aspirating")
@@ -102,31 +107,31 @@ class Regio_ICC_Isametic_Pump(Pump):
         print(f"Flow rate response: {self._format_flow_rate_output(flow_rate_response)} uL/min")  
         return self._format_flow_rate_output(flow_rate_response)
 
-    def _set_run_time(self, flow_rate, volume) -> None:
+    def _set_run_time(self, flow_rate, volume, channel: int) -> None:
         """Implement logic to set run time for the Regio ICC Isametic Pump"""
         # Currently it's only set to channel 1, need to implement for all channels
         run_time_sec = self._calculate_pump_time(flow_rate, volume)
         run_time_sec = int(run_time_sec * 10)
         run_time_str = f"{run_time_sec:08d}"
-        self.ser.write(f"1xT{run_time_str}\r\n".encode())
+        self.ser.write(f"{channel}xT{run_time_str}\r\n".encode())
 
-    def _start(self):
+    def _start(self, channel: int):
         """Implement logic to start the pump"""
         # Currently it's only set to channel 1, need to implement for all channels
-        self.ser.write("1H\r\n".encode())  # Example command to start the pump
+        self.ser.write(f"{channel}H\r\n".encode())  # Example command to start the pump
         if "*" == self.ser.readline().decode().strip():
             print("Pump started successfully.")
-    
-    def _stop(self):
+
+    def _stop(self, channel: int):
         """Implement logic to stop the pump"""
         # Currently it's only set to channel 1, need to implement for all channels
-        self.ser.write("1I\r\n".encode())  # Example command to stop the pump
+        self.ser.write(f"{channel}I\r\n".encode())  # Example command to stop the pump
         if "*" == self.ser.readline().decode().strip():
             print("Pump stopped successfully.")
 
-    def _status(self) -> str:
+    def _status(self, channel: int) -> str:
         """Implement logic to return the current status of the pump"""
-        self.ser.write("1E\r\n".encode())  # Example command to query status
+        self.ser.write(f"{channel}E\r\n".encode())  # Example command to query status
         status_response = self.ser.readline().decode().strip()
         if status_response == "+":
             print("Pump is running.")
@@ -176,7 +181,7 @@ class Regio_ICC_Isametic_Pump(Pump):
 
     def aspirate(self, flow_rate_ul_min: float, volume_ul: float) -> None:
         """Implement aspirate logic for the Regio ICC Isametic Pump"""  
-        self._set_direction('aspirating')
+        self._set_direction('aspirating', self.get_channel())
         self._set_to_time_mode()
         self._set_flow_rate(flow_rate_ul_min)      
         self._set_run_time(flow_rate_ul_min, volume_ul)
@@ -185,7 +190,7 @@ class Regio_ICC_Isametic_Pump(Pump):
 
     def dispense(self, flow_rate_ul_min: float, volume_ul: float) -> None:
         """Implement dispense logic for the Regio ICC Isametic Pump"""
-        self._set_direction('dispensing')
+        self._set_direction('dispensing', self.get_channel())
         self._set_to_time_mode()
         self._set_flow_rate(flow_rate_ul_min)
         self._set_run_time(flow_rate_ul_min, volume_ul)
@@ -203,6 +208,30 @@ class Regio_ICC_Isametic_Pump(Pump):
     def status(self) -> str:
         """Implement logic to return the current status of the Regio ICC Isametic Pump"""
         return self._status()
+    
+    def set_channel(self, num_channels: int) -> None:
+        """
+        Sets what channel to use in the code
+        """
+        self._channel = num_channels
+    
+    def set_tubing_size(self, tubing_size_mm: float) -> None:
+        """
+        Sets the tubing size for the pump, which is used to calculate flow rate based on rpm
+        """
+        self._tubing_size_mm = tubing_size_mm
+    
+    def get_channel(self) -> int:
+        """
+        Gets the current channel number
+        """
+        return self._channel
+    
+    def get_tubing_size(self) -> float:
+        """
+        Gets the current tubing size in mm
+        """
+        return self._tubing_size_mm
 
     def close(self) -> None:
         self.ser.close()
@@ -227,7 +256,7 @@ if __name__ == "__main__":
         pump.connect()
  
         # Configure and start the pump manually so we can poll while it runs.
-        pump._set_direction('aspirating')
+        pump._set_direction('aspirating', pump.get_channel())
         pump._set_to_time_mode()
         pump._set_flow_rate(TARGET_FLOW_RATE_UL_MIN)
         pump._set_run_time(TARGET_FLOW_RATE_UL_MIN, TARGET_VOLUME_UL)
