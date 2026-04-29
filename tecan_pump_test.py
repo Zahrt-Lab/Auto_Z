@@ -24,17 +24,16 @@ method_file = Path(r"C:\Users\zahrtlab\AutoZahrt\AutoZahrt_experiments\methods\f
 
 
 
-driver = Tecan_driver(port='COM15', baud_rate=9600, timeout=1)
-driver.connect()
-driver.initialize_pump(pump="A", resolution=0)
-print("Initializing pump A.")
-driver.initialize_pump(pump="B", resolution=0)
-print("Initializing pump B.")
-driver.send_command("/1J7R") # Initialize pump A with resolution 0
-print("Initializing pump A.")
-time.sleep(0.1) # Wait for pump A to initialize
-driver.send_command("/2J7R") # Initialize pump B with resolution 0
-print("Initializing pump B.")
+pump = Tecan_pump(port='COM20', baud_rate=9600, timeout=1)
+pump.connect()
+pump.set_flow_rate(flow_rate_ul_min=1000) # Set flow rate to 100
+flow_rate = 1000
+volume_uL = 6000
+pump.dispense(flow_rate, volume_uL) # Dispense 1000 uL of liquid
+time.sleep(10) # Let the pump run for 10 seconds
+pump.stop() # Stop the pump
+pump.close() # Close the connection to the pump
+
 
 # output_A = driver.is_valve_in_output_position(pump="A")
 # print(f"Is valve in output position (Pump A): {output_A}")

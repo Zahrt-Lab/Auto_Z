@@ -268,12 +268,12 @@ class Tecan_driver():
     """
 
     addr = self.decode_pump_address(pump)
-    command = f"/{addr}N{resolution}V{speed}IA{position}R"
+    command = f"/{addr}N{resolution}V{speed}IA{position}OR"
     return command
 
   def run_aspirate(self,
                         pump: str = "A",
-                        resolution: int = 2,
+                        resolution: int = 1,
                         aspirate_speed: int = 4000,
                         final_position: int = 24000) -> None:
       
@@ -283,7 +283,6 @@ class Tecan_driver():
           print("Serial connection not established. Cannot run aspirate.")
           return  
       try:
-        address = self.decode_pump_address(pump)
         command = self.compose_aspirate_command(pump, resolution, aspirate_speed, final_position)
         self.send_command(command)
       except Exception as e:
@@ -291,9 +290,9 @@ class Tecan_driver():
 
   def compose_dispense_command(self,
                                 pump: str = "A",
-                                resolution: int = 2,
+                                resolution: int = 1,
                                 speed: int = 3000,
-                                position: int = 24000) -> str:
+                                position: int = 0) -> str:
     """Compose a command string for dispensing with the specified pump at the specified speed and position.
     Arguments:
         pump : str
@@ -309,17 +308,14 @@ class Tecan_driver():
             The composed command string for dispensing.
     """
     addr = self.decode_pump_address(pump)
-    command = f"/{addr}N{resolution}V{speed}OA{position}R"
+    command = f"/{addr}N{resolution}V{speed}OA{position}IR"
     return command
   
   def run_dispense(self,
                         pump: str = "A",
-                        resolution: int = 2,
-                        initial_speed: int = 4000,
-                        aspirate_speed: int = 4000,
+                        resolution: int = 1,
                         dispense_speed: int = 3000,
-                        initial_position: int = 0,
-                        final_position: int = 24000) -> None:
+                        final_position: int = 0) -> None:
       
       '''This method sends the command to the pump to start dispensing.
       '''
@@ -327,7 +323,6 @@ class Tecan_driver():
           print("Serial connection not established. Cannot run dispense.")
           return  
       try:
-        address = self.decode_pump_address(pump)
         command = self.compose_dispense_command(pump, resolution, dispense_speed, final_position)
         self.send_command(command)
       except Exception as e:
