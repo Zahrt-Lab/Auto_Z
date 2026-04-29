@@ -32,17 +32,25 @@ class PeristalticPump(Pump, abc.ABC):
         
     @abc.abstractmethod
     def set_channel(self, num_channels: int) -> None:
-        """Set the number of channels for the peristaltic pump."""
-    
+        """Set the active channel for the peristaltic pump."""
+
     @abc.abstractmethod
     def set_tubing_size(self, tubing_size_mm: float) -> None:
         """Set the tubing size (in mm) for the peristaltic pump."""
 
     @abc.abstractmethod
     def get_channel(self) -> int:
-        """Get the current number of channels configured for the peristaltic pump."""
-    
+        """Get the active channel number for the peristaltic pump."""
+
     @abc.abstractmethod
     def get_tubing_size(self) -> float:
         """Get the current tubing size (in mm) configured for the peristaltic pump."""
+
+    @abc.abstractmethod
+    def aspirate(self, flow_rate_ul_min: float, volume_ul: float, channel: int) -> None:
+        """Aspirate the given volume at the specified flow rate on the given channel."""
+
+    @abc.abstractmethod
+    def dispense(self, flow_rate_ul_min: float, volume_ul: float, channel: int) -> None:
+        """Dispense the given volume at the specified flow rate on the given channel."""
 

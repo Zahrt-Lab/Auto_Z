@@ -216,6 +216,26 @@ volume_ml = "Syringe Volume (mL)"
 tubing_size_mm = "Tubing Size (mm)"
 
 
+[groups.PeristalticPump]
+actions = ["aspirate", "dispense", "select_tubing", "set_channel"]
+
+[groups.PeristalticPump.params.aspirate]
+flow_rate    = "Flow rate (µL/min)"
+volume       = "Volume (µL)"
+num_channels = "Channel (1–4)"
+
+[groups.PeristalticPump.params.dispense]
+flow_rate    = "Flow rate (µL/min)"
+volume       = "Volume (µL)"
+num_channels = "Channel (1–4)"
+
+[groups.PeristalticPump.params.select_tubing]
+tubing_size_mm = "Tubing Size (mm)"
+
+[groups.PeristalticPump.params.set_channel]
+num_channels = "Channel (1–4)"
+
+
 [groups.Valve]
 actions = ["go_to_position", "move_home"]
 
