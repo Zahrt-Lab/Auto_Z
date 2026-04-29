@@ -46,14 +46,14 @@ class Regio_ICC_Isametic_Pump(PeristalticPump):
         firmware_version = self.ser.readline().decode().strip()
         print(firmware_version)
 
-    def _set_to_time_mode(self) -> None:
+    def _set_to_time_mode(self, channel: int) -> None:
         "Sets the pump to time mode"
-        self.ser.write("1N\r\n".encode())
+        self.ser.write(f"{channel}N\r\n".encode())
         if "*" == self.ser.readline().decode().strip():
             print("Pump set to time mode")
         else:
             print("Failed to set pump to time mode")
-            print(f"Pump response: {self.ser.readline().decode().strip()}")  
+            print(f"Pump response: {self.ser.readline().decode().strip()}")
 
     def _set_tubing_size_id(self, tubing_size_mm: float, channel: int) -> None:
         "Sets the tubing size ID for the pump, which is used to calculate flow rate based on rpm"
@@ -92,12 +92,11 @@ class Regio_ICC_Isametic_Pump(PeristalticPump):
             print(f"Failed to get direction, response: {direction_response}")
             return "unknown"
 
-    def _set_flow_rate(self, flow_rate_ul_min: float) -> None:
+    def _set_flow_rate(self, flow_rate_ul_min: float, channel: int) -> None:
         """Implement logic to set flow rate for the Regio ICC Isametic Pump"""
-        # TODO: Not sure what format the flow rate needs to be in for the pump commands
         flow_rate_ml_min = flow_rate_ul_min / 1000
-        formatteed_flow_rate = self._format_flow_rate_input(flow_rate_ml_min)
-        self.ser.write(f"1f{formatteed_flow_rate}\r\n".encode())
+        formatted_flow_rate = self._format_flow_rate_input(flow_rate_ml_min)
+        self.ser.write(f"{channel}f{formatted_flow_rate}\r\n".encode())
         echo = self.ser.readline().decode().strip()
         print(f"Flow rate set. Pump echo: {echo}")
 
@@ -155,7 +154,7 @@ class Regio_ICC_Isametic_Pump(PeristalticPump):
             return "0000E+0"
         
         exponent = math.floor(math.log10(abs(flow_rate_ml_min)))       
-        mantissa = round(flow_rate_ml_min / (10 ** (exponent - 3)))  
+        mantissa = int(round(flow_rate_ml_min / (10 ** (exponent - 3))))
 
         # The pump expects a format of mmmmEse, where mmmm is the mantissa and Ese is the exponent with a sign
         sign = "+" if exponent >= 0 else "-"
@@ -180,22 +179,22 @@ class Regio_ICC_Isametic_Pump(PeristalticPump):
         self._connected = True
         print("Successfully connected to Regio ICC Isametic Pump.")
 
-    def aspirate(self, flow_rate_ul_min: float, volume_ul: float) -> None:
-        """Implement aspirate logic for the Regio ICC Isametic Pump"""  
-        self._set_direction('aspirating', self.get_channel())
-        self._set_to_time_mode()
-        self._set_flow_rate(flow_rate_ul_min)      
-        self._set_run_time(flow_rate_ul_min, volume_ul)
-        self._start()
-        time.sleep(self._calculate_pump_time(flow_rate_ul_min, volume_ul))  
+    def aspirate(self, flow_rate_ul_min: float, volume_ul: float, channel: int) -> None:
+        """Implement aspirate logic for the Regio ICC Isametic Pump"""
+        self._set_direction('aspirating', channel)
+        self._set_to_time_mode(channel)
+        self._set_flow_rate(flow_rate_ul_min, channel)
+        self._set_run_time(flow_rate_ul_min, volume_ul, channel)
+        self._start(channel)
+        time.sleep(self._calculate_pump_time(flow_rate_ul_min, volume_ul))
 
-    def dispense(self, flow_rate_ul_min: float, volume_ul: float) -> None:
+    def dispense(self, flow_rate_ul_min: float, volume_ul: float, channel: int) -> None:
         """Implement dispense logic for the Regio ICC Isametic Pump"""
-        self._set_direction('dispensing', self.get_channel())
-        self._set_to_time_mode()
-        self._set_flow_rate(flow_rate_ul_min)
-        self._set_run_time(flow_rate_ul_min, volume_ul)
-        self._start()
+        self._set_direction('dispensing', channel)
+        self._set_to_time_mode(channel)
+        self._set_flow_rate(flow_rate_ul_min, channel)
+        self._set_run_time(flow_rate_ul_min, volume_ul, channel)
+        self._start(channel)
         time.sleep(self._calculate_pump_time(flow_rate_ul_min, volume_ul))
 
     def set_flow_rate(self, flow_rate_ul_min):
@@ -204,11 +203,11 @@ class Regio_ICC_Isametic_Pump(PeristalticPump):
 
     def stop(self) -> None:
         """Implement stop logic for the Regio ICC Isametic Pump"""
-        self._stop()
+        self._stop(self._channel)
 
     def status(self) -> str:
         """Implement logic to return the current status of the Regio ICC Isametic Pump"""
-        return self._status()
+        return self._status(self._channel)
     
     def set_number_of_channels(self, num_channels: int) -> None:
         """Set the number of channels for the peristaltic pump."""
