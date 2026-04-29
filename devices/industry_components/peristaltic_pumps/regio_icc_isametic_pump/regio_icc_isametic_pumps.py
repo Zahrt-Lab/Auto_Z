@@ -244,6 +244,7 @@ class Regio_ICC_Isametic_Pump(PeristalticPump):
         self.stop()  # Ensure the pump is stopped
         self.close()  # Close the connection
 
+'''
 if __name__ == "__main__":
     TARGET_FLOW_RATE_UL_MIN = 500.0
     TARGET_VOLUME_UL = 100.0
@@ -305,3 +306,4 @@ if __name__ == "__main__":
  
     finally:
         pump.safe_shutdown(success=success)
+'''

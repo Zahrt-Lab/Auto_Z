@@ -8,14 +8,14 @@
 # ------------------------------------------------------------------------------
 
 """
-Executor for pump actions (aspirate, dispense, select_syringe).
+Executor for pump actions (aspirate, dispense, select_syringe, select_tubing).
 Pump operations are asynchronous — use wait_for_pumps() to block until all finish.
 """
 
 import threading
 from devices.industry_components.pumps.pumps import Pump
 from devices.industry_components.syringe_pumps.syringe_pumps import SyringePump
-
+from devices.industry_components.peristaltic_pumps.peristaltic_pumps import PeristalticPump
 
 class PumpExecutor:
     """Executes CSV method actions for pump and syringe pump devices."""
@@ -44,9 +44,26 @@ class PumpExecutor:
             except Exception as e:
                 self.log_to_csv(component, action, params, f"Error selecting syringe: {e}")
             return
+        
+        if action == "select_tubing":
+            if not isinstance(pump, PeristalticPump):
+                self.log_to_csv(component, action, params,
+                                "Error: select_tubing is only available for PeristalticPump devices")
+                return
+            try:
+                tubing_size_mm = parse_params(params).get('tubing_size_mm')
+                pump.set_tubing_size(tubing_size_mm)
+                self.log_to_csv(component, action, params, f"Selected tubing size: {tubing_size_mm} mm")
+            except Exception as e:
+                self.log_to_csv(component, action, params, f"Error selecting tubing size: {e}")
+            return
 
         flow_rate = parse_params(params).get('flow_rate')
         volume = parse_params(params).get('volume')
+        if isinstance(pump, PeristalticPump) and action in ("aspirate", "dispense"):
+            num_channels = parse_params(params).get('num_channels')
+            if num_channels is not None:
+                pump.set_channel(num_channels)
 
         if action not in ("aspirate", "dispense"):
             self.log_to_csv(component, action, params,
@@ -63,10 +80,21 @@ class PumpExecutor:
         def _pump_job():
             try:
                 if action == "aspirate":
-                    pump.aspirate(abs(flow_rate), abs(volume))
+                    if isinstance(pump, PeristalticPump):
+                        pump.aspirate(abs(flow_rate), abs(volume), int(pump.get_channel()))
+                    else:
+                        pump.aspirate(abs(flow_rate), abs(volume))
                 else:
-                    pump.dispense(abs(flow_rate), abs(volume))
-                self.log_to_csv(component, action, params,
+                    if isinstance(pump, PeristalticPump):
+                        pump.dispense(abs(flow_rate), abs(volume), int(pump.get_channel()))
+                    else:
+                        pump.dispense(abs(flow_rate), abs(volume))
+                if isinstance(pump, PeristalticPump):
+                    self.log_to_csv(component, action, params,
+                                f"{action} {abs(volume)} µL @ {flow_rate} µL/min on channel {pump.get_channel()}",
+                                notes=f"≈{est_time:.1f} s")
+                else:
+                    self.log_to_csv(component, action, params,
                                 f"{action} {abs(volume)} µL @ {flow_rate} µL/min",
                                 notes=f"≈{est_time:.1f} s")
             except Exception as e:
