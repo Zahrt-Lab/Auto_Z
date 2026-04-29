@@ -21,7 +21,15 @@ class PeristalticPump(Pump, abc.ABC):
     Implementations must implement the Device lifecycle methods and set
     `self._connected = True` on successful `connect()`.
     """
-    
+
+    @abc.abstractmethod
+    def set_number_of_channels(self, num_channels: int) -> None:
+        """Set the number of channels for the peristaltic pump."""
+
+    @abc.abstractmethod
+    def get_number_of_channels(self) -> int:
+        """Get the current number of channels configured for the peristaltic pump."""
+        
     @abc.abstractmethod
     def set_channel(self, num_channels: int) -> None:
         """Set the number of channels for the peristaltic pump."""

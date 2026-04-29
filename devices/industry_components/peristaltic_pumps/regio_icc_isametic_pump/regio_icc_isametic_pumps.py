@@ -18,13 +18,13 @@ This class serves
 import time
 import serial
 import math
-from devices.industry_components.pumps.pumps import Pump
+from devices.industry_components.peristaltic_pumps.peristaltic_pumps import PeristalticPump
 
 # TODO: I think the best way to implement this is to make a new peristaltic pump class
 # this would inherit from the the pump class, I want this class to be able to set the the tubing size ID
 # which would then be used to calculate the flow rate based on the rpm
 
-class Regio_ICC_Isametic_Pump(Pump):
+class Regio_ICC_Isametic_Pump(PeristalticPump):
 
     def __init__(self,  port='COM16', baud_rate=9600, timeout=1):
         self.port = port
@@ -32,9 +32,10 @@ class Regio_ICC_Isametic_Pump(Pump):
         self.timeout = timeout
         self.ser = None
         self._connected = False
-
+        
+        self._number_of_channels = 4
         self._channel = 1
-        self._tubing_size_mm = 0.76  # Default tubing size, can be set with set_tubing_size()
+        self._tubing_size_mm = 0.76  
     
     # ----------------------------------
     # Helper Functions
@@ -209,28 +210,28 @@ class Regio_ICC_Isametic_Pump(Pump):
         """Implement logic to return the current status of the Regio ICC Isametic Pump"""
         return self._status()
     
+    def set_number_of_channels(self, num_channels: int) -> None:
+        """Set the number of channels for the peristaltic pump."""
+        self._number_of_channels = num_channels
+    
     def set_channel(self, num_channels: int) -> None:
-        """
-        Sets what channel to use in the code
-        """
+        """Sets what channel to use in the code"""
         self._channel = num_channels
     
     def set_tubing_size(self, tubing_size_mm: float) -> None:
-        """
-        Sets the tubing size for the pump, which is used to calculate flow rate based on rpm
-        """
+        """Sets the tubing size for the pump, which is used to calculate flow rate based on rpm"""
         self._tubing_size_mm = tubing_size_mm
+
+    def get_number_of_channels(self) -> int:
+        """Get the current number of channels configured for the peristaltic pump."""
+        return self._number_of_channels
     
     def get_channel(self) -> int:
-        """
-        Gets the current channel number
-        """
+        """Gets the current channel number"""
         return self._channel
     
     def get_tubing_size(self) -> float:
-        """
-        Gets the current tubing size in mm
-        """
+        """Gets the current tubing size in mm"""
         return self._tubing_size_mm
 
     def close(self) -> None:
