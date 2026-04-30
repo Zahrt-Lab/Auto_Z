@@ -140,6 +140,7 @@ class Ocean_Optics_UV_vis(UVDetector):
         self.max_outliers = 2  # Allow up to 2 outliers during convergence period
         self.max_convergence_wait = None  # Optional timeout in seconds (None = no limit)
         self.instrument_control_file = None  # Injected by GeneralExperimentMethod
+        self.convergence_stop_callback = None  # Injected by GeneralExperimentMethod
         self._convergence_state = {
             'previous': None,
             'spike_seen': False,
@@ -571,6 +572,8 @@ class Ocean_Optics_UV_vis(UVDetector):
                             print("UV convergence timed out — stopping monitoring")
                             break
                         if self.check_convergence_from_csv():
+                            if self.convergence_stop_callback:
+                                self.convergence_stop_callback()
                             self._update_control_file()
                             break
 

@@ -67,13 +67,15 @@ class GeneralExperimentMethod:
             if isinstance(device, uv_detector_light_source_base):
                 device.control_file_path = self.dh2000_light_source_control_file
 
-        # Give UV detector instances the instrument control file path for convergence stop
+        # Give UV detector instances the instrument control file path and convergence callback
         for device in self.instrument_manager.instruments.values():
             if isinstance(device, UVDetector):
                 device.instrument_control_file = self.instrument_control_file
+                device.convergence_stop_callback = self._set_convergence_triggered
 
         # Control flag for experiment execution
         self._continue_experiment = True
+        self._convergence_triggered = False
         
         # Initialize device executor
         self.executor = DeviceExecutor(
@@ -104,7 +106,12 @@ class GeneralExperimentMethod:
     def _set_continue_flag(self, value: bool):
         """Set the continue experiment flag."""
         self._continue_experiment = value
-    
+
+    def _set_convergence_triggered(self):
+        """Called by UV detector on convergence — triggers a clean stop."""
+        self._convergence_triggered = True
+        self._continue_experiment = False
+
     def _check_continue_flag(self, path: str) -> bool:
         """Check control flag. Delegated to ExperimentLogger."""
         return ExperimentLogger.check_continue_flag(path)
@@ -129,10 +136,16 @@ class GeneralExperimentMethod:
 
                 # Check if experiment should continue
                 if not self._continue_experiment:
-                    print("INITIALIZING EMERGENCY STOP")
-                    self.log_to_csv("CONTROL", "emergency_stop", "", 
-                                   "Experiment halted - emergency stop triggered")
-                    self.emergency_stop()
+                    if self._convergence_triggered:
+                        print("UV CONVERGENCE REACHED — stopping experiment cleanly")
+                        self.log_to_csv("CONTROL", "convergence_stop", "",
+                                        "Experiment stopped — UV convergence reached")
+                        self.convergence_stop()
+                    else:
+                        print("INITIALIZING EMERGENCY STOP")
+                        self.log_to_csv("CONTROL", "emergency_stop", "",
+                                        "Experiment halted - emergency stop triggered")
+                        self.emergency_stop()
                     return  # Exit immediately
 
                 try:
@@ -223,3 +236,20 @@ class GeneralExperimentMethod:
         self.shutdown(success=False)
 
         print(f"[{timestamp}] EMERGENCY STOP COMPLETED")
+
+    def convergence_stop(self):
+        """Clean stop triggered by UV convergence. Stops all devices and shuts down with success=True."""
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        self.log_to_csv("ConvergenceStop", f"[{timestamp}] CONVERGENCE STOP - Stopping all devices", "", "OK")
+
+        for name, device in self.instrument_manager.instruments.items():
+            if hasattr(device, 'stop') and callable(device.stop):
+                try:
+                    device.stop()
+                    self.log_to_csv("ConvergenceStop", f"Stopped device: {name}", "", "OK")
+                except Exception as e:
+                    self.log_to_csv("ConvergenceStop", f"Error stopping device: {e}", "", "FAILED")
+
+        self.shutdown(success=True)
+
+        print(f"[{timestamp}] CONVERGENCE STOP COMPLETED")
