@@ -68,7 +68,7 @@ from devices.industry_components.uv_detectors.uv_detector_base import UVDetector
 class Ocean_Optics_UV_vis(UVDetector):
 
     #Initiates the platform
-    def __init__(self, output_dir, baseline_intensity = 10000, integration_time = 100000, num_scans = 10, target_wavelengths = None, save_file_path="UV_detection.csv", measurement_interval =20.0):
+    def __init__(self, output_dir, baseline_intensity = 10000, integration_time = 100000, num_scans = 10, target_wavelengths = None, target_reference_wavelength = None, save_file_path="UV_detection.csv", measurement_interval =20.0):
 
         '''
         Device used to communicate with the Ocean Optics HR2000 device, using the following code to communicate
@@ -78,6 +78,7 @@ class Ocean_Optics_UV_vis(UVDetector):
         Set integration_time of the device to use:param integration_time:
         Number of Scans it needs to perform to average:param num_scans:
         Wavelength to record during all the scans:param target_wavelength:
+        Reference wavelength for absorbance calculation:param target_reference_wavelength:
         Which file path to save it all to:param save_file_path:
         '''
         # Check if SDK is available
@@ -123,6 +124,12 @@ class Ocean_Optics_UV_vis(UVDetector):
             self.target_wavelengths = [409.0]
         else:
             self.target_wavelengths = [float(wl) for wl in target_wavelengths]
+
+        if target_reference_wavelength is None:
+            self.target_reference_wavelength = 700.0
+        else:
+            self.target_reference_wavelength = float(target_reference_wavelength)
+
         self.absorbance_at_target_wavelength = None
 
         # Thread control
@@ -253,6 +260,15 @@ class Ocean_Optics_UV_vis(UVDetector):
             print(f"Set target wavelengths to {self.target_wavelengths}")
         except:
             print(f"FAILED TO SET TARGET WAVELENGTHS TO {target_wavelengths}")
+
+    def set_target_reference_wavelength(self, target_reference_wavelength):
+        '''This sets the reference wavelength for the absorbance calculations'''
+        try:
+            self.target_reference_wavelength = float(target_reference_wavelength)
+            print(f"Set target reference wavelength to {self.target_reference_wavelength} nm")
+        except:
+            print(f"FAILED TO SET TARGET REFERENCE WAVELENGTH TO {target_reference_wavelength}")
+
 
     #This sets how frequently things are being recorded on the device
     def set_measurement_interval(self, measurement_interval):
@@ -514,7 +530,7 @@ class Ocean_Optics_UV_vis(UVDetector):
         return csv_path, png_path
 
     # This function selects a series of wavelengths and records the absorption of these wavelengths over time
-    def get_absorbance_at_target_wavelengths(self) -> float:
+    def get_absorbance_at_target_wavelengths(self) -> list[float]:
         """
         Return the absorbance at self.target_wavelengths (nm), using linear
         interpolation if the exact wavelength isn’t in self.wavelengths.
@@ -526,9 +542,10 @@ class Ocean_Optics_UV_vis(UVDetector):
             )
 
         # numpy.interp will linearly interpolate (and clamp at ends) for you
-        self.absorbance_at_target_wavelengths = np.interp(self.target_wavelengths, self.wavelengths, self.absorbance_spectrum)
-
-        return self.absorbance_at_target_wavelengths
+        self.absorbance_at_target_wavelengths = np.interp(self.target_wavelengths, self.wavelengths, self.absorbance_spectrum) \
+                                              - np.interp(self.target_reference_wavelength, self.wavelengths, self.absorbance_spectrum) 
+                
+        return self.absorbance_at_target_wavelengths.tolist()
 
     #Will begin recording the UV-VIS absorbance on a seperate thread
     def start_continuous(self, name=None, stop_upon_convergence=False):
@@ -558,13 +575,10 @@ class Ocean_Optics_UV_vis(UVDetector):
                 while not self._stop_flag.is_set():
                     self.recording_UV_VIS_Spectrum()
                     self.calculate_absorbance_spectrum()
-                    A = np.interp(
-                        self.target_wavelengths,
-                        self.wavelengths,
-                        self.absorbance_spectrum,
-                    )
+                    A = self.get_absorbance_at_target_wavelengths()
+
                     t = (datetime.now() - self._start_time).total_seconds()
-                    self._csv_writer.writerow([t] + A.tolist())
+                    self._csv_writer.writerow([t] + A)
                     self._csv_file_path.flush()  # Ensure data is written for convergence check
 
                     if self._stop_upon_convergence:
