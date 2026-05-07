@@ -129,6 +129,8 @@ class TestLogOutput:
         assert row["Output"].str.contains("OK", na=False).any()
 
     def test_record_dark_logged_ok(self, tmp_path, mock_uv_detector):
+        # Dark spectrum must have intensity <= threshold (500). Override mock to return ~10.
+        mock_uv_detector.device.get_formatted_spectrum.return_value = [10.0] * 2048
         gm = _build_gm(tmp_path, mock_uv_detector, "OceanOptics_1,record_dark,,,0.5\n")
         log = _run(gm)
         row = log[

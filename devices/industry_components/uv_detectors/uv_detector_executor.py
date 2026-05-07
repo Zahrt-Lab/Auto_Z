@@ -37,7 +37,10 @@ class UvDetectorExecutor:
             self.log_to_csv(component, action, params, "OK")
 
         elif action == "record_blank":
-            uv.generate_and_record_blank_spectrum()
+            uv.generate_and_record_blank_spectrum(
+                blank_light_intensity_threshold=uv.blank_light_intensity_threshold,
+                wavelength_for_blank_light_intensity_check=uv.wavelength_for_blank_light_intensity_check,
+            )
             uv.save_blank_spectrum(uv.output_dir)
             self.log_to_csv(component, action, params, "OK")
 

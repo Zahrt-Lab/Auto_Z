@@ -155,6 +155,8 @@ integration_time    = 100000
 num_scans           = 10
 target_wavelengths  = [409.0]
 reference_wavelength = 700
+blank_light_intensity_threshold = 500
+wavelength_for_blank_light_intensity_check = 400
 save_file_path      = "UV_detection.csv"
 measurement_interval = 20.0
 
@@ -281,6 +283,8 @@ num_scans          = "Num scans"
 measurement_interval = "Interval (s)"
 target_wavelengths = "Targets (e.g., 409;450)"
 reference_wavelength = "Reference (e.g., 700)"
+blank_light_intensity_threshold = "Blank light intensity threshold (e.g. 500)" 
+wavelength_for_blank_light_intensity_check = "Wavelength for blank light intensity check (e.g. 400)"
 
 
 [groups.MirrorBox]

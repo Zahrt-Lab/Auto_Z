@@ -61,7 +61,7 @@ class TestOceanOpticsInitialization:
         assert uv.wavelengths is None
 
         assert uv.target_wavelengths == [409.0]
-        assert uv.absorbance_at_target_wavelength is None
+        assert uv.absorbance_at_target_wavelengths is None
 
         assert uv._stop_flag is None
         assert uv._worker_thread is None

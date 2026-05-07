@@ -68,7 +68,7 @@ from devices.industry_components.uv_detectors.uv_detector_base import UVDetector
 class Ocean_Optics_UV_vis(UVDetector):
 
     #Initiates the platform
-    def __init__(self, output_dir, baseline_intensity = 10000, integration_time = 100000, num_scans = 10, target_wavelengths = None, reference_wavelength = None, save_file_path="UV_detection.csv", measurement_interval =20.0):
+    def __init__(self, output_dir, baseline_intensity = 10000, integration_time = 100000, num_scans = 10, target_wavelengths = None, reference_wavelength = 700, blank_light_intensity_threshold=500, wavelength_for_blank_light_intensity_check=400, save_file_path="UV_detection.csv", measurement_interval =20.0):
 
         '''
         Device used to communicate with the Ocean Optics HR2000 device, using the following code to communicate
@@ -80,6 +80,8 @@ class Ocean_Optics_UV_vis(UVDetector):
         Wavelength to record during all the scans:param target_wavelength:
         Reference wavelength for absorbance calculation:param reference_wavelength:
         Which file path to save it all to:param save_file_path:
+        Light intensity threshold for detection:param light_intensity_threshold:
+        Wavelength for light intensity check:param wavelength_for_light_intensity_check:
         '''
         # Check if SDK is available
         if OceanDirectAPI is None:
@@ -131,6 +133,9 @@ class Ocean_Optics_UV_vis(UVDetector):
             self.reference_wavelength = float(reference_wavelength)
 
         self.absorbance_at_target_wavelengths = None
+
+        self.blank_light_intensity_threshold = blank_light_intensity_threshold
+        self.wavelength_for_blank_light_intensity_check = wavelength_for_blank_light_intensity_check
 
         # Thread control
         self._stop_flag: Optional[threading.Event] = None
@@ -306,13 +311,33 @@ class Ocean_Optics_UV_vis(UVDetector):
             return None
 
     #This will be used to generate and record our dark spectrum for this project
-    def generate_and_record_dark_spectrum(self):
-        self.ensure_init()
+    def generate_and_record_dark_spectrum(self, attempts=3, delay_between_attempts=5):
 
-        self.device.set_electric_dark_correction_usage(True)
-        self.dark_spectrum = self.device.get_formatted_spectrum()
-        self.device.set_stored_dark_spectrum(self.dark_spectrum)
-
+        for _ in range(attempts):
+            self.ensure_init()
+            self.device.set_scans_to_average(self.num_scans)
+            self.device.set_integration_time(self.integration_time)
+            self.device.set_electric_dark_correction_usage(True)
+            #store as your IO spectrum
+            self.dark_spectrum = self.device.get_formatted_spectrum()
+            self.device.set_stored_dark_spectrum(self.dark_spectrum)
+            self.dark_spectrum = np.array(self.dark_spectrum)
+            # also wavelengths
+            self.wavelengths = np.array(self.device.get_wavelengths())
+            if self.wavelength_for_blank_light_intensity_check is not None and self.blank_light_intensity_threshold is not None:
+                intensity_at_check_wavelength = np.interp(self.wavelength_for_blank_light_intensity_check, self.wavelengths, self.dark_spectrum)
+                if intensity_at_check_wavelength > self.blank_light_intensity_threshold:
+                    print(f"WARNING: INTENSITY AT {self.wavelength_for_blank_light_intensity_check} nm IS {intensity_at_check_wavelength},"
+                          f" WHICH IS ABOVE THE TARGET THRESHOLD: {self.blank_light_intensity_threshold}.")
+                else:
+                    print("Dark Spectrum Recorded Successfully")
+                    break
+            time.sleep(delay_between_attempts)
+        else:
+            print(f"WAS UNABLE TO RECORD A DARK SPECTRUM BELOW THE THRESHOLD OF {self.blank_light_intensity_threshold} AFTER MULTIPLE ATTEMPTS")
+            print("STOPPING ALL UV-VIS MEASUREMENTS AND EXPERIMENTS")
+            raise RuntimeError("Failed to record valid dark spectrum")
+    
 
     #This will set nonlinearity corrections within the spectrum to be True
     #Default is True
@@ -320,18 +345,31 @@ class Ocean_Optics_UV_vis(UVDetector):
         self.device.set_nonlinearity_correction_usage(True)
 
     #This will measure the absorbance of our blank with solvent but no product
-    def generate_and_record_blank_spectrum(self):
-        self.ensure_init()
-
+    def generate_and_record_blank_spectrum(self, blank_light_intensity_threshold, wavelength_for_blank_light_intensity_check, attempts=3, delay_between_attempts=5):
         """Measure the solvent (blank) to use as I0 for absorbance."""
-        # measure blank (solvent only)
-        self.device.set_scans_to_average(self.num_scans)
-        self.device.set_integration_time(self.integration_time)
-        # store as your I0 spectrum
-        self.blank_spectrum = np.array(self.device.get_formatted_spectrum())
-        # also wavelengths
-        self.wavelengths = np.array(self.device.get_wavelengths())
-        print("Blank Spectrum Recorded")
+
+        for _ in range(attempts):
+            # measure blank (solvent only)
+            self.ensure_init()
+            self.device.set_scans_to_average(self.num_scans)
+            self.device.set_integration_time(self.integration_time)
+            # store as your I0 spectrum
+            self.blank_spectrum = np.array(self.device.get_formatted_spectrum())
+            # also wavelengths
+            self.wavelengths = np.array(self.device.get_wavelengths())
+            intensity_at_check_wavelength = np.interp(wavelength_for_blank_light_intensity_check, self.wavelengths, self.blank_spectrum)
+            if intensity_at_check_wavelength < blank_light_intensity_threshold:
+                print(f"WARNING: INTENSITY AT {wavelength_for_blank_light_intensity_check} nm IS {intensity_at_check_wavelength},"
+                      f" WHICH IS BELOW THE TARGET THRESHOLD: {blank_light_intensity_threshold}.")
+            else:
+                print("Blank Spectrum Recorded Successfully")
+                break
+            time.sleep(delay_between_attempts)
+        else:
+            print(f"WAS UNABLE TO RECORD A BLANK SPECTRUM ABOVE THE THRESHOLD OF {blank_light_intensity_threshold}"
+                  f" at wavelength {wavelength_for_blank_light_intensity_check} AFTER MULTIPLE ATTEMPTS")
+            print("STOPPING ALL UV-VIS MEASUREMENTS AND EXPERIMENTS")
+            raise RuntimeError("Failed to record valid blank spectrum")
 
     # This records the dark spectrum as a csv file within a specific directory
     def save_dark_spectrum(self, output_dir, filename=None):
