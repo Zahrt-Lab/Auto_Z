@@ -130,7 +130,7 @@ class Ocean_Optics_UV_vis(UVDetector):
         else:
             self.target_reference_wavelength = float(target_reference_wavelength)
 
-        self.absorbance_at_target_wavelength = None
+        self.absorbance_at_target_wavelengths = None
 
         # Thread control
         self._stop_flag: Optional[threading.Event] = None

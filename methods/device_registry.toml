@@ -280,7 +280,7 @@ integration_time   = "Integration time (µs)"
 num_scans          = "Num scans"
 measurement_interval = "Interval (s)"
 target_wavelengths = "Targets (e.g., 409;450)"
-target_reference_wavelength = "Target reference(e.g., 700)
+target_reference_wavelength = "Target reference (e.g., 700)"
 
 
 [groups.MirrorBox]
