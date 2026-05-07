@@ -101,6 +101,12 @@ class UvDetectorExecutor:
                 uv.max_outliers = int(uv_params["max_outliers"])
             if "max_convergence_wait" in uv_params:
                 uv.max_convergence_wait = float(uv_params["max_convergence_wait"])
+            if "reference_wavelength" in uv_params:
+                uv.set_reference_wavelength(uv_params["reference_wavelength"])
+            if "blank_light_intensity_threshold" in uv_params:
+                uv.blank_light_intensity_threshold = float(uv_params["blank_light_intensity_threshold"])
+            if "wavelength_for_blank_light_intensity_check" in uv_params:
+                uv.wavelength_for_blank_light_intensity_check = float(uv_params["wavelength_for_blank_light_intensity_check"])
             self.log_to_csv(component, action, params, "OK")
 
         elif action == "status":
