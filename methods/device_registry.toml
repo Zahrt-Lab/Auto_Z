@@ -154,7 +154,7 @@ output_dir = "experiment_subdir"
 integration_time    = 100000
 num_scans           = 10
 target_wavelengths  = [409.0]
-target_reference_wavelength = 700
+reference_wavelength = 700
 save_file_path      = "UV_detection.csv"
 measurement_interval = 20.0
 
@@ -280,7 +280,7 @@ integration_time   = "Integration time (µs)"
 num_scans          = "Num scans"
 measurement_interval = "Interval (s)"
 target_wavelengths = "Targets (e.g., 409;450)"
-target_reference_wavelength = "Target reference (e.g., 700)"
+reference_wavelength = "Reference (e.g., 700)"
 
 
 [groups.MirrorBox]

@@ -68,7 +68,7 @@ from devices.industry_components.uv_detectors.uv_detector_base import UVDetector
 class Ocean_Optics_UV_vis(UVDetector):
 
     #Initiates the platform
-    def __init__(self, output_dir, baseline_intensity = 10000, integration_time = 100000, num_scans = 10, target_wavelengths = None, target_reference_wavelength = None, save_file_path="UV_detection.csv", measurement_interval =20.0):
+    def __init__(self, output_dir, baseline_intensity = 10000, integration_time = 100000, num_scans = 10, target_wavelengths = None, reference_wavelength = None, save_file_path="UV_detection.csv", measurement_interval =20.0):
 
         '''
         Device used to communicate with the Ocean Optics HR2000 device, using the following code to communicate
@@ -78,7 +78,7 @@ class Ocean_Optics_UV_vis(UVDetector):
         Set integration_time of the device to use:param integration_time:
         Number of Scans it needs to perform to average:param num_scans:
         Wavelength to record during all the scans:param target_wavelength:
-        Reference wavelength for absorbance calculation:param target_reference_wavelength:
+        Reference wavelength for absorbance calculation:param reference_wavelength:
         Which file path to save it all to:param save_file_path:
         '''
         # Check if SDK is available
@@ -125,10 +125,10 @@ class Ocean_Optics_UV_vis(UVDetector):
         else:
             self.target_wavelengths = [float(wl) for wl in target_wavelengths]
 
-        if target_reference_wavelength is None:
-            self.target_reference_wavelength = 700.0
+        if reference_wavelength is None:
+            self.reference_wavelength = 700.0
         else:
-            self.target_reference_wavelength = float(target_reference_wavelength)
+            self.reference_wavelength = float(reference_wavelength)
 
         self.absorbance_at_target_wavelengths = None
 
@@ -261,13 +261,13 @@ class Ocean_Optics_UV_vis(UVDetector):
         except:
             print(f"FAILED TO SET TARGET WAVELENGTHS TO {target_wavelengths}")
 
-    def set_target_reference_wavelength(self, target_reference_wavelength):
+    def set_reference_wavelength(self, reference_wavelength):
         '''This sets the reference wavelength for the absorbance calculations'''
         try:
-            self.target_reference_wavelength = float(target_reference_wavelength)
-            print(f"Set target reference wavelength to {self.target_reference_wavelength} nm")
+            self.reference_wavelength = float(reference_wavelength)
+            print(f"Set reference wavelength to {self.reference_wavelength} nm")
         except:
-            print(f"FAILED TO SET TARGET REFERENCE WAVELENGTH TO {target_reference_wavelength}")
+            print(f"FAILED TO SET TARGET REFERENCE WAVELENGTH TO {reference_wavelength}")
 
 
     #This sets how frequently things are being recorded on the device
@@ -543,7 +543,7 @@ class Ocean_Optics_UV_vis(UVDetector):
 
         # numpy.interp will linearly interpolate (and clamp at ends) for you
         self.absorbance_at_target_wavelengths = np.interp(self.target_wavelengths, self.wavelengths, self.absorbance_spectrum) \
-                                              - np.interp(self.target_reference_wavelength, self.wavelengths, self.absorbance_spectrum) 
+                                              - np.interp(self.reference_wavelength, self.wavelengths, self.absorbance_spectrum) 
                 
         return self.absorbance_at_target_wavelengths.tolist()
 
