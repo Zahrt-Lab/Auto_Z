@@ -148,7 +148,7 @@ class Ocean_Optics_UV_vis(UVDetector):
         self.convergence_enabled = False
         self.spike_level = 0.2
         self.convergence_threshold = 0.05
-        self.convergence_time = 5 * 60  # 5 minutes in seconds
+        self.convergence_time = 3 * 60  # 3 minutes in seconds
         self.max_outliers = 2  # Allow up to 2 outliers during convergence period
         self.max_convergence_wait = None  # Optional timeout in seconds (None = no limit)
         self.instrument_control_file = None  # Injected by GeneralExperimentMethod
@@ -584,61 +584,84 @@ class Ocean_Optics_UV_vis(UVDetector):
                                               - np.interp(self.reference_wavelength, self.wavelengths, self.absorbance_spectrum) 
                 
         return self.absorbance_at_target_wavelengths.tolist()
-
-    #Will begin recording the UV-VIS absorbance on a seperate thread
-    def start_continuous(self, name=None, stop_upon_convergence=False):
+    
+    def start_continuous(self, filename=None, stop_upon_convergence=False):
         """
-        Start background thread to log absorbance at all target wavelengths.
+        Start background thread to log absorbance at all target wavelengths. 
+        While pump are running in flow in the background.
         
-        Args:
-            name: Optional name for output files
-            stop_upon_convergence: If True, checks for convergence and stops monitoring when met.
-                                   Also updates control.txt from True to False when convergence is reached.
+        Parameters:
+        - filename: Optional name for output files (without extension)
+        - stop_upon_convergence: If True, checks for convergence and stops monitoring when met
         """
+
+        # The purpose of this is to check if there is a UV monitoring thread already running,
+        # it will prevent it from starting a second thread. 
         if self._worker_thread and self._worker_thread.is_alive():
             print("Continuous monitoring already running")
             return
 
+        # This represents the stop condition for the thread, this will be set to False 
+        # until the stop condition is met, then it will be set to True, signaling the thread to stop
         self._stop_flag = threading.Event()
         self._stop_upon_convergence = stop_upon_convergence
-        self._csv_file_path = open(self.save_file_path, "w", newline="")
-        self._csv_writer = csv.writer(self._csv_file_path)
+        if stop_upon_convergence:
+            self.convergence_enabled = True
+
+        # This is creates the CSV file and writes the header with the target wavelengths as columns
+        self._continuous_uv_measurement_csv = open(self.save_file_path, "w", newline="")
+        #This creates the csv writer object that appends all the data to the csv file
+        self._csv_writer = csv.writer(self._continuous_uv_measurement_csv)
+        # Creaters header to record 
         header = ["Time(s)"] + [str(wl) for wl in self.target_wavelengths]
         self._csv_writer.writerow(header)
+
+        # This is the start time for the uv experiment
         self._start_time = datetime.now()
 
         def _worker():
-            convergence_start_time = time.time()
+            """
+            This is the worker function to continously record UV detector in the background
+            """
             try:
+                # As long as the stop condition is not met, this thread will keep running
                 while not self._stop_flag.is_set():
                     self.recording_UV_VIS_Spectrum()
                     self.calculate_absorbance_spectrum()
-                    A = self.get_absorbance_at_target_wavelengths()
-
-                    t = (datetime.now() - self._start_time).total_seconds()
-                    self._csv_writer.writerow([t] + A)
-                    self._csv_file_path.flush()  # Ensure data is written for convergence check
+                    # Is the absorbance at the target wavelengths, as a numpy array of float values
+                    absorbance = self.get_absorbance_at_target_wavelengths()
+                    # Captures the total time that has passed since the start of the uv-vis experiment
+                    elapsed_time = (datetime.now() - self._start_time).total_seconds()
+                    # Writes the elapsed time and the absorbance at the target wavelengths to the csv file
+                    self._csv_writer.writerow([elapsed_time] + absorbance)
+                    # Ensures the uv-vis data is written to the csv file
+                    self._csv_writer.flush()
 
                     if self._stop_upon_convergence:
-                        if self.max_convergence_wait and (time.time() - convergence_start_time) > self.max_convergence_wait:
+                        if self.max_convergence_wait is not None and time.time() - self._start_time.timestamp() > self.max_convergence_wait:
                             print("UV convergence timed out — stopping monitoring")
                             break
+                        # Checks if convergence criteria are met, True if met, False if not met
                         if self.check_convergence_from_csv():
+                            # What is the purpose if this convergence stop callback function? 
                             if self.convergence_stop_callback:
                                 self.convergence_stop_callback()
                             self._update_control_file()
                             break
-
+                    
                     time.sleep(self.measurement_interval)
+            
             except Exception:
+                
                 print("Error in continuous monitoring worker")
+
             finally:
                 try:
-                    self._csv_file_path.close()
+                    self._continuous_uv_measurement_csv.close()
                 except Exception:
                     pass
-                self._dump_final_plot(name)
-
+                self._dump_final_plot(filename)
+        
         self._worker_thread = threading.Thread(target=_worker, daemon=True)
         self._worker_thread.start()
         print("Continuous monitoring started")
@@ -697,93 +720,98 @@ class Ocean_Optics_UV_vis(UVDetector):
                     print(f"Updated {control_file}: True -> False (convergence met)")
         except Exception as e:
             print(f"Warning: Could not update control file: {e}")
-    
+
     def check_convergence_from_csv(self):
         """
-        Reads the CSV file and checks if the UV-VIS measurements have converged based on two criteria:
-          1. Spike detection: one of the measured wavelengths >= spike_level making sure enough reactant or product is present
-          2. Convergence, the signal is stable for a set period of time with absorbance within a given threshold: signal change < threshold for convergence_time seconds
-        
-        Returns:
-            True  -> convergence finished, safe to stop
-            False -> still waiting
-        """
-        if not self.convergence_enabled:
-            return False
-            
-        if self._convergence_state['done']:
-            return True
-        
-        # Read last two rows from CSV
+        Reads a csv file and checks if the UV-VIS measurements have converged based on two criteria:
+                1. Spike detection: once one of the measured wavelengths are greater than or equal to the spike threshold,
+                   the converge monitoring will be initiated.
+                2. Convergence, the signal is stable for a set period of time 
+        """       
         try:
-            df = pd.read_csv(self.save_file_path)
-            if len(df) < 1:
+            # Loads the csv file containing the UV-VIS measurements, 
+            continous_absorbance_df = pd.read_csv(self.save_file_path)
+
+            # If the file is empty, with no rows it returns False
+            if len(continous_absorbance_df) < 1:
                 return False
             
-            # Get wavelength values for each target wavelength at last scanned timepoint
-            current_absorbance_values_each_wavelength = df.iloc[-1, 1:].values
-            
-            # If no previous values, store and return the current_values
+            # This gets the absorbance values for each target wavelength at the last scanned timepoint
+            # Column 0 is time, so only columns from 1 onwards are the target wavelengths
+            current_absorbance_values_each_wavelength = continous_absorbance_df.iloc[-1, 1:].values
+
+            # If there are no previous values, it will store the current values as the previous values
+            # It returns False because there is no basis for comparison yet
             if self._convergence_state['previous'] is None:
                 self._convergence_state['previous'] = current_absorbance_values_each_wavelength
                 return False
             
-            # 1) Wait for spike, if spike occurs then start experimentconvergence monitoring
+            # 1) Wait for spike, if spike occurs that start experiment convergence monitoring
             if not self._convergence_state['spike_seen']:
-                if any(current_absorbance_value_one_wavelength >= self.spike_level for current_absorbance_value_one_wavelength in current_absorbance_values_each_wavelength):
+                # If any of the current absorbance values at the target wavelengths are greater than
+                # or equal to the spike level, it will set the spike seen flag to True and reset the
+                # converged start time to None to start fresh for convergence monitoring
+                if any(current_absorbance_values_each_wavelength) >= self.spike_level:
                     self._convergence_state['spike_seen'] = True
                     self._convergence_state['converged_start'] = None
-            
+                # It will update the previous value to the current value and return False to continue monitoring for convergence
                 self._convergence_state['previous'] = current_absorbance_values_each_wavelength
                 return False
             
             # 2) After spike, is detected convergence is checked every timepoint
-            previous_absorbance_values_each_wavelength = self._convergence_state['previous']
-            diffs = [abs(c - p) for c, p in zip(current_absorbance_values_each_wavelength, previous_absorbance_values_each_wavelength)]
-            
+
+            # This calculates the absolute difference between the current absorbance values and the previous absorbance values 
+            # for each target wavelength
+            absorbance_differences = [abs(current - previous) for current, previous in zip(current_absorbance_values_each_wavelength, self._convergence_state['previous'])]
+
             current_time = time.time()
-            
-            # Clean up outliers outside the convergence time window, if it's already past the time window it's no longer relevant
+            # If the monitoring til convergence has already started
+            # It will delete any outliers that are outside the convergence time window
             if self._convergence_state['converged_start'] is not None:
                 window_start = current_time - self.convergence_time
-                self._convergence_state['outliers'] = [ts for ts in self._convergence_state['outliers'] if ts >= window_start]
+                self._convergence_state['outliers'] = \
+                                  [timestamp for timestamp in self._convergence_state['outliers'] if timestamp >= window_start]
+            
+            # Checks if the maximum difference across all target wavelengths is less than the convergence threshold
+            if max(absorbance_differences) < self.convergence_threshold:
 
-            if max(diffs) < self.convergence_threshold:
-                # Good point - within threshold
                 if self._convergence_state['converged_start'] is None:
-                    # Start convergence timer
+                    # Sets convergence start time to the current time
                     self._convergence_state['converged_start'] = current_time
-                    self._convergence_state['outliers'] = []  # Reset outliers when starting fresh
+                    # Resets the outliers list when starting convergence monitoring
+                    self._convergence_state['outliers'] = []  
+
                 else:
-                    # Check elapsed time since convergence started
-                    elapsed = current_time - self._convergence_state['converged_start']
-                    if elapsed >= self.convergence_time:
-                        # Check if outliers within window are acceptable
-                        num_outliers = len(self._convergence_state['outliers'])
-                        if num_outliers <= self.max_outliers:
-                            self._convergence_state['done'] = True
-                            print(f"UV convergence criteria met (with {num_outliers} outliers) - stopping monitoring")
-                            return True
+                    # Checks time elapsed since convergence monitoring started
+                    time_elapsed = current_time - self._convergence_state['converged_start']
+                    # Checks if the time elapsed is greater than or equal to the required convergence time
+                    if time_elapsed >= self.convergence_time:
+                        # Checks if the number of outliers within the convergence window is less than or equal to the maximum allowed outliers
+                        if len(self._convergence_state['outliers']) <= self.max_outliers:
+                            if not self._convergence_state['done']:
+                                self._convergence_state['done'] = True
+                                print(f"UV convergence criteria met (with {len(self._convergence_state['outliers'])} outliers) - stopping monitoring")
+                                return True
+            
+            # If the maximum difference exceeds the convergence threshold
             else:
-                # Outlier detected - exceeds threshold
+                # If convergence monitoring is in progress, it will record this timepoint as an outlier
                 if self._convergence_state['converged_start'] is not None:
-                    # Convergence is in progress - record this outlier with timestamp
+                    #This adds the current time to the list of outliers
                     self._convergence_state['outliers'].append(current_time)
 
-                    # Check if too many outliers within the convergence window
-                    num_outliers = len(self._convergence_state['outliers'])
-                    if num_outliers > self.max_outliers:
-                        # Too many outliers - reset convergence
-                        print(f"Convergence reset: too many outliers ({num_outliers}) within {self.convergence_time}s window")
+                    # If the number of outliers is greater than the maximum allowed outliers
+                    if len(self._convergence_state['outliers']) > self.max_outliers:
+                        # It will reset the convergence monitoring by setting the convergence start time to None and clearing the outliers list
+                        print(f"Convergence reset: too many outliers ({len(self._convergence_state['outliers'])}) within {self.convergence_time}s window")
                         self._convergence_state['converged_start'] = None
                         self._convergence_state['outliers'] = []
-                    # else: allow the outlier, continue convergence timer
-            
+                    
             self._convergence_state['previous'] = current_absorbance_values_each_wavelength
             return False
-            
+
         except Exception as e:
-            print(f"Error checking convergence: {e}")
+            print(f"Error reading CSV for convergence check: {e}")
             return False
         
     def close(self):
