@@ -111,6 +111,7 @@ class GeneralExperimentMethod:
         """Called by UV detector on convergence — triggers a clean stop."""
         self._convergence_triggered = True
         self._continue_experiment = False
+        self.executor.stop_all_pumps()
 
     def _check_continue_flag(self, path: str) -> bool:
         """Check control flag. Delegated to ExperimentLogger."""
@@ -187,7 +188,10 @@ class GeneralExperimentMethod:
             
             # TODO : Is self.executor.wait_for_pumps() need if we use it earlier in the method with the SYNC command?
             self.executor.wait_for_pumps()
-            self.shutdown(success=True)
+            if self._convergence_triggered:
+                self.convergence_stop()
+            else:
+                self.shutdown(success=True)
 
         except Exception as e:
             self.log_to_csv("SYSTEM", "run_experiment_error", "", f"FAILED: {e}")
@@ -238,7 +242,7 @@ class GeneralExperimentMethod:
         print(f"[{timestamp}] EMERGENCY STOP COMPLETED")
 
     def convergence_stop(self):
-        """Clean stop triggered by UV convergence. Stops all devices and shuts down with success=True."""
+        """Clean stop triggered by UV convergence. Stops all devices and turns off DH2000 lamp."""
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         self.log_to_csv("ConvergenceStop", f"[{timestamp}] CONVERGENCE STOP - Stopping all devices", "", "OK")
 
@@ -250,6 +254,13 @@ class GeneralExperimentMethod:
                 except Exception as e:
                     self.log_to_csv("ConvergenceStop", f"Error stopping device: {e}", "", "FAILED")
 
-        self.shutdown(success=True)
+        # Allow DH2000 safe_shutdown to proceed (control file starts as "True" = skip shutdown)
+        try:
+            from pathlib import Path
+            Path(self.dh2000_light_source_control_file).write_text("False")
+        except Exception as e:
+            self.log_to_csv("ConvergenceStop", "dh2000_control_file_update_error", "", f"FAILED: {e}")
+
+        self.shutdown(success=False)
 
         print(f"[{timestamp}] CONVERGENCE STOP COMPLETED")

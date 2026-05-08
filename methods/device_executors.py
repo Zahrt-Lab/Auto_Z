@@ -71,6 +71,9 @@ class DeviceExecutor:
     def execute_pump(self, action, params, component, pump: Pump):
         self._pump.execute(action, params, component, pump)
 
+    def stop_all_pumps(self):
+        self._pump.stop_all_pumps()
+
     def wait_for_pumps(self):
         self._pump.wait_for_pumps()
 

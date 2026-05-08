@@ -27,6 +27,7 @@ class PumpExecutor:
         """
         self.log_to_csv = log_callback
         self._pump_threads = []
+        self._active_pumps = []
 
     def execute(self, action: str, params: str, component: str, pump: Pump):
         """Route action string to the appropriate pump method."""
@@ -103,9 +104,18 @@ class PumpExecutor:
         thread = threading.Thread(target=_pump_job, daemon=True)
         thread.start()
         self._pump_threads.append(thread)
+        self._active_pumps.append(pump)
         self.log_to_csv(component, action, params,
                         f"Started async {action}",
                         notes=f"exp. {est_time:.1f} s")
+
+    def stop_all_pumps(self):
+        """Send an immediate stop command to every pump with an active dispense thread."""
+        for pump in self._active_pumps:
+            try:
+                pump.stop()
+            except Exception:
+                pass
 
     def wait_for_pumps(self):
         """Block until every launched pump thread ends, then reset the thread list."""
@@ -113,3 +123,4 @@ class PumpExecutor:
             t.join()
         self.log_to_csv("SYNC", "wait_for_pumps", "", "All pumps finished")
         self._pump_threads.clear()
+        self._active_pumps.clear()

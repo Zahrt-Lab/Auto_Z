@@ -274,7 +274,7 @@ path            = "Dark CSV Path"
 apply_to_device = "Apply to device (True/False)"
 
 [groups.OceanOptics.params.start_continuous]
-name                  = "Name (optional)"
+filename                  = "File name (optional)"
 stop_upon_convergence = "Stop on convergence (True/False)"
 
 [groups.OceanOptics.params.set_params]

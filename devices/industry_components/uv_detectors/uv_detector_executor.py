@@ -60,7 +60,7 @@ class UvDetectorExecutor:
         elif action == "start_continuous":
             stop_upon = str(uv_params.get("stop_upon_convergence", "False")).lower() == "true"
             name = uv_params.get("name", None)
-            uv.start_continuous(name=name, stop_upon_convergence=stop_upon)
+            uv.start_continuous(filename=name, stop_upon_convergence=stop_upon)
             self.log_to_csv(component, action, params, "OK")
 
         elif action == "stop_continuous":

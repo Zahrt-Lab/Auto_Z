@@ -16,6 +16,7 @@ from datetime import datetime
 import threading
 import time
 from typing import List, Optional
+import traceback
 
 
 # set headless backend before pyplot
@@ -623,44 +624,44 @@ class Ocean_Optics_UV_vis(UVDetector):
             """
             This is the worker function to continously record UV detector in the background
             """
-            try:
+            #try:
                 # As long as the stop condition is not met, this thread will keep running
-                while not self._stop_flag.is_set():
-                    self.recording_UV_VIS_Spectrum()
-                    self.calculate_absorbance_spectrum()
-                    # Is the absorbance at the target wavelengths, as a numpy array of float values
-                    absorbance = self.get_absorbance_at_target_wavelengths()
-                    # Captures the total time that has passed since the start of the uv-vis experiment
-                    elapsed_time = (datetime.now() - self._start_time).total_seconds()
-                    # Writes the elapsed time and the absorbance at the target wavelengths to the csv file
-                    self._csv_writer.writerow([elapsed_time] + absorbance)
-                    # Ensures the uv-vis data is written to the csv file
-                    self._csv_writer.flush()
+            while not self._stop_flag.is_set():
+                self.recording_UV_VIS_Spectrum()
+                self.calculate_absorbance_spectrum()
+                # Is the absorbance at the target wavelengths, as a numpy array of float values
+                absorbance = self.get_absorbance_at_target_wavelengths()
+                # Captures the total time that has passed since the start of the uv-vis experiment
+                elapsed_time = (datetime.now() - self._start_time).total_seconds()
+                # Writes the elapsed time and the absorbance at the target wavelengths to the csv file
+                self._csv_writer.writerow([elapsed_time] + absorbance)
+                # Ensures the uv-vis data is written to the csv file
+                self._continuous_uv_measurement_csv.flush()
 
-                    if self._stop_upon_convergence:
-                        if self.max_convergence_wait is not None and time.time() - self._start_time.timestamp() > self.max_convergence_wait:
-                            print("UV convergence timed out — stopping monitoring")
-                            break
-                        # Checks if convergence criteria are met, True if met, False if not met
-                        if self.check_convergence_from_csv():
-                            # What is the purpose if this convergence stop callback function? 
-                            if self.convergence_stop_callback:
-                                self.convergence_stop_callback()
-                            self._update_control_file()
-                            break
-                    
-                    time.sleep(self.measurement_interval)
-            
-            except Exception:
+                if self._stop_upon_convergence:
+                    if self.max_convergence_wait is not None and time.time() - self._start_time.timestamp() > self.max_convergence_wait:
+                        print("UV convergence timed out — stopping monitoring")
+                        break
+                    # Checks if convergence criteria are met, True if met, False if not met
+                    if self.check_convergence_from_csv():
+                        # What is the purpose if this convergence stop callback function? 
+                        if self.convergence_stop_callback:
+                            self.convergence_stop_callback()
+                        self._update_control_file()
+                        break
                 
-                print("Error in continuous monitoring worker")
+                time.sleep(self.measurement_interval)
+            
+            #except Exception:
+                 #print("Error in continuous monitoring worker:")
+                 #traceback.print_exc()
 
-            finally:
-                try:
-                    self._continuous_uv_measurement_csv.close()
-                except Exception:
-                    pass
-                self._dump_final_plot(filename)
+            #finally:
+            #    try:
+            #        self._continuous_uv_measurement_csv.close()
+            #    except Exception:
+            #        pass
+            #    self._dump_final_plot(filename)
         
         self._worker_thread = threading.Thread(target=_worker, daemon=True)
         self._worker_thread.start()
@@ -751,7 +752,7 @@ class Ocean_Optics_UV_vis(UVDetector):
                 # If any of the current absorbance values at the target wavelengths are greater than
                 # or equal to the spike level, it will set the spike seen flag to True and reset the
                 # converged start time to None to start fresh for convergence monitoring
-                if any(current_absorbance_values_each_wavelength) >= self.spike_level:
+                if any(value >= self.spike_level for value in current_absorbance_values_each_wavelength):
                     self._convergence_state['spike_seen'] = True
                     self._convergence_state['converged_start'] = None
                 # It will update the previous value to the current value and return False to continue monitoring for convergence
