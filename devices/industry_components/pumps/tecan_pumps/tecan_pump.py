@@ -23,6 +23,7 @@ class Tecan_pump(Pump):
     self.name = name
     self.flow_rate_ul_min = 0
     
+    
     try:
       self.driver = driver(port=port, baud_rate=baud_rate, timeout=timeout)
     except Exception as e:
@@ -48,6 +49,7 @@ class Tecan_pump(Pump):
     
     self.driver.check_until_initialized(pump="A", timeout=60) #Check until pump A is initialized before proceeding
     self.driver.check_until_initialized(pump="B", timeout=60) #Check until pump B is initialized before proceeding
+    self._stop_flag = False
 
   def aspirate(self, flow_rate_ul_min: float, volume_ul: float) -> None:
     #Aspirate command is not implemented in the Tecan pump
@@ -84,7 +86,8 @@ class Tecan_pump(Pump):
   '''
   
   def dispense(self, flow_rate_ul_min: float, volume_ul: float) -> None:
-
+    # Set the stop flag false
+    self._stop_flag = False
     self.set_flow_rate(flow_rate_ul_min) # Set the flow rate for the pump
     #The dispense command in the Tecan Pump is the continuous flow command
     time_sec = self._calculate_time_for_volume(volume_ul)
@@ -103,14 +106,14 @@ class Tecan_pump(Pump):
     #The continuous flow control starts now
     time_now = time.monotonic()
     mode = 1 # 1: Pump A dispensing and B aspirating; 2: Pump A aspirating and B dispensing
-    while time.monotonic() - time_now < time_sec:
+    while time.monotonic() - time_now < time_sec and not self._stop_flag:
       if mode == 1:
         time.sleep(0.2) # Wait for a short time to allow the pump to start dispensing
         self.driver.run_dispense(pump="A", resolution=1, dispense_speed=dispense_speed, final_position=0) # Start dispensing from pump A
         time.sleep(0.2) # Wait for a short time to allow the pump to start dispensing
         self.driver.run_aspirate(pump="B", resolution=1, aspirate_speed=aspirate_speed, final_position=24000) # Start aspirating from pump B
         time.sleep(0.2) # Wait for a short time to allow the pump to start aspirating
-        while self.driver.is_valve_in_output_position(pump="A") and time.monotonic() - time_now < time_sec:
+        while self.driver.is_valve_in_output_position(pump="A") and time.monotonic() - time_now < time_sec and not self._stop_flag:
           time.sleep(0.2)  # Wait for 0.2 seconds before checking again
         mode = 2
       else:
@@ -119,7 +122,7 @@ class Tecan_pump(Pump):
         time.sleep(0.2) # Wait for a short time to allow the pump to start aspirating
         self.driver.run_dispense(pump="B", resolution=1, dispense_speed=dispense_speed, final_position=0) # Start dispensing from pump B
         time.sleep(0.2) # Wait for a short time to allow the pump to start dispensing
-        while self.driver.is_valve_in_output_position(pump="B") and time.monotonic() - time_now < time_sec:
+        while self.driver.is_valve_in_output_position(pump="B") and time.monotonic() - time_now < time_sec and not self._stop_flag:
           time.sleep(0.2)  # Wait for 0.2 seconds before checking again
         mode = 1
       elapsed_time = time.monotonic() - time_now
@@ -154,6 +157,7 @@ class Tecan_pump(Pump):
       return
     self.driver.stop_pump(pump="A")
     self.driver.stop_pump(pump="B")
+    self._stop_flag = True
 
   def status(self) -> str:
     #todo: implement status logic using Tecan_driver
