@@ -106,6 +106,7 @@ class GeneralExperimentMethod:
     def _set_continue_flag(self, value: bool):
         """Set the continue experiment flag."""
         self._continue_experiment = value
+        print(f"Continue flag set to: {self._continue_experiment}")
 
     def _set_convergence_triggered(self):
         """Called by UV detector on convergence — triggers a clean stop."""
@@ -188,10 +189,14 @@ class GeneralExperimentMethod:
             
             # TODO : Is self.executor.wait_for_pumps() need if we use it earlier in the method with the SYNC command?
             self.executor.wait_for_pumps()
+            print("Wait_for_pumps completed")
             if self._convergence_triggered:
                 self.convergence_stop()
             else:
                 self.shutdown(success=True)
+
+            # TODO: Add final line that plots all the status data of all the experiments for final visualization
+            # self.status_monitor.plot_status_data()
 
         except Exception as e:
             self.log_to_csv("SYSTEM", "run_experiment_error", "", f"FAILED: {e}")

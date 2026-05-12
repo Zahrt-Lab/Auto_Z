@@ -59,6 +59,8 @@ class VICI_M6_Pumps(Pump):
         self.steps_per_ul = self.micro_steps_per_rev / self.pump_head_volume  # Steps per uL
         self.steps_per_ul_units = "steps/uL"
 
+        self._stop_flag = False
+
     def set_flow_rate(self, flow_rate_min, direction):
         try:
             if flow_rate_min is None or isinstance(flow_rate_min, str):
@@ -143,6 +145,8 @@ class VICI_M6_Pumps(Pump):
             print("Serial connection for VICI M6 Pumps is not open.")
             return
         print("Closing pumps.\n")
+        #Sets the stop stop flag to true to stop the pump from moving
+        self._stop_flag = True
         #Sets the flow rate to 0 overriding all previous commands
         self.send_command("SL 0")
 
@@ -161,6 +165,7 @@ class VICI_M6_Pumps(Pump):
 
     def pump_solution(self, volume):
         try:
+            self._stop_flag = False  # Reset stop flag at the start of pumping
             total_microsteps = int(self.steps_per_ul * volume)
             if self.flow_rate_sec == 0:
                 raise ValueError("Flow rate cannot be zero.")
@@ -176,7 +181,11 @@ class VICI_M6_Pumps(Pump):
 
             self.send_command(f"MA={self.direction_multiplier * total_microsteps}")
             self.send_command("PR AL")
-            time.sleep(pump_time + 2)
+
+            # Wait for pumps to finish moving or for a stop signal 
+            start_time = time.monotonic()
+            while time.monotonic() - start_time < pump_time and not self._stop_flag:
+                time.sleep(0.2)
 
             self.stop()
             print("Number of microsteps the pump moved:")

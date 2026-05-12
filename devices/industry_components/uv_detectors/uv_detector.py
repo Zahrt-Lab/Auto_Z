@@ -69,7 +69,7 @@ from devices.industry_components.uv_detectors.uv_detector_base import UVDetector
 class Ocean_Optics_UV_vis(UVDetector):
 
     #Initiates the platform
-    def __init__(self, output_dir, baseline_intensity = 10000, integration_time = 100000, num_scans = 10, target_wavelengths = None, reference_wavelength = 700, blank_light_intensity_threshold=500, wavelength_for_blank_light_intensity_check=400, save_file_path="UV_detection.csv", measurement_interval =20.0):
+    def __init__(self, output_dir, baseline_intensity = 10000, integration_time = 100000, num_scans = 10, target_wavelengths = None, reference_wavelength = 700, blank_light_intensity_threshold=1000, wavelength_for_blank_light_intensity_check=600, save_file_path="UV_detection.csv", measurement_interval =20.0):
 
         '''
         Device used to communicate with the Ocean Optics HR2000 device, using the following code to communicate
@@ -722,6 +722,97 @@ class Ocean_Optics_UV_vis(UVDetector):
         except Exception as e:
             print(f"Warning: Could not update control file: {e}")
 
+    def _check_average_absorbance_in_window(self, df):
+        """
+        Returns True if at least one target wavelength has mean non-outlier
+        absorbance > spike_level within the last convergence_time seconds.
+        Non-outlier: abs(current - previous) < convergence_threshold (same as main logic).
+        """
+        if len(df) < 2:
+            return False
+
+        last_time = df.iloc[-1, 0]
+        window_start_time = last_time - self.convergence_time
+
+        in_window = df.iloc[:, 0] >= window_start_time
+        if not in_window.any():
+            return False
+
+        first_window_pos = int(in_window.values.argmax())
+        context_start = max(0, first_window_pos - 1)
+        context_df = df.iloc[context_start:]
+
+        wl_diffs = context_df.iloc[:, 1:].diff().abs()
+        offset = first_window_pos - context_start
+        diffs_in_window = wl_diffs.iloc[offset:]
+        absorbance_in_window = context_df.iloc[offset:, 1:]
+
+        max_step = diffs_in_window.max(axis=1).fillna(0)
+        is_outlier = (max_step >= self.convergence_threshold).values
+
+        non_outlier_abs = absorbance_in_window.iloc[~is_outlier]
+        if len(non_outlier_abs) == 0:
+            return False
+
+        avg_abs = non_outlier_abs.mean()
+        return bool(any(avg > self.spike_level for avg in avg_abs))
+    def _check_average_absorbance_in_window(self, df):
+        """
+        Returns True if at least one target wavelength has mean absorbance > spike_level
+        within the last convergence_time seconds, considering only non-outlier points.
+        """
+        # If there are fewer than two rows, we can't determine convergence, so return False
+        if len(df) < 2:
+            return False
+        
+        # Get the timestamp of the last recorded measurement
+        convergence_window_end_time = df.iloc[-1, 0]
+        # Calculate the start time of the convergence window
+        convergence_window_start_time = convergence_window_end_time - self.convergence_time
+
+        # Extract the subset of the DataFrame that falls within the convergence time window
+        convergence_window_data = df[df.iloc[:, 0] >= convergence_window_start_time]
+        if convergence_window_data.empty:
+            return False
+        
+        # We need to grab the previous value before the convergence window starts to determine outliers for the first point in the window
+        # The convergence_window_data is containing boolean values, True and False, and values converts these values to 0 and 1
+        # The argmax function returns the index of the first occurrence of the maximum value, which in this case
+        # corresponds to the first True value in the boolean array.
+        first_point_in_convergence_window = int(convergence_window_data.values.argmax())
+        # This returns the index of the first point before the convergence window starts
+        # max is used to ensure that we don't get a negative index 
+        point_before_first_point_in_convergence_window = max(0, first_point_in_convergence_window - 1)
+        # This creates a new DataFrame starting at the point before the first point in the convergence window,
+        # This allows it to include in the previous point for outlier detection
+        updated_convergence_window_data = df.iloc[point_before_first_point_in_convergence_window:]
+
+        # This calculates the absolute difference between consecutive measurements for each target wavelength
+        absorbance_differences = updated_convergence_window_data.iloc[:, 1:].diff().abs()
+
+        # Determine offset to align the differences with the original data
+        offset = first_point_in_convergence_window - point_before_first_point_in_convergence_window
+
+        # This extracts the differences that fall within the convergence window based on the calculated offset
+        differences_in_window = absorbance_differences.iloc[offset:]
+        # This extracts the absorbance values that fall within the convergence window based on the calculated offset
+        absorbance_in_window = updated_convergence_window_data.iloc[offset:, 1:]
+
+        # TODO: The steady state is being calculated incorrectly, need to update the logix to ensure correctly calculates steady state
+        # This identifies outliers based on whether the difference at any target wavelength exceeds the convergence threshold.
+        max_step = differences_in_window.max(axis=1).fillna(0)
+        absorbance_is_an_outlier = (max_step >= self.convergence_threshold).values
+        
+        #This selects only the non-outlier absorbance values within the convergence window
+        non_outlier_abs = absorbance_in_window.iloc[~absorbance_is_an_outlier]
+        if len(non_outlier_abs) == 0:
+            return False
+        
+        # This calculates the average absorbance for each target wavelength within the convergence window,
+        # all outliers removed
+        avg_abs = non_outlier_abs.mean()
+        return bool(any(avg > self.spike_level for avg in avg_abs))
+
     def check_convergence_from_csv(self):
         """
         Reads a csv file and checks if the UV-VIS measurements have converged based on two criteria:
@@ -789,10 +880,13 @@ class Ocean_Optics_UV_vis(UVDetector):
                     if time_elapsed >= self.convergence_time:
                         # Checks if the number of outliers within the convergence window is less than or equal to the maximum allowed outliers
                         if len(self._convergence_state['outliers']) <= self.max_outliers:
-                            if not self._convergence_state['done']:
-                                self._convergence_state['done'] = True
-                                print(f"UV convergence criteria met (with {len(self._convergence_state['outliers'])} outliers) - stopping monitoring")
-                                return True
+                            if self._check_average_absorbance_in_window(continous_absorbance_df):
+                                if not self._convergence_state['done']:
+                                    self._convergence_state['done'] = True
+                                    print(f"UV convergence criteria met (with {len(self._convergence_state['outliers'])} outliers) - stopping monitoring")
+                                    return True
+                            else:
+                                print("Convergence time elapsed but average absorbance in window did not exceed spike_level — continuing monitoring")
             
             # If the maximum difference exceeds the convergence threshold
             else:

@@ -22,8 +22,8 @@ class Tecan_pump(Pump):
   def __init__(self, port='COM16', baud_rate=9600, timeout=1, name="Tecan_pump_1"):
     self.name = name
     self.flow_rate_ul_min = 0
-    
-    
+    self._stop_flag = False
+
     try:
       self.driver = driver(port=port, baud_rate=baud_rate, timeout=timeout)
     except Exception as e:
@@ -88,6 +88,7 @@ class Tecan_pump(Pump):
   def dispense(self, flow_rate_ul_min: float, volume_ul: float) -> None:
     # Set the stop flag false
     self._stop_flag = False
+    print(f"Stop flag in dispense set to: {self._stop_flag}")
     self.set_flow_rate(flow_rate_ul_min) # Set the flow rate for the pump
     #The dispense command in the Tecan Pump is the continuous flow command
     time_sec = self._calculate_time_for_volume(volume_ul)
@@ -155,9 +156,10 @@ class Tecan_pump(Pump):
   def stop(self) -> None:
     if not self.driver.is_connected:
       return
+    self._stop_flag = True
     self.driver.stop_pump(pump="A")
     self.driver.stop_pump(pump="B")
-    self._stop_flag = True
+    print(f"Stop flag in stop set to: {self._stop_flag}")
 
   def status(self) -> str:
     #todo: implement status logic using Tecan_driver

@@ -70,6 +70,8 @@ class StatusMonitor:
             continue_flag = ExperimentLogger.check_continue_flag(self.instrument_control_file)
             if not continue_flag:
                 self.continue_flag_callback(False)
+                #TODO: Remove this print after debugging
+                print(f"continue_flag in status monitor:{self.continue_flag_callback}")
                 print(f"[{timestamp}] STOP signal received from {self.instrument_control_file}")
                 self.log_callback("CONTROL", "stop_signal", f"file={self.instrument_control_file}",
                                 "Experiment stop requested by user")

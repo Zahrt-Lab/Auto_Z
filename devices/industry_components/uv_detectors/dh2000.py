@@ -35,6 +35,7 @@ class DH2000LightSource(uv_detector_light_source_base):
         self.boot_delay_s = boot_delay_s
         self.name = "DH2000"
 
+
         self.ser = None
         self.control_file_path: str = None  # Set by GeneralExperimentMethod after construction
 
