@@ -135,6 +135,7 @@ class Tecan_pump(Pump):
         break
     
     self.stop()  # Stop the pump after dispensing the desired volume
+    self.set_flow_rate(0) # Reset the flow rate to 0 after dispensing is complete
     
   def _calculate_time_for_volume(self, volume_ul: float) -> float:
     """Helper method to calculate the time required to dispense a given volume at a specified flow rate."""
@@ -162,8 +163,9 @@ class Tecan_pump(Pump):
     print(f"Stop flag in stop set to: {self._stop_flag}")
 
   def status(self) -> str:
-    #todo: implement status logic using Tecan_driver
-    return "Status command is not implemented yet."
+    '''The Status method queries the Tecan_pump class for the current flowrate and returns a string with the status information.'''
+    flow_rate_ul_min = self.flow_rate_ul_min
+    return f"Current flow rate: {flow_rate_ul_min:.2f} uL/min"
 
   def close(self) -> None:
     if not self.driver.is_connected:
