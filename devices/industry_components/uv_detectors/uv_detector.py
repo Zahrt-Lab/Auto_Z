@@ -17,6 +17,8 @@ import threading
 import time
 from typing import List, Optional
 import traceback
+from math import erfc, sqrt
+from scipy.special import erfcinv
 
 
 # set headless backend before pyplot
@@ -69,7 +71,7 @@ from devices.industry_components.uv_detectors.uv_detector_base import UVDetector
 class Ocean_Optics_UV_vis(UVDetector):
 
     #Initiates the platform
-    def __init__(self, output_dir, baseline_intensity = 10000, integration_time = 100000, num_scans = 10, target_wavelengths = None, reference_wavelength = 700, blank_light_intensity_threshold=1000, wavelength_for_blank_light_intensity_check=600, save_file_path="UV_detection.csv", measurement_interval =20.0):
+    def __init__(self, output_dir, baseline_intensity = 10000, integration_time = 100000, num_scans = 10, target_wavelengths = None, reference_wavelength = 700, blank_light_intensity_threshold=1000, wavelength_for_blank_light_intensity_check=600, save_file_path="UV_detection.csv", measurement_interval =5.0):
 
         '''
         Device used to communicate with the Ocean Optics HR2000 device, using the following code to communicate
@@ -148,17 +150,16 @@ class Ocean_Optics_UV_vis(UVDetector):
         # Convergence monitoring
         self.convergence_enabled = False
         self.spike_level = 0.2
-        self.convergence_threshold = 0.05
-        self.convergence_time = 3 * 60  # 3 minutes in seconds
-        self.max_outliers = 2  # Allow up to 2 outliers during convergence period
+        self.convergence_time = 2 * 60  # 2 minutes in seconds
+        self.window_size = int(self.convergence_time / self.measurement_interval)  # Number of points in the convergence window
+        self.ssd_min_probability = 0.95 # Minimum probability for the SSD to be considered converged
+        self.ssd_t_crit = 2.0 # t-crit value for the SSD convergence test.
         self.max_convergence_wait = None  # Optional timeout in seconds (None = no limit)
         self.instrument_control_file = None  # Injected by GeneralExperimentMethod
         self.convergence_stop_callback = None  # Injected by GeneralExperimentMethod
         self._convergence_state = {
             'previous': None,
             'spike_seen': False,
-            'converged_start': None,
-            'outliers': [],  # List of timestamps for outlier points
             'done': False
         }
 
@@ -721,194 +722,116 @@ class Ocean_Optics_UV_vis(UVDetector):
                     print(f"Updated {control_file}: True -> False (convergence met)")
         except Exception as e:
             print(f"Warning: Could not update control file: {e}")
-
-    def _check_average_absorbance_in_window(self, df):
-        """
-        Returns True if at least one target wavelength has mean non-outlier
-        absorbance > spike_level within the last convergence_time seconds.
-        Non-outlier: abs(current - previous) < convergence_threshold (same as main logic).
-        """
-        if len(df) < 2:
-            return False
-
-        last_time = df.iloc[-1, 0]
-        window_start_time = last_time - self.convergence_time
-
-        in_window = df.iloc[:, 0] >= window_start_time
-        if not in_window.any():
-            return False
-
-        first_window_pos = int(in_window.values.argmax())
-        context_start = max(0, first_window_pos - 1)
-        context_df = df.iloc[context_start:]
-
-        wl_diffs = context_df.iloc[:, 1:].diff().abs()
-        offset = first_window_pos - context_start
-        diffs_in_window = wl_diffs.iloc[offset:]
-        absorbance_in_window = context_df.iloc[offset:, 1:]
-
-        max_step = diffs_in_window.max(axis=1).fillna(0)
-        is_outlier = (max_step >= self.convergence_threshold).values
-
-        non_outlier_abs = absorbance_in_window.iloc[~is_outlier]
-        if len(non_outlier_abs) == 0:
-            return False
-
-        avg_abs = non_outlier_abs.mean()
-        return bool(any(avg > self.spike_level for avg in avg_abs))
-    def _check_average_absorbance_in_window(self, df):
-        """
-        Returns True if at least one target wavelength has mean absorbance > spike_level
-        within the last convergence_time seconds, considering only non-outlier points.
-        """
-        # If there are fewer than two rows, we can't determine convergence, so return False
-        if len(df) < 2:
-            return False
-        
-        # Get the timestamp of the last recorded measurement
-        convergence_window_end_time = df.iloc[-1, 0]
-        # Calculate the start time of the convergence window
-        convergence_window_start_time = convergence_window_end_time - self.convergence_time
-
-        # Extract the subset of the DataFrame that falls within the convergence time window
-        convergence_window_data = df[df.iloc[:, 0] >= convergence_window_start_time]
-        if convergence_window_data.empty:
-            return False
-        
-        # We need to grab the previous value before the convergence window starts to determine outliers for the first point in the window
-        # The convergence_window_data is containing boolean values, True and False, and values converts these values to 0 and 1
-        # The argmax function returns the index of the first occurrence of the maximum value, which in this case
-        # corresponds to the first True value in the boolean array.
-        first_point_in_convergence_window = int(convergence_window_data.values.argmax())
-        # This returns the index of the first point before the convergence window starts
-        # max is used to ensure that we don't get a negative index 
-        point_before_first_point_in_convergence_window = max(0, first_point_in_convergence_window - 1)
-        # This creates a new DataFrame starting at the point before the first point in the convergence window,
-        # This allows it to include in the previous point for outlier detection
-        updated_convergence_window_data = df.iloc[point_before_first_point_in_convergence_window:]
-
-        # This calculates the absolute difference between consecutive measurements for each target wavelength
-        absorbance_differences = updated_convergence_window_data.iloc[:, 1:].diff().abs()
-
-        # Determine offset to align the differences with the original data
-        offset = first_point_in_convergence_window - point_before_first_point_in_convergence_window
-
-        # This extracts the differences that fall within the convergence window based on the calculated offset
-        differences_in_window = absorbance_differences.iloc[offset:]
-        # This extracts the absorbance values that fall within the convergence window based on the calculated offset
-        absorbance_in_window = updated_convergence_window_data.iloc[offset:, 1:]
-
-        # TODO: The steady state is being calculated incorrectly, need to update the logix to ensure correctly calculates steady state
-        # This identifies outliers based on whether the difference at any target wavelength exceeds the convergence threshold.
-        max_step = differences_in_window.max(axis=1).fillna(0)
-        absorbance_is_an_outlier = (max_step >= self.convergence_threshold).values
-        
-        #This selects only the non-outlier absorbance values within the convergence window
-        non_outlier_abs = absorbance_in_window.iloc[~absorbance_is_an_outlier]
-        if len(non_outlier_abs) == 0:
-            return False
-        
-        # This calculates the average absorbance for each target wavelength within the convergence window,
-        # all outliers removed
-        avg_abs = non_outlier_abs.mean()
-        return bool(any(avg > self.spike_level for avg in avg_abs))
-
+    
     def check_convergence_from_csv(self):
         """
-        Reads a csv file and checks if the UV-VIS measurements have converged based on two criteria:
-                1. Spike detection: once one of the measured wavelengths are greater than or equal to the spike threshold,
-                   the converge monitoring will be initiated.
-                2. Convergence, the signal is stable for a set period of time 
-        """       
+        Two-phase convergence detection using the SSD algorithm:
+    
+        Phase 1 — Spike detection (unchanged):
+            Wait until any target wavelength absorbance >= spike_level.
+            This means the reaction has started producing signal.
+    
+        Phase 2 — Steady-state detection (SSD):
+            Apply Kelly & Hedengren (2013) to each target wavelength
+            using the Šidák correction for multivariate testing.
+            The residual probability must pass for one wavelength.
+    
+        Returns:
+            - bool : True if convergence is confirmed, False otherwise.
+        """
         try:
-            # Loads the csv file containing the UV-VIS measurements, 
-            continous_absorbance_df = pd.read_csv(self.save_file_path)
-
-            # If the file is empty, with no rows it returns False
-            if len(continous_absorbance_df) < 1:
-                return False
-            
-            # This gets the absorbance values for each target wavelength at the last scanned timepoint
-            # Column 0 is time, so only columns from 1 onwards are the target wavelengths
-            current_absorbance_values_each_wavelength = continous_absorbance_df.iloc[-1, 1:].values
-
-            # If there are no previous values, it will store the current values as the previous values
-            # It returns False because there is no basis for comparison yet
-            if self._convergence_state['previous'] is None:
-                self._convergence_state['previous'] = current_absorbance_values_each_wavelength
-                return False
-            
-            # 1) Wait for spike, if spike occurs that start experiment convergence monitoring
-            if not self._convergence_state['spike_seen']:
-                # If any of the current absorbance values at the target wavelengths are greater than
-                # or equal to the spike level, it will set the spike seen flag to True and reset the
-                # converged start time to None to start fresh for convergence monitoring
-                if any(value >= self.spike_level for value in current_absorbance_values_each_wavelength):
-                    self._convergence_state['spike_seen'] = True
-                    self._convergence_state['converged_start'] = None
-                # It will update the previous value to the current value and return False to continue monitoring for convergence
-                self._convergence_state['previous'] = current_absorbance_values_each_wavelength
-                return False
-            
-            # 2) After spike, is detected convergence is checked every timepoint
-
-            # This calculates the absolute difference between the current absorbance values and the previous absorbance values 
-            # for each target wavelength
-            absorbance_differences = [abs(current - previous) for current, previous in zip(current_absorbance_values_each_wavelength, self._convergence_state['previous'])]
-
-            current_time = time.time()
-            # If the monitoring til convergence has already started
-            # It will delete any outliers that are outside the convergence time window
-            if self._convergence_state['converged_start'] is not None:
-                window_start = current_time - self.convergence_time
-                self._convergence_state['outliers'] = \
-                                  [timestamp for timestamp in self._convergence_state['outliers'] if timestamp >= window_start]
-            
-            # Checks if the maximum difference across all target wavelengths is less than the convergence threshold
-            if max(absorbance_differences) < self.convergence_threshold:
-
-                if self._convergence_state['converged_start'] is None:
-                    # Sets convergence start time to the current time
-                    self._convergence_state['converged_start'] = current_time
-                    # Resets the outliers list when starting convergence monitoring
-                    self._convergence_state['outliers'] = []  
-
-                else:
-                    # Checks time elapsed since convergence monitoring started
-                    time_elapsed = current_time - self._convergence_state['converged_start']
-                    # Checks if the time elapsed is greater than or equal to the required convergence time
-                    if time_elapsed >= self.convergence_time:
-                        # Checks if the number of outliers within the convergence window is less than or equal to the maximum allowed outliers
-                        if len(self._convergence_state['outliers']) <= self.max_outliers:
-                            if self._check_average_absorbance_in_window(continous_absorbance_df):
-                                if not self._convergence_state['done']:
-                                    self._convergence_state['done'] = True
-                                    print(f"UV convergence criteria met (with {len(self._convergence_state['outliers'])} outliers) - stopping monitoring")
-                                    return True
-                            else:
-                                print("Convergence time elapsed but average absorbance in window did not exceed spike_level — continuing monitoring")
-            
-            # If the maximum difference exceeds the convergence threshold
-            else:
-                # If convergence monitoring is in progress, it will record this timepoint as an outlier
-                if self._convergence_state['converged_start'] is not None:
-                    #This adds the current time to the list of outliers
-                    self._convergence_state['outliers'].append(current_time)
-
-                    # If the number of outliers is greater than the maximum allowed outliers
-                    if len(self._convergence_state['outliers']) > self.max_outliers:
-                        # It will reset the convergence monitoring by setting the convergence start time to None and clearing the outliers list
-                        print(f"Convergence reset: too many outliers ({len(self._convergence_state['outliers'])}) within {self.convergence_time}s window")
-                        self._convergence_state['converged_start'] = None
-                        self._convergence_state['outliers'] = []
-                    
-            self._convergence_state['previous'] = current_absorbance_values_each_wavelength
-            return False
-
+            df = pd.read_csv(self.save_file_path)
         except Exception as e:
             print(f"Error reading CSV for convergence check: {e}")
             return False
         
+        if len(df) < 2:
+            return False
+        
+        # Column 0 = Time(s), columns 1,...,n = target_wavelengths
+
+        # Phase 1: Spike detection
+        if not self._convergence_state['spike_seen']:
+            # Get the absorbance values for each target wavelength at the last scanned timepoint
+            current_absorbance_values = df.iloc[-1, 1:].values
+            if any(value >= self.spike_level for value in current_absorbance_values):
+                self._convergence_state['spike_seen'] = True
+                print("Spike detected — starting SSD monitoring")
+            return False
+        
+        # Phase 2: Steady-state detection (SSD)
+        if len(df) < self.window_size:
+            return False
+        
+        # This checks for steady state using the SSD algorithm for each target wavelength, if one wavelength is at steady state,
+        # and has average absorbance above the spike level, then it will considered at steady state
+        SSD_test = []
+        for wavelength_index in range(1, len(df.columns)):
+            absorbance_data = df.iloc[-self.window_size:, wavelength_index].values  # Absorbance data for the current wavelength in the window
+            result = self._ssd_test_uv_vis_absorbance(absorbance_data)
+            SSD_test.append(result)
+
+        # Checks if ANY wavelength passed the SSD test and has average absorbance above the spike level
+        for i, wavelength_index in enumerate(range(1, len(df.columns))):
+            if SSD_test[i] == True and df.iloc[-self.window_size:, wavelength_index].mean() > self.spike_level:
+                print(f"Wavelength {df.columns[wavelength_index]} nm passed SSD test and has average absorbance above spike level in the window — steady state confirmed")
+                return True
+
+        return False
+
+    def _ssd_test_uv_vis_absorbance(self, absorbance_data: np.ndarray) -> bool:
+        """
+        Runs the SSD algorithm on a 1D array of uv-vis absorbance values
+
+        Implements Kelly & Hedengren (2013), J. Process Control 23, 326-331:
+            - Eq. 1: x_t = m*t + μ + a_t
+            - Eq. 3: drift-corrected mean μ
+            - Eq. 4: noise std σ_a (n-2 degrees of freedom)
+            - Eq. 5: residual Student's t test per point
+            - Slope t-test: |m / SE(m)| < t_crit
+        
+        Parameters:
+            - absorbance_data: np.ndarray 1D array of absorbance values 
+
+        Returns:
+            - bool: True if the absorbance data is considered steady, False otherwise
+        """
+        # Step 1: select the last N points within the convergence time window
+        absorbance_data = absorbance_data[-self.window_size:]
+        n = len(absorbance_data)
+
+        if n < self.window_size:
+            return False 
+
+        # Step 2: Calculate window indices
+        window_indices = np.arange(1, n + 1, dtype=float)
+
+        # Step 3: Estimate slope m (mean of first differences) (xt-xt-1)/n
+        m = np.mean(np.diff(absorbance_data))
+
+        # Step 4: Calculate drift-corrected mean μ, 
+        mu = (np.sum(absorbance_data) - m * np.sum(window_indices)) / n
+
+        # Step 5: Calculate white noise std σ_a 
+        residuals = absorbance_data - m * window_indices - mu
+        sigma_a = np.sqrt(np.sum(residuals**2) / (n - 2))
+        if sigma_a < 1e-12:
+            sigma_a = 1e-12
+
+        # Step 6: Calculates deviations and threshold for residuals, then computes the probability of being in steady state
+        # Calculates the absolute deviations of the absorbance data from the drift-corrected mean
+        deviations = np.abs(absorbance_data - mu)
+        # This calculates the threshold for the residuals based on the critical t-value and the noise standard deviation
+        threshold = self.ssd_t_crit * sigma_a
+        # Calculates the probability that the deviations are less than the threshold, which indicates how likely it is that the data is consistent with steady-state behavior
+        probability = np.mean(deviations < threshold)
+        
+        # Step 7: Slope t-test
+        residual_ok = probability >= self.ssd_min_probability
+
+        return residual_ok
+
+
     def close(self):
         self.close_device()
 
