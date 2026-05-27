@@ -27,6 +27,9 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
+# References
+# 1) http://www.sciencedirect.com/science/article/pii/S0959152412002661
+
 #from safetensors.flax import save_file
 # Need to include the OceanDirect SDK path dynamically in the future when uploading to different computers
 
