@@ -5,26 +5,33 @@
 # All rights reserved.
 # ------------------------------------------------------------------------------
 
+"""Abstract base class for photoreactor light source components."""
+
 from abc import ABC, abstractmethod
 
-# TODO : The PhotoReactor should be generic, but currenltly only has MirrorBox365nm implmentenation. Need to make more generic
 class PhotoReactor(ABC):
     """Abstract interface for custom light source components."""
 
     @abstractmethod
-    def connect(self) -> None: ...
+    def connect(self) -> None:
+        """Connects to the light source of the photoreactor."""
 
     @abstractmethod
-    def close(self) -> None: ...
+    def close(self) -> None:
+        """Closes the connection to the light source of the photoreactor."""
 
     @abstractmethod
-    def set_dimmer(self, value: int) -> None: ...
+    def set_dimmer(self, value: int) -> None:
+        """Sets the dimmer value for the light source."""
 
     @abstractmethod
-    def status(self) -> dict: ...
+    def status(self) -> dict:
+        """Returns the status of the photoreactor."""
 
     @abstractmethod
-    def read_temperature_stream(self) -> dict: ...
+    def read_temperature_stream(self) -> dict:
+        """Reads the temperature stream from the photoreactor."""
 
     @abstractmethod
-    def safe_shutdown(self, success: bool) -> None: ...
+    def safe_shutdown(self, success: bool) -> None:
+        """Performs a safe shutdown of the photoreactor."""

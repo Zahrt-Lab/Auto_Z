@@ -6,20 +6,17 @@
 # All rights reserved.
 # ------------------------------------------------------------------------------
 
-# pumps.py
+"""Abstract base class for temperature controller components."""
+
 from __future__ import annotations
 import abc
 
+
 class TemperatureController(abc.ABC):
-    """Abstract high-level interface for TemperatureController used within the lab space.
-
-    Units:
-    - flow_rate: microliters per minute (µL/min)
-    - volume: microliters (µL)
-
-    Implementations must implement the Device lifecycle methods and set
-    `self._connected = True` on successful `connect()`.
     """
+    Abstract high-level interface for TemperatureController used within the lab space.
+    """
+
     @abc.abstractmethod
     def connect(self) -> None:
         """Connect to the temperature controller device."""

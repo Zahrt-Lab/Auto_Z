@@ -6,9 +6,11 @@
 # All rights reserved.
 # ------------------------------------------------------------------------------
 
-# liquid_handler.py
+"""Abstract base class for liquid handler robot components."""
+
 from __future__ import annotations
 import abc
+
 
 class LiquidHandler(abc.ABC):
     """Abstract high-level interface for liquid handler robots (synchronous)."""
@@ -42,7 +44,7 @@ class LiquidHandler(abc.ABC):
         """Return the safe Z height (mm) for the liquid handler."""
 
     @abc.abstractmethod
-    def status() -> str:
+    def status(self) -> str:
         """Return a string representing the current x, y  and z status of the liquid handler."""
 
     @abc.abstractmethod

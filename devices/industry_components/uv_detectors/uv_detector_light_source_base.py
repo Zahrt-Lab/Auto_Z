@@ -5,6 +5,8 @@
 # All rights reserved.
 # ------------------------------------------------------------------------------
 
+"""Abstract base class for UV-Vis detector light source controllers."""
+
 from abc import ABC, abstractmethod
 
 
@@ -12,25 +14,33 @@ class uv_detector_light_source_base(ABC):
     """Abstract interface for uv detector light source controllers."""
 
     @abstractmethod
-    def connect(self) -> None: ...
+    def connect(self) -> None:
+        """Connects to the light source controller of the UV-Vis detector."""
 
     @abstractmethod
-    def close(self) -> None: ...
+    def close(self) -> None:
+        """Closes the connection to the light source controller of the UV-Vis detector."""
 
     @abstractmethod
-    def shutter_open(self) -> None: ...
+    def shutter_open(self) -> None:
+        """Opens the shutter of the light source controller."""
 
     @abstractmethod
-    def shutter_close(self) -> None: ...
+    def shutter_close(self) -> None:
+        """Closes the shutter of the light source controller."""
 
     @abstractmethod
-    def halogen_toggle(self) -> None: ...
+    def halogen_toggle(self) -> None:
+        """Toggles the halogen light source on/off."""
 
     @abstractmethod
-    def deuterium_toggle(self) -> None: ...
+    def deuterium_toggle(self) -> None:
+        """Toggles the deuterium light source on/off."""
 
     @abstractmethod
-    def status(self) -> dict: ...
+    def status(self) -> dict:
+        """Returns the status of the light source controller."""
 
     @abstractmethod
-    def safe_shutdown(self, success: bool) -> None: ...
+    def safe_shutdown(self, success: bool) -> None:
+        """Performs a safe shutdown of the light source controller."""

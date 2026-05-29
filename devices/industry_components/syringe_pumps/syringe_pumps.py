@@ -6,9 +6,11 @@
 # All rights reserved.
 # ------------------------------------------------------------------------------
 
-# pumps.py
+"""Abstract base class for syringe pump components."""
+
 from __future__ import annotations
 import abc
+
 
 class SyringePump(abc.ABC):
     """Abstract high-level interface for Syringepumps used within the lab space.
@@ -16,14 +18,12 @@ class SyringePump(abc.ABC):
     Units:
     - flow_rate: microliters per minute (µL/min)
     - volume: microliters (µL)
-
-    Implementations must implement the Device lifecycle methods and set
-    `self._connected = True` on successful `connect()`.
     """
+
     @abc.abstractmethod
     def connect(self) -> None:
         """Connect to the syringe pump device."""
-    
+
     @abc.abstractmethod
     def select_syringe(self, volume_ml: float) -> None:
         """Select the syringe size (mL)."""
@@ -45,7 +45,7 @@ class SyringePump(abc.ABC):
         """Stop any ongoing aspiration/dispense operation promptly."""
 
     @abc.abstractmethod
-    def status() -> str:
+    def status(self) -> str:
         """Return a string representing the current status of the pump."""
 
     @abc.abstractmethod

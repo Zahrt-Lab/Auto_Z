@@ -6,9 +6,11 @@
 # All rights reserved.
 # ------------------------------------------------------------------------------
 
-# pumps.py
+"""Abstract base class for pump components"""
+
 from __future__ import annotations
 import abc
+
 
 class Pump(abc.ABC):
     """Abstract high-level interface for pumps used within the lab space.
@@ -16,14 +18,11 @@ class Pump(abc.ABC):
     Units:
     - flow_rate: microliters per minute (µL/min)
     - volume: microliters (µL)
-
-    Implementations must implement the Device lifecycle methods and set
-    `self._connected = True` on successful `connect()`.
     """
 
     @abc.abstractmethod
     def connect(self) -> None:
-        """Connect to the pump device.""" 
+        """Connect to the pump device."""
 
     @abc.abstractmethod
     def aspirate(self, flow_rate_ul_min: float, volume_ul: float) -> None:

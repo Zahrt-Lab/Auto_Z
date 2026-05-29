@@ -6,9 +6,11 @@
 # All rights reserved.
 # ------------------------------------------------------------------------------
 
-# pumps.py
+"""Abstract base class for valve components."""
+
 from __future__ import annotations
 import abc
+
 
 class Valves(abc.ABC):
     """Abstract high-level interface for Valves used within the lab space.
@@ -16,6 +18,7 @@ class Valves(abc.ABC):
     Implementations must implement the Device lifecycle methods and set
     `self._connected = True` on successful `connect()`.
     """
+
     @abc.abstractmethod
     def connect(self) -> None:
         """Connect to the valve device."""
@@ -27,7 +30,7 @@ class Valves(abc.ABC):
     @abc.abstractmethod
     def get_position(self) -> int:
         """Get the current position."""
-    
+
     @abc.abstractmethod
     def move_home(self) -> None:
         """Move to the home position."""
