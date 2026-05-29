@@ -70,7 +70,10 @@ class GeneralExperimentMethod:
         # Give UV detector instances the instrument control file path and convergence callback
         for device in self.instrument_manager.instruments.values():
             if isinstance(device, UVDetector):
+                # UV detector needs access to the control file to check for stop signal during convergence monitoring
                 device.instrument_control_file = self.instrument_control_file
+                # If check_convergence_from_csv is True, the UV detector will call this callback when convergence is detected
+                # This sets the continue flag for each worker thread to False, which triggers a clean stop of the experiment
                 device.convergence_stop_callback = self._set_convergence_triggered
 
         # Control flag for experiment execution
@@ -109,7 +112,7 @@ class GeneralExperimentMethod:
         print(f"Continue flag set to: {self._continue_experiment}")
 
     def _set_convergence_triggered(self):
-        """Called by UV detector on convergence — triggers a clean stop."""
+        """Called by UV detector on convergence — triggers a clean stop of the experiment and turns off all the pumps"""
         self._convergence_triggered = True
         self._continue_experiment = False
         self.executor.stop_all_pumps()

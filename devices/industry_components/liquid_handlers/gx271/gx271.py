@@ -70,7 +70,15 @@ class GX271(LiquidHandler):
     def connect(self):
         hs = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         hs.settimeout(self.timeout)
-        hs.connect((self.host, self.handshake_port))
+        try:
+            hs.connect((self.host, self.handshake_port))
+        except (socket.timeout, ConnectionRefusedError, OSError) as e:
+            hs.close()
+            raise RuntimeError(
+                f"GX271: Cannot reach device at {self.host}:{self.handshake_port}. "
+                f"Check: (1) device is powered on, (2) host IP is correct, "
+                f"(3) Gilson connection server is running. Error: {e}"
+            ) from e
         hs.sendall(b"<Gilson><GilsonConnect>Gilson Ethernet Utility</GilsonConnect></Gilson>")
         time.sleep(0.3)
         hs.recv(4096)
@@ -389,7 +397,7 @@ class GX271(LiquidHandler):
     def _ensure_conn(self) -> None:
         if not self._connected:
             raise RuntimeError("GX-271 is not connected. Call connect() first.")    
-'''
+
 if __name__ == "__main__":
     gx = GX271(name="GX-271", uid=35, debug=True)
     gx.connect()
@@ -413,4 +421,4 @@ if __name__ == "__main__":
 
     print(gx.status())
     gx.disconnect()
-'''
+    

@@ -714,17 +714,18 @@ class Ocean_Optics_UV_vis(UVDetector):
     
     def _update_control_file(self):
         """Write False to instrument_control.txt to stop the experiment on convergence."""
-        try:
-            if not self.instrument_control_file:
-                return
-            control_file = Path(self.instrument_control_file)
-            if control_file.exists():
-                content = control_file.read_text().strip()
-                if content == "True":
-                    control_file.write_text("False")
-                    print(f"Updated {control_file}: True -> False (convergence met)")
-        except Exception as e:
-            print(f"Warning: Could not update control file: {e}")
+        if not self.instrument_control_file:
+            return
+        # Obtains the path to the control file
+        control_file = Path(self.instrument_control_file)
+        # If the file was created by the GeneralExperimentMethod, it will update the file to signal the experiment to stop
+        if control_file.exists():
+            # Reads the current content of the control file, if it's "True", it will update it to "False" to signal the experiment to stop
+            content = control_file.read_text().strip()
+            if content == "True":
+                #Sets the content of the control file to False to signal the experiment to stop
+                control_file.write_text("False")
+                print(f"Updated {control_file}: True -> False (convergence met)")
     
     def check_convergence_from_csv(self):
         """
@@ -765,7 +766,7 @@ class Ocean_Optics_UV_vis(UVDetector):
         # Phase 2: Steady-state detection (SSD)
         if len(df) < self.window_size:
             return False
-        
+
         # This checks for steady state using the SSD algorithm for each target wavelength, if one wavelength is at steady state,
         # and has average absorbance above the spike level, then it will considered at steady state
         SSD_test = []
@@ -773,10 +774,11 @@ class Ocean_Optics_UV_vis(UVDetector):
             absorbance_data = df.iloc[-self.window_size:, wavelength_index].values  # Absorbance data for the current wavelength in the window
             result = self._ssd_test_uv_vis_absorbance(absorbance_data)
             SSD_test.append(result)
-
+        
         # Checks if ANY wavelength passed the SSD test and has average absorbance above the spike level
         for i, wavelength_index in enumerate(range(1, len(df.columns))):
-            if SSD_test[i] == True and df.iloc[-self.window_size:, wavelength_index].mean() > self.spike_level:
+            window_size_range = df.iloc[-self.window_size:, wavelength_index].max() - df.iloc[-self.window_size:, wavelength_index].min()
+            if SSD_test[i] == True and df.iloc[-self.window_size:, wavelength_index].mean() > self.spike_level and window_size_range <= 0.05:
                 print(f"Wavelength {df.columns[wavelength_index]} nm passed SSD test and has average absorbance above spike level in the window — steady state confirmed")
                 return True
 
