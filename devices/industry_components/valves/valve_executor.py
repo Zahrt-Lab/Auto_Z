@@ -19,7 +19,7 @@ class ValveExecutor:
 
     def __init__(self, log_callback):
         """
-        Args:
+        Parameters:
             log_callback: Function to log an action row (component, action, params, output).
         """
         self.log_to_csv = log_callback
@@ -28,23 +28,39 @@ class ValveExecutor:
         """Route action string to the appropriate valve method."""
         from methods.parameter_parser import parse_params
 
-        if action == 'go_to_position':
-            position = parse_params(params).get('position')
+        if action == "go_to_position":
+            position = parse_params(params).get("position")
             if position is None:
-                self.log_to_csv(component, action, params, "Error: position parameter missing")
+                self.log_to_csv(
+                    component, action, params, "Error: position parameter missing"
+                )
                 return
             valve.go_to_position(position)
-            self.log_to_csv(component, action, params, f"Moved valve to position {position}")
+            self.log_to_csv(
+                component, action, params, f"Moved valve to position {position}"
+            )
             current = valve.get_position()
-            self.log_to_csv(component, 'check_position', '', current,
-                            notes=f"Valve now at position {current}")
+            self.log_to_csv(
+                component,
+                "check_position",
+                "",
+                current,
+                notes=f"Valve now at position {current}",
+            )
 
-        elif action == 'move_home':
+        elif action == "move_home":
             valve.move_home()
             self.log_to_csv(component, action, params, "Homed valve")
             current = valve.get_position()
-            self.log_to_csv(component, 'check_position', '', current,
-                            notes=f"Valve now at position {current}")
+            self.log_to_csv(
+                component,
+                "check_position",
+                "",
+                current,
+                notes=f"Valve now at position {current}",
+            )
 
         else:
-            self.log_to_csv(component, action, params, f"Error: Unknown action '{action}' for valve")
+            self.log_to_csv(
+                component, action, params, f"Error: Unknown action '{action}' for valve"
+            )

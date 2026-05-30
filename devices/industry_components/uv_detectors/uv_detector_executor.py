@@ -15,6 +15,7 @@ Actions: init, record_blank, record_dark, load_blank_csv, load_dark_csv,
 
 from pathlib import Path
 from devices.industry_components.uv_detectors.uv_detector_base import UVDetector
+from methods.parameter_parser import parse_params
 
 
 class UvDetectorExecutor:
@@ -22,14 +23,14 @@ class UvDetectorExecutor:
 
     def __init__(self, log_callback):
         """
-        Args:
+        Parameters:
             log_callback: Function to log an action row (component, action, params, output).
         """
         self.log_to_csv = log_callback
 
     def execute(self, action: str, params: str, component: str, uv: UVDetector):
         """Route action string to the appropriate UV detector method."""
-        from methods.parameter_parser import parse_params
+
         uv_params = parse_params(params)
 
         if action == "init":
@@ -54,11 +55,14 @@ class UvDetectorExecutor:
             uv.calculate_absorbance_spectrum()
             csv_path, png_path = uv.save_and_plot(Path(uv.output_dir))
             A = uv.get_absorbance_at_target_wavelengths()
-            self.log_to_csv(component, action, params, f"A={A}",
-                            notes=f"{csv_path} ; {png_path}")
+            self.log_to_csv(
+                component, action, params, f"A={A}", notes=f"{csv_path} ; {png_path}"
+            )
 
         elif action == "start_continuous":
-            stop_upon = str(uv_params.get("stop_upon_convergence", "False")).lower() == "true"
+            stop_upon = (
+                str(uv_params.get("stop_upon_convergence", "False")).lower() == "true"
+            )
             name = uv_params.get("name", None)
             uv.start_continuous(filename=name, stop_upon_convergence=stop_upon)
             self.log_to_csv(component, action, params, "OK")
@@ -90,7 +94,13 @@ class UvDetectorExecutor:
             if "target_wavelengths" in uv_params:
                 uv.set_target_wavelength(uv_params["target_wavelengths"])
             if "convergence_enabled" in uv_params:
-                uv.convergence_enabled = str(uv_params["convergence_enabled"]).lower() == "true"
+                uv.convergence_enabled = (
+                    str(uv_params["convergence_enabled"]).lower() == "true"
+                )
+
+            # TODO: I don't think all of these parameters are actually used in the
+            # current convergence implementation.
+            # Need to review and clearn up convergence parameters and implementation.
             if "spike_level" in uv_params:
                 uv.spike_level = float(uv_params["spike_level"])
             if "convergence_threshold" in uv_params:
@@ -104,9 +114,13 @@ class UvDetectorExecutor:
             if "reference_wavelength" in uv_params:
                 uv.set_reference_wavelength(uv_params["reference_wavelength"])
             if "blank_light_intensity_threshold" in uv_params:
-                uv.blank_light_intensity_threshold = float(uv_params["blank_light_intensity_threshold"])
+                uv.blank_light_intensity_threshold = float(
+                    uv_params["blank_light_intensity_threshold"]
+                )
             if "wavelength_for_blank_light_intensity_check" in uv_params:
-                uv.wavelength_for_blank_light_intensity_check = float(uv_params["wavelength_for_blank_light_intensity_check"])
+                uv.wavelength_for_blank_light_intensity_check = float(
+                    uv_params["wavelength_for_blank_light_intensity_check"]
+                )
             self.log_to_csv(component, action, params, "OK")
 
         elif action == "status":
@@ -114,5 +128,9 @@ class UvDetectorExecutor:
             self.log_to_csv(component, action, params, str(st), notes="")
 
         else:
-            self.log_to_csv(component, action, params,
-                            f"Error: Unknown OceanOptics action '{action}'")
+            self.log_to_csv(
+                component,
+                action,
+                params,
+                f"Error: Unknown OceanOptics action '{action}'",
+            )

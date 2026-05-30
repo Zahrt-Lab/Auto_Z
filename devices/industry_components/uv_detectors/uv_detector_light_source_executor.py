@@ -12,7 +12,9 @@ Executor for DH2000 light source actions.
 Actions: shutter_open, shutter_close, halogen_toggle, deuterium_toggle, status, safe_shutdown.
 """
 
-from devices.industry_components.uv_detectors.uv_detector_light_source_base import uv_detector_light_source_base
+from devices.industry_components.uv_detectors.uv_detector_light_source_base import (
+    uv_detector_light_source_base
+)
 
 
 class UvDetectorLightSourceExecutor:
