@@ -22,7 +22,7 @@ class UvDetectorLightSourceExecutor:
 
     def __init__(self, log_callback):
         """
-        Args:
+        Parameters:
             log_callback: Function to log an action row (component, action, params, output).
         """
         self.log_to_csv = log_callback
