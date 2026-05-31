@@ -29,13 +29,6 @@ class_name  = "GX281"
 group       = "LiquidHandler"
 name_kwarg  = "name"
 
-[devices.Ender3_Liquid_Handler]
-import_path = "devices.industry_components.liquid_handlers.ender3_liquid_handler.ender3_liquid_handler"
-class_name  = "Ender3LiquidHandler"
-group       = "LiquidHandler"
-port_kwarg  = "port"
-name_kwarg  = "name"
-
 
 # ── Pumps ─────────────────────────────────────────────────────────────────────
 

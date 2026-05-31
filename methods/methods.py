@@ -184,7 +184,7 @@ class GeneralExperimentMethod:
                 elif isinstance(device, UVDetector):
                     self.executor.execute_uv_detector(row['Action'], row['Parameters'], row['Component'], device)
                 elif isinstance(device, PhotoReactor):
-                    self.executor.execute_mirror_box(row['Action'], row['Parameters'], row['Component'], device)
+                    self.executor.execute_photo_reactor(row['Action'], row['Parameters'], row['Component'], device)
                 else:
                     self.log_to_csv(row['Component'], row['Action'], row['Parameters'], f"Error: Unknown device type for '{row['Component']}'")
 

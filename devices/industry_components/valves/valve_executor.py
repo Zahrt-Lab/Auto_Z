@@ -12,6 +12,7 @@ Executor for valve actions (go_to_position, move_home).
 """
 
 from devices.industry_components.valves.valves import Valves
+from methods.parameter_parser import parse_params
 
 
 class ValveExecutor:
@@ -26,7 +27,6 @@ class ValveExecutor:
 
     def execute(self, action: str, params: str, component: str, valve: Valves):
         """Route action string to the appropriate valve method."""
-        from methods.parameter_parser import parse_params
 
         if action == "go_to_position":
             position = parse_params(params).get("position")

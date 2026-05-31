@@ -2,7 +2,7 @@
 Integration tests for MirrorBox365nm through GeneralExperimentMethod.
 
 Verifies the full pipeline:
-  method CSV -> run_experiment() -> execute_mirror_box() -> mock serial
+  method CSV -> run_experiment() -> execute_photo_reactor() -> mock serial
 
 InstrumentManager is patched to inject a MirrorBox365nm with mocked serial.
 StatusMonitor.start is patched to prevent a background thread from starting.
@@ -94,7 +94,7 @@ def _run(gm) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
-# Routing — does run_experiment() reach execute_mirror_box()?
+# Routing — does run_experiment() reach execute_photo_reactor()?
 # ---------------------------------------------------------------------------
 
 
@@ -239,13 +239,13 @@ class TestErrorHandling:
 
 
 # ---------------------------------------------------------------------------
-# DeviceExecutor unit — test execute_mirror_box in isolation
+# DeviceExecutor unit — test execute_photo_reactor in isolation
 # ---------------------------------------------------------------------------
 
 
 class TestExecuteMirrorBox:
     """
-    Tests DeviceExecutor.execute_mirror_box() directly, bypassing
+    Tests DeviceExecutor.execute_photo_reactor() directly, bypassing
     GeneralExperimentMethod entirely.
     """
 
@@ -276,7 +276,7 @@ class TestExecuteMirrorBox:
 
     def test_set_dimmer_calls_device(self, executor, mock_mb):
         mock_mb.ser.readline.side_effect = [b"OK (dimmer set)\r\n"] + [b""] * 10
-        executor.execute_mirror_box(
+        executor.execute_photo_reactor(
             "set_dimmer", "value=128", "MirrorBox365nm_1", mock_mb
         )
         mock_mb.ser.write.assert_called_with(b"dim 128\n")
@@ -287,11 +287,11 @@ class TestExecuteMirrorBox:
             b"Temps(C): 45.30\t44.80\r\n",
         ] + [b""] * 10
         with patch.object(mock_mb, "drain"):
-            executor.execute_mirror_box("status", "", "MirrorBox365nm_1", mock_mb)
+            executor.execute_photo_reactor("status", "", "MirrorBox365nm_1", mock_mb)
         assert any(e["action"] == "status" for e in executor._logged)
 
     def test_unknown_action_raises_and_logs_error(self, executor, mock_mb):
         mock_mb.ser.readline.side_effect = [b""] * 20
         with pytest.raises(ValueError, match="Unknown PhotoReactor action"):
-            executor.execute_mirror_box("bad_action", "", "MirrorBox365nm_1", mock_mb)
+            executor.execute_photo_reactor("bad_action", "", "MirrorBox365nm_1", mock_mb)
         assert any("Error" in e["output"] for e in executor._logged)

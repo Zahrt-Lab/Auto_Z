@@ -8,28 +8,10 @@
 # ------------------------------------------------------------------------------
 
 """
-Central coordinator that delegates CSV method actions to per-device sub-executors.
-
-Sub-executor locations (each sits next to its abstract base class):
-  LiquidHandlerExecutor  — devices/industry_components/liquid_handlers/
-  PumpExecutor           — devices/industry_components/pumps/
-  ValveExecutor          — devices/industry_components/valves/
-  TemperatureExecutor    — devices/industry_components/temperature_controller/
-  UvDetectorLightSourceExecutor — devices/industry_components/uv_detectors/
-  UvDetectorExecutor            — devices/industry_components/uv_detectors/
-  PhotoReactorExecutor   — devices/custom_components/light_source/
+Central Device Executor that assigns actions to the appropriate device's sub-executor
 """
 
-from devices.industry_components.liquid_handlers.liquid_handler_executor import LiquidHandlerExecutor
-from devices.industry_components.liquid_handlers.bed_layout import BedLayout
-from devices.industry_components.pumps.pump_executor import PumpExecutor
-from devices.industry_components.valves.valve_executor import ValveExecutor
-from devices.industry_components.temperature_controller.temperature_executor import TemperatureExecutor
-from devices.industry_components.uv_detectors.uv_detector_light_source_executor import UvDetectorLightSourceExecutor
-from devices.industry_components.uv_detectors.uv_detector_executor import UvDetectorExecutor
-from devices.custom_components.photo_reactor.photo_reactor_executor import PhotoReactorExecutor
-
-# Abstract base classes (kept here so methods.py can isinstance-check against them)
+# Abstract base classes for each instrument type
 from devices.industry_components.liquid_handlers.liquid_handlers import LiquidHandler
 from devices.industry_components.pumps.pumps import Pump
 from devices.industry_components.valves.valves import Valves
@@ -39,17 +21,26 @@ from devices.industry_components.uv_detectors.uv_detector_light_source_base impo
 from devices.industry_components.uv_detectors.uv_detector_base import UVDetector
 from devices.custom_components.photo_reactor.photo_reactor_base import PhotoReactor
 
+# Sub-executors for each instrument type
+from devices.industry_components.liquid_handlers.liquid_handler_executor import LiquidHandlerExecutor
+from devices.industry_components.liquid_handlers.bed_layout import BedLayout
+from devices.industry_components.pumps.pump_executor import PumpExecutor
+from devices.industry_components.valves.valve_executor import ValveExecutor
+from devices.industry_components.temperature_controller.temperature_executor import TemperatureExecutor
+from devices.industry_components.uv_detectors.uv_detector_light_source_executor import UvDetectorLightSourceExecutor
+from devices.industry_components.uv_detectors.uv_detector_executor import UvDetectorExecutor
+from devices.custom_components.photo_reactor.photo_reactor_executor import PhotoReactorExecutor
 
 class DeviceExecutor:
-    """Thin coordinator — instantiates sub-executors and delegates all execute_* calls."""
+    """Central Device Executor: instantiates sub-executors and delegates all execute_* calls."""
 
-    def __init__(self, bed_layouts, log_callback, start_time, continue_flag_getter):
+    def __init__(self, bed_layouts, log_callback, start_time, continue_flag_getter) -> None:
         """
-        Args:
-            bed_layouts: Shared dict of {bed_number: BedLayout}.
-            log_callback: Function to log an action row (component, action, params, output).
-            start_time: Experiment start time (datetime) — reserved for future sub-executor use.
-            continue_flag_getter: Callable returning bool — passed to TemperatureExecutor.
+        Parameters:
+            bed_layouts: Dictionary of {bed_number: BedLayout}.
+            log_callback: Function to log an experiment action row (component, action, params, output).
+            start_time: Experiment start time (datetime), used for future sub-executor use.
+            continue_flag_getter: Callable returning bool, passed to the TemperatureExecutor.
         """
         self._bed_layouts = bed_layouts
         self._log_callback = log_callback
@@ -66,31 +57,39 @@ class DeviceExecutor:
     # ------------------------------------------------------------------
 
     def execute_liquid_handler(self, action, params, component, liquid_handler: LiquidHandler):
+        """Assigns a liquid handler action to the LiquidHandlerExecutor."""
         self._liquid_handler.execute(action, params, component, liquid_handler)
 
     def execute_pump(self, action, params, component, pump: Pump):
+        """Assigns a pump action to the PumpExecutor."""
         self._pump.execute(action, params, component, pump)
 
     def stop_all_pumps(self):
+        """Stop all pumps immediately."""
         self._pump.stop_all_pumps()
 
     def wait_for_pumps(self):
         self._pump.wait_for_pumps()
 
     def execute_valve(self, action, params, component, valve: Valves):
+        """Assigns a valve action to the ValveExecutor."""
         self._valve.execute(action, params, component, valve)
 
     def execute_temperature(self, action, params, component, temp_control: TemperatureController):
+        """Assigns a temperature control action to the TemperatureExecutor."""
         self._temperature.execute(action, params, component, temp_control)
 
     def execute_uv_detector_light_source(self, action, params, component, dh: uv_detector_light_source_base):
+        """Assigns a DH2000 light source action to the UvDetectorLightSourceExecutor."""
         self._uv_detector_light_source.execute(action, params, component, dh)
 
     def execute_uv_detector(self, action, params, component, uv: UVDetector):
+        """Assigns a UV detector action to the UvDetectorExecutor."""
         self._uv_detector.execute(action, params, component, uv)
 
-    def execute_mirror_box(self, action, params, component, mirror_box: PhotoReactor):
-        self._photo_reactor.execute(action, params, component, mirror_box)
+    def execute_photo_reactor(self, action, params, component, photo_reactor: PhotoReactor):
+        """Assigns a photo reactor action to the PhotoReactorExecutor."""
+        self._photo_reactor.execute(action, params, component, photo_reactor)
 
     def set_bedlayout(self, bed, rack_layout):
         """Set the layout for a specific bed with the given rack_layout."""
