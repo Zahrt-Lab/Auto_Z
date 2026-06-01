@@ -526,7 +526,7 @@ def is_valve_output(ser: serial.Serial, pump: str = "A") -> bool:
 
     return output_vale
 
-def test_tricontinental_pump():
+def test_tricontinental_pump() -> None:
     """Test the Tricontinental C24000 pump control functions."""
     # Test
     composed_cmd_a = compose_command_continuous_flow_A(resolution=0,

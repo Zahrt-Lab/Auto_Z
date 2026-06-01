@@ -326,7 +326,7 @@ class PhdUltraPump(SyringePump):
 # ----------------------------------------------------------------------
 PORT, BAUD, PAUSE = "COM18", 9600, 0.25
 
-def _run_selftest():
+def _run_selftest() -> None:
     pump = None
     try:
         pump = PhdUltraPump(port=PORT, baudrate=BAUD)

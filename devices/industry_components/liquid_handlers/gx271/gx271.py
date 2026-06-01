@@ -72,7 +72,7 @@ class GX271(LiquidHandler):
 
     # ---- Connection ----------------------------------------------------------------
 
-    def connect(self):
+    def connect(self) -> None:
         hs = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         hs.settimeout(self.timeout)
         try:
@@ -134,20 +134,20 @@ class GX271(LiquidHandler):
 
         self._connected = True
 
-    def disconnect(self):
+    def disconnect(self) -> None:
         if self._sock:
             self._sock.close()
             self._sock = None
         self._connected = False
 
-    def close(self):
+    def close(self) -> None:
         self.disconnect()
 
-    def __enter__(self):
+    def __enter__(self) -> GX271:
         self.connect()
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: object) -> None:
         self.disconnect()
 
     # ---- Send/Receive Commands -----------------------------------------------------
@@ -342,7 +342,7 @@ class GX271(LiquidHandler):
     
     # ---- Core Movement -------------------------------------------------------------
 
-    def home(self):
+    def home(self) -> str:
         """Home all axes. Blocks until homing completes."""
         result = self._send_buffered_command("H", timeout=30.0)
         self.wait_ready(timeout=120.0)
@@ -359,7 +359,7 @@ class GX271(LiquidHandler):
         except (ValueError, IndexError):
             return 0.0, 0.0
 
-    def move_xy(self, x: float, y: float, sx: float = 350, sy: float = 350):
+    def move_xy(self, x: float, y: float, sx: float = 350, sy: float = 350) -> str:
         """Move to XY position. Blocks until motion completes."""
         if self.get_z() < self.SAFE_Z:
             print(f"Warning: Moving XY while Z is below safe height ({self.SAFE_Z}mm)")
@@ -377,7 +377,7 @@ class GX271(LiquidHandler):
         except ValueError:
             return 0.0
         
-    def move_z(self, z: float, sz: float = 125):
+    def move_z(self, z: float, sz: float = 125) -> str:
         """Move Z axis. Blocks until motion completes. Max speed 125 mm/s."""
         result = self._send_buffered_command(f"Z{z:.3f}:{sz:.1f}", timeout=15.0)
         self.wait_ready()

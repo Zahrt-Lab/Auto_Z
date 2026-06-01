@@ -182,12 +182,12 @@ class Tecan_driver():
       print(f"Error running continuous flow: {e}")
 
   def compose_command_continuous_flow_A(self,
-                                        resolution = 2,
-                                        initial_speed = 4000,
-                                        aspirate_speed = None,
-                                        dispense_speed = 3000,
-                                        initial_position = 0,
-                                        final_position = 24000) -> str:
+                                        resolution: int = 2,
+                                        initial_speed: int = 4000,
+                                        aspirate_speed: int | None = None,
+                                        dispense_speed: int = 3000,
+                                        initial_position: int = 0,
+                                        final_position: int = 24000) -> str:
     """Compose a command string for continuous flow for pump A at the specified rate.
     Arguments:
         rate_counts_s : int
@@ -206,12 +206,13 @@ class Tecan_driver():
     
     return command
 
-  def compose_command_continuous_flow_B(self, resolution = 2,
-                                        initial_speed = 4000,
-                                        aspirate_speed = None,
-                                        dispense_speed = 3000, 
-                                        initial_position = 0, 
-                                        final_position = 24000) -> str:
+  def compose_command_continuous_flow_B(self,
+                                        resolution: int = 2,
+                                        initial_speed: int = 4000,
+                                        aspirate_speed: int | None = None,
+                                        dispense_speed: int = 3000,
+                                        initial_position: int = 0,
+                                        final_position: int = 24000) -> str:
       """Compose a command string for continuous flow for pump B at the specified rate.
     
       Arguments:

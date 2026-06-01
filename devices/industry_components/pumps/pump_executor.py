@@ -116,7 +116,7 @@ class PumpExecutor:
 
         est_time = abs(volume) / (abs(flow_rate) / 60)  # seconds
 
-        def _pump_job():
+        def _pump_job() -> None:
             try:
                 if action == "aspirate":
                     if isinstance(pump, PeristalticPump):

@@ -31,7 +31,7 @@ class DH2000LightSource(uv_detector_light_source_base):
       s       -> prints 3 lines, no OK
     """
     def __init__(self, port: str, baudrate: int = 9600, timeout: float = 2.0,
-                 retries: int = 10, boot_delay_s: float = 2.0):
+                 retries: int = 10, boot_delay_s: float = 2.0) -> None:
         self.port = port
         self.baudrate = baudrate
         self.timeout = timeout
