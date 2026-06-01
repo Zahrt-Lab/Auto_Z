@@ -12,7 +12,11 @@ Executor for pump actions (aspirate, dispense, select_syringe, select_tubing).
 Pump operations are asynchronous — use wait_for_pumps() to block until all finish.
 """
 
+from __future__ import annotations
+
 import threading
+from typing import Callable
+
 from devices.industry_components.pumps.pumps import Pump
 from devices.industry_components.syringe_pumps.syringe_pumps import SyringePump
 from devices.industry_components.peristaltic_pumps.peristaltic_pumps import (
@@ -20,22 +24,24 @@ from devices.industry_components.peristaltic_pumps.peristaltic_pumps import (
 )
 from methods.parameter_parser import parse_params
 
+LogCallback = Callable[[str, str, str, str, str], None]
+
 
 # TODO: We never finished testing and validating peristaltic pump support, so we should remove it for now to avoid confusion.
 
 class PumpExecutor:
     """Executes CSV method actions for pump and syringe pump devices."""
 
-    def __init__(self, log_callback):
+    def __init__(self, log_callback: LogCallback) -> None:
         """
         Parameters:
             log_callback: Function to log an action row (component, action, params, output).
         """
         self.log_to_csv = log_callback
-        self._pump_threads = []
-        self._active_pumps = []
+        self._pump_threads: list[threading.Thread] = []
+        self._active_pumps: list[Pump | SyringePump | PeristalticPump] = []
 
-    def execute(self, action: str, params: str, component: str, pump: Pump):
+    def execute(self, action: str, params: str, component: str, pump: Pump) -> None:
         """Route action string to the appropriate pump method."""
 
         if action == "select_syringe":
@@ -157,7 +163,7 @@ class PumpExecutor:
             notes=f"exp. {est_time:.1f} s",
         )
 
-    def stop_all_pumps(self):
+    def stop_all_pumps(self) -> None:
         """Send an immediate stop command to every pump with an active dispense thread."""
         for pump in self._active_pumps:
             try:
@@ -165,7 +171,7 @@ class PumpExecutor:
             except Exception:
                 pass
 
-    def wait_for_pumps(self):
+    def wait_for_pumps(self) -> None:
         """Block until every launched pump thread ends, then reset the thread list."""
         for t in self._pump_threads:
             t.join()

@@ -6,6 +6,8 @@
 # All rights reserved.
 # ------------------------------------------------------------------------------
 
+from __future__ import annotations
+
 import os
 import pandas as pd
 from pathlib import Path
@@ -15,7 +17,7 @@ import numpy as np
 from datetime import datetime
 import threading
 import time
-from typing import List, Optional
+from typing import Any, Callable
 import traceback
 from math import erfc, sqrt
 from scipy.special import erfcinv
@@ -74,7 +76,19 @@ from devices.industry_components.uv_detectors.uv_detector_base import UVDetector
 class Ocean_Optics_UV_vis(UVDetector):
 
     #Initiates the platform
-    def __init__(self, output_dir, baseline_intensity = 10000, integration_time = 100000, num_scans = 10, target_wavelengths = None, reference_wavelength = 700, blank_light_intensity_threshold=1000, wavelength_for_blank_light_intensity_check=600, save_file_path="UV_detection.csv", measurement_interval =5.0):
+    def __init__(
+        self,
+        output_dir: str | Path,
+        baseline_intensity: float = 10000,
+        integration_time: int = 100000,
+        num_scans: int = 10,
+        target_wavelengths: list[float] | None = None,
+        reference_wavelength: float = 700,
+        blank_light_intensity_threshold: float = 1000,
+        wavelength_for_blank_light_intensity_check: float = 600,
+        save_file_path: str = "UV_detection.csv",
+        measurement_interval: float = 5.0,
+    ) -> None:
 
         '''
         Device used to communicate with the Ocean Optics HR2000 device, using the following code to communicate
@@ -110,23 +124,22 @@ class Ocean_Optics_UV_vis(UVDetector):
         #User will need to set where to save the file to w
         self.save_file_path = Path(output_dir) / save_file_path
 
-        self.od = None
-        self.device_ids = None
-        self.device = None
-        self.initialized = False
+        self.od: Any | None = None
+        self.device_ids: Any | None = None
+        self.device: Any | None = None
+        self.initialized: bool = False
 
-
-        self.serial = None
-        self.model = None
+        self.serial: str | None = None
+        self.model: str | None = None
 
         #Spectrum Calibration
-        self.blank_spectrum = None
-        self.dark_spectrum = None
-        self.raw_spectrum = None
-        self.absorbance_spectrum = None
+        self.blank_spectrum: np.ndarray | None = None
+        self.dark_spectrum: np.ndarray | None = None
+        self.raw_spectrum: np.ndarray | None = None
+        self.absorbance_spectrum: np.ndarray | None = None
 
-        self.spectra_sum = None
-        self.wavelengths = None
+        self.spectra_sum: np.ndarray | None = None
+        self.wavelengths: np.ndarray | None = None
 
         if target_wavelengths is None:
             self.target_wavelengths = [409.0]
@@ -138,17 +151,17 @@ class Ocean_Optics_UV_vis(UVDetector):
         else:
             self.reference_wavelength = float(reference_wavelength)
 
-        self.absorbance_at_target_wavelengths = None
+        self.absorbance_at_target_wavelengths: np.ndarray | None = None
 
         self.blank_light_intensity_threshold = blank_light_intensity_threshold
         self.wavelength_for_blank_light_intensity_check = wavelength_for_blank_light_intensity_check
 
         # Thread control
-        self._stop_flag: Optional[threading.Event] = None
-        self._worker_thread: Optional[threading.Thread] = None
-        self._csv_file_path = None
-        self._csv_writer = None
-        self._start_time: Optional[datetime] = None
+        self._stop_flag: threading.Event | None = None
+        self._worker_thread: threading.Thread | None = None
+        self._csv_file_path: Path | None = None
+        self._csv_writer: Any | None = None
+        self._start_time: datetime | None = None
         
         # Convergence monitoring
         self.convergence_enabled = False
@@ -187,14 +200,14 @@ class Ocean_Optics_UV_vis(UVDetector):
 
     """
 
-    def connect(self):
+    def connect(self) -> None:
         self.initialize_Ocean_Optics_UV_VIS()
         self.retrieve_Ocean_Optics_Model()
         # Apply configured acquisition settings
         self.set_number_of_scans(self.num_scans)
         self.set_integration_time()
 
-    def status(self):
+    def status(self) -> dict[str, Any]:
         return {
             "initialized": self.initialized,
             "model": self.model,
@@ -206,7 +219,7 @@ class Ocean_Optics_UV_vis(UVDetector):
         }
 
     # Initialize and open the device
-    def initialize_Ocean_Optics_UV_VIS(self):
+    def initialize_Ocean_Optics_UV_VIS(self) -> None:
         # Creates the instance of our ocean optics instance object
         od = OceanDirectAPI()
         # This finds al the USB devices if any, if 0, no UV-VIS spectrometers were found
@@ -226,7 +239,7 @@ class Ocean_Optics_UV_vis(UVDetector):
         self.initialized = True
 
     #Obtains all the information about the device
-    def retrieve_Ocean_Optics_Model(self):
+    def retrieve_Ocean_Optics_Model(self) -> None:
         try:
             self.serial = self.device.get_serial_number()
             self.model = self.device.get_model()
@@ -237,7 +250,7 @@ class Ocean_Optics_UV_vis(UVDetector):
             return None
 
     # Set the integration time of the device
-    def set_integration_time(self):
+    def set_integration_time(self) -> None:
         self.ensure_init()
         if self.integration_time < 0:
             print("Integration Time must be a positive value (ex. 50000 is 50ms")
@@ -249,7 +262,7 @@ class Ocean_Optics_UV_vis(UVDetector):
             return None
 
     #Sets the number of scans for this device
-    def set_number_of_scans(self, num_scans):
+    def set_number_of_scans(self, num_scans: int) -> None:
         try:
             self.num_scans = num_scans
             print(f"Set number of scans to {self.num_scans}")
@@ -259,7 +272,7 @@ class Ocean_Optics_UV_vis(UVDetector):
             print(f"Failed to set number of scans to {num_scans}")
 
     #Sets the target wavelength of the device to be recorded in the form of a list
-    def set_target_wavelength(self, target_wavelengths):
+    def set_target_wavelength(self, target_wavelengths: str | list[float]) -> None:
         #This input is a list of target wavelengths that we wish to record to track the progress of the reaction
         try:
             if isinstance(target_wavelengths, str):
@@ -271,7 +284,7 @@ class Ocean_Optics_UV_vis(UVDetector):
         except:
             print(f"FAILED TO SET TARGET WAVELENGTHS TO {target_wavelengths}")
 
-    def set_reference_wavelength(self, reference_wavelength):
+    def set_reference_wavelength(self, reference_wavelength: float | str) -> None:
         '''This sets the reference wavelength for the absorbance calculations'''
         try:
             self.reference_wavelength = float(reference_wavelength)
@@ -281,7 +294,7 @@ class Ocean_Optics_UV_vis(UVDetector):
 
 
     #This sets how frequently things are being recorded on the device
-    def set_measurement_interval(self, measurement_interval):
+    def set_measurement_interval(self, measurement_interval: float | str) -> None:
         try:
             self.measurement_interval =float(measurement_interval)
             print(f"Set measurement interval to {self.measurement_interval}")
@@ -289,11 +302,11 @@ class Ocean_Optics_UV_vis(UVDetector):
             print(f"Failed to set measurement interval to {measurement_interval}")
 
     # Returns output directory of where to save everything
-    def get_output_directory(self):
+    def get_output_directory(self) -> Path:
         return self.output_dir
 
     # This records the UV-VIS Spectrum at a particular time point
-    def recording_UV_VIS_Spectrum(self):
+    def recording_UV_VIS_Spectrum(self) -> None:
         self.ensure_init()
 
         # Sets the number of scan to perform on average when recording intensity of the plot
@@ -316,7 +329,7 @@ class Ocean_Optics_UV_vis(UVDetector):
             return None
 
     #This will be used to generate and record our dark spectrum for this project
-    def generate_and_record_dark_spectrum(self, attempts=3, delay_between_attempts=5):
+    def generate_and_record_dark_spectrum(self, attempts: int = 3, delay_between_attempts: int | float = 5) -> None:
 
         for _ in range(attempts):
             self.ensure_init()

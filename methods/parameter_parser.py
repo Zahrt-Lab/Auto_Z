@@ -7,6 +7,8 @@
 # All rights reserved.
 # ------------------------------------------------------------------------------
 
+from __future__ import annotations
+
 """
 This parse through parameter strings as input to a dictionary.
 ex.
@@ -15,7 +17,7 @@ parameter_dictionary = {'key1': 'value1', 'key2': 'value2'}
 """
 
 
-def parse_params(params) -> dict:
+def parse_params(params: str | None) -> dict[str, float | str]:
     """Parse a parameter string of the form 'key1=value1,key2=value2' into a dictionary
     Parameters:
         params (str): A string of comma-separated key=value pairs. ex. 'key1=value1,key2=value2'

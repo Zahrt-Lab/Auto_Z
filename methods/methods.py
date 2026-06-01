@@ -7,9 +7,14 @@
 # All rights reserved.
 # ------------------------------------------------------------------------------
 
+from __future__ import annotations
+
+# Standard library imports
 import pandas as pd
 import time
 from datetime import datetime
+from pathlib import Path
+
 
 # Import helper modules
 from .experiment_logger import ExperimentLogger
@@ -28,10 +33,17 @@ from devices.industry_components.uv_detectors.uv_detector_base import UVDetector
 from devices.custom_components.photo_reactor.photo_reactor_base import PhotoReactor
 
 class GeneralExperimentMethod:
-    def __init__(self, input_file, instrument_config_file, output_dir="Experimental_Data//Outputs",
-                 output_file="Experimental_Log", delay=0.5, status_interval=60, 
-                 instrument_control_file="instrument_control.txt",
-                 dh2000_light_source_control_file="dh2000_light_source_control.txt"):
+    def __init__(
+        self,
+        input_file: str,
+        instrument_config_file: str,
+        output_dir: str = "Experimental_Data//Outputs",
+        output_file: str = "Experimental_Log",
+        delay: float = 0.5,
+        status_interval: int | float = 60,
+        instrument_control_file: str = "instrument_control.txt",
+        dh2000_light_source_control_file: str = "dh2000_light_source_control.txt",
+    ) -> None:
         
         # Load the CSV file
         self.input_file = input_file
@@ -102,16 +114,16 @@ class GeneralExperimentMethod:
         
 
     # The role of this script is to log all the experimental data to a csv to be recorded and plotted out in the future.
-    def log_to_csv(self, component, action, params, output, notes=""):
+    def log_to_csv(self, component: str, action: str, params: str, output: str, notes: str = "") -> None:
         """Log experimental data to CSV. Delegated to ExperimentLogger."""
         self.logger.log_to_csv(component, action, params, output, notes)
             
-    def _set_continue_flag(self, value: bool):
+    def _set_continue_flag(self, value: bool) -> None:
         """Set the continue experiment flag."""
         self._continue_experiment = value
         print(f"Continue flag set to: {self._continue_experiment}")
 
-    def _set_convergence_triggered(self):
+    def _set_convergence_triggered(self) -> None:
         """Called by UV detector on convergence — triggers a clean stop of the experiment and turns off all the pumps"""
         self._convergence_triggered = True
         self._continue_experiment = False
@@ -121,15 +133,15 @@ class GeneralExperimentMethod:
         """Check control flag. Delegated to ExperimentLogger."""
         return ExperimentLogger.check_continue_flag(path)
 
-    def start_status_monitoring(self):
+    def start_status_monitoring(self) -> None:
         """Start the background status monitoring thread."""
         self.status_monitor.start()
 
-    def stop_status_monitoring(self):
+    def stop_status_monitoring(self) -> None:
         """Stop the background status monitoring thread."""
         self.status_monitor.stop()
 
-    def run_experiment(self):
+    def run_experiment(self) -> None:
         self.log_to_csv("METHOD", "load_method", f"input={self.input_file}", f"Loading input file: {self.input_file}")
 
         # Start status monitoring before experiment begins
@@ -206,7 +218,7 @@ class GeneralExperimentMethod:
             self.shutdown(success=False)
 
     
-    def _close_all_instruments(self):
+    def _close_all_instruments(self) -> None:
         """Close serial connections for all instruments that have a close() method."""
         for name, instance in self.instrument_manager.instruments.items():
             if hasattr(instance, 'close') and callable(instance.close):
@@ -216,7 +228,7 @@ class GeneralExperimentMethod:
                 except Exception as e:
                     self.log_to_csv("Close", f"Failed to close {name}: {e}", name, "FAILED")
 
-    def shutdown(self, success: bool):
+    def shutdown(self, success: bool) -> None:
         self.stop_status_monitoring()
 
         for name, device in self.instrument_manager.instruments.items():
@@ -228,7 +240,7 @@ class GeneralExperimentMethod:
 
         self._close_all_instruments()
 
-    def emergency_stop(self):
+    def emergency_stop(self) -> None:
         """
         Emergency stop: stop all devices and close all serial connections immediately.
         Called when continue flag becomes False.
@@ -249,7 +261,7 @@ class GeneralExperimentMethod:
 
         print(f"[{timestamp}] EMERGENCY STOP COMPLETED")
 
-    def convergence_stop(self):
+    def convergence_stop(self) -> None:
         """Clean stop triggered by UV convergence. Stops all devices and turns off DH2000 lamp."""
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         self.log_to_csv("ConvergenceStop", f"[{timestamp}] CONVERGENCE STOP - Stopping all devices", "", "OK")
@@ -264,7 +276,6 @@ class GeneralExperimentMethod:
 
         # Allow DH2000 safe_shutdown to proceed (control file starts as "True" = skip shutdown)
         try:
-            from pathlib import Path
             Path(self.dh2000_light_source_control_file).write_text("False")
         except Exception as e:
             self.log_to_csv("ConvergenceStop", "dh2000_control_file_update_error", "", f"FAILED: {e}")

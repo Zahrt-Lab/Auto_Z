@@ -6,19 +6,22 @@
 # All rights reserved.
 # ------------------------------------------------------------------------------
 
+from __future__ import annotations
+
 import serial
 import time
 
+
 class SerialDTTransport():
 
-    """Low-level serial transport for DT/Tecan communication."""     
+    """Low-level serial transport for DT/Tecan communication."""
 
-    def __init__(self,port='COM16', baud_rate=9600, timeout=1):
+    def __init__(self, port: str = 'COM16', baud_rate: int = 9600, timeout: int | float = 1) -> None:
 
         self.port = port
         self.baud_rate = baud_rate
         self.timeout = timeout
-        self.ser = None
+        self.ser: serial.Serial | None = None
 
     @property
     def is_connected(self) -> bool:
@@ -74,7 +77,7 @@ class SerialDTTransport():
       time.sleep(0.5)  # Small delay to allow device to process command
       return self.read_response()
   
-    def parse_dt_response(self, response: str) -> dict:
+    def parse_dt_response(self, response: str) -> dict[str, str]:
 
       """
       Parse a DT protocol response string.

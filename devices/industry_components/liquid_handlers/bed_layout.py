@@ -5,8 +5,9 @@
 # Contributions by graduate students Scott Laverty and David Polefrone are acknowledged.
 # All rights reserved.
 # ------------------------------------------------------------------------------
+from __future__ import annotations
+
 from pathlib import Path
-from typing import Optional
 
 try:
     import tomllib
@@ -16,7 +17,7 @@ except ImportError:
 from devices.industry_components.liquid_handlers.wells import Well
 
 _OFFSETS_PATH = Path(__file__).parent / "bed_offsets.toml"
-_offsets_cache: Optional[dict] = None
+_offsets_cache: dict | None = None
 
 
 def _load_offsets() -> dict:
@@ -32,7 +33,7 @@ class BedLayout():
 
     #The bed number has a fixed location of 1, 2, 3, 4, 5 and 6 which needs to be fixed in the code; user should not be able to edit this
     #The rack_layout the user should need to input to make sure they use the correct layout
-    def __init__(self, bed_number, rack_layout, device_type='GX271'):
+    def __init__(self, bed_number: int, rack_layout: int, device_type: str = 'GX271') -> None:
 
         #Sets the location bed number on the GX271 liquid handler
         # The far left is labeled 1 and far right is labeled 6
@@ -115,7 +116,7 @@ class BedLayout():
         self.set_wells()
 
     # Can just fold this method into class initialization later on.
-    def set_wells(self):
+    def set_wells(self) -> None:
 
         # Assigns the bed layout as well as the x, y, and z positions of the liquid handler.
         if self.rack_layout in [204, 207, 209, 301]:
@@ -136,8 +137,8 @@ class BedLayout():
 
         return None
 
-    def get_wells(self):
+    def get_wells(self) -> dict[int, Well]:
         return self.wells
 
-    def get_well(self,index):
+    def get_well(self, index: int) -> Well:
         return self.wells[index]

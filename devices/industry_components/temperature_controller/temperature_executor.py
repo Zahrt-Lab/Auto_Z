@@ -12,18 +12,24 @@ Executor for temperature controller actions (set_temperature, get_temperature, w
 Includes the blocking convergence helper that polls until the setpoint is stable.
 """
 
+from __future__ import annotations
+
 import time
 from datetime import datetime
+from typing import Callable
+
 from devices.industry_components.temperature_controller.temperature_controller import (
     TemperatureController,
 )
 from methods.parameter_parser import parse_params
 
+LogCallback = Callable[[str, str, str, str, str], None]
+
 
 class TemperatureExecutor:
     """Executes CSV method actions for temperature controller devices."""
 
-    def __init__(self, log_callback, continue_flag_getter):
+    def __init__(self, log_callback: LogCallback, continue_flag_getter: Callable[[], bool]) -> None:
         """
         Parameters:
             log_callback: Function to log an action row (component, action, params, output).
@@ -38,7 +44,7 @@ class TemperatureExecutor:
         params: str,
         component: str,
         temp_control: TemperatureController,
-    ):
+    ) -> None:
         """Route action string to the appropriate temperature controller method."""
 
         if action == "set_temperature":

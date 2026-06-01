@@ -13,22 +13,28 @@ Actions: init, record_blank, record_dark, load_blank_csv, load_dark_csv,
          measure_absorbance, start_continuous, stop_continuous, set_params, status.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
+from typing import Callable
+
 from devices.industry_components.uv_detectors.uv_detector_base import UVDetector
 from methods.parameter_parser import parse_params
+
+LogCallback = Callable[[str, str, str, str, str], None]
 
 
 class UvDetectorExecutor:
     """Executes CSV method actions for Ocean Optics UV-Vis spectrometer devices."""
 
-    def __init__(self, log_callback):
+    def __init__(self, log_callback: LogCallback) -> None:
         """
         Parameters:
             log_callback: Function to log an action row (component, action, params, output).
         """
         self.log_to_csv = log_callback
 
-    def execute(self, action: str, params: str, component: str, uv: UVDetector):
+    def execute(self, action: str, params: str, component: str, uv: UVDetector) -> None:
         """Route action string to the appropriate UV detector method."""
 
         uv_params = parse_params(params)

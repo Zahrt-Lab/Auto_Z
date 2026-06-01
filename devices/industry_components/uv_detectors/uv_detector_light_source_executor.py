@@ -12,22 +12,28 @@ Executor for DH2000 light source actions.
 Actions: shutter_open, shutter_close, halogen_toggle, deuterium_toggle, status, safe_shutdown.
 """
 
+from __future__ import annotations
+
+from typing import Callable
+
 from devices.industry_components.uv_detectors.uv_detector_light_source_base import (
     uv_detector_light_source_base
 )
+
+LogCallback = Callable[[str, str, str, str, str], None]
 
 
 class UvDetectorLightSourceExecutor:
     """Executes CSV method actions for the DH2000 deuterium/halogen light source."""
 
-    def __init__(self, log_callback):
+    def __init__(self, log_callback: LogCallback) -> None:
         """
         Parameters:
             log_callback: Function to log an action row (component, action, params, output).
         """
         self.log_to_csv = log_callback
 
-    def execute(self, action: str, params: str, component: str, dh: uv_detector_light_source_base):
+    def execute(self, action: str, params: str, component: str, dh: uv_detector_light_source_base) -> None:
         """Route action string to the appropriate DH2000 method."""
         try:
             if action == "shutter_open":

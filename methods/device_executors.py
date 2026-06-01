@@ -7,9 +7,16 @@
 # All rights reserved.
 # ------------------------------------------------------------------------------
 
+from __future__ import annotations
+
+from datetime import datetime
+from typing import Callable
+
 """
 Central Device Executor that assigns actions to the appropriate device's sub-executor
 """
+
+LogCallback = Callable[[str, str, str, str, str], None]
 
 # Abstract base classes for each instrument type
 from devices.industry_components.liquid_handlers.liquid_handlers import LiquidHandler
@@ -34,7 +41,13 @@ from devices.custom_components.photo_reactor.photo_reactor_executor import Photo
 class DeviceExecutor:
     """Central Device Executor: instantiates sub-executors and delegates all execute_* calls."""
 
-    def __init__(self, bed_layouts, log_callback, start_time, continue_flag_getter) -> None:
+    def __init__(
+        self,
+        bed_layouts: dict[int, BedLayout],
+        log_callback: LogCallback,
+        start_time: datetime,
+        continue_flag_getter: Callable[[], bool],
+    ) -> None:
         """
         Parameters:
             bed_layouts: Dictionary of {bed_number: BedLayout}.
@@ -56,42 +69,42 @@ class DeviceExecutor:
     # Public delegation methods (interface unchanged for methods.py)
     # ------------------------------------------------------------------
 
-    def execute_liquid_handler(self, action, params, component, liquid_handler: LiquidHandler):
+    def execute_liquid_handler(self, action: str, params: str, component: str, liquid_handler: LiquidHandler) -> None:
         """Assigns a liquid handler action to the LiquidHandlerExecutor."""
         self._liquid_handler.execute(action, params, component, liquid_handler)
 
-    def execute_pump(self, action, params, component, pump: Pump):
+    def execute_pump(self, action: str, params: str, component: str, pump: Pump) -> None:
         """Assigns a pump action to the PumpExecutor."""
         self._pump.execute(action, params, component, pump)
 
-    def stop_all_pumps(self):
+    def stop_all_pumps(self) -> None:
         """Stop all pumps immediately."""
         self._pump.stop_all_pumps()
 
-    def wait_for_pumps(self):
+    def wait_for_pumps(self) -> None:
         self._pump.wait_for_pumps()
 
-    def execute_valve(self, action, params, component, valve: Valves):
+    def execute_valve(self, action: str, params: str, component: str, valve: Valves) -> None:
         """Assigns a valve action to the ValveExecutor."""
         self._valve.execute(action, params, component, valve)
 
-    def execute_temperature(self, action, params, component, temp_control: TemperatureController):
+    def execute_temperature(self, action: str, params: str, component: str, temp_control: TemperatureController) -> None:
         """Assigns a temperature control action to the TemperatureExecutor."""
         self._temperature.execute(action, params, component, temp_control)
 
-    def execute_uv_detector_light_source(self, action, params, component, dh: uv_detector_light_source_base):
+    def execute_uv_detector_light_source(self, action: str, params: str, component: str, dh: uv_detector_light_source_base) -> None:
         """Assigns a DH2000 light source action to the UvDetectorLightSourceExecutor."""
         self._uv_detector_light_source.execute(action, params, component, dh)
 
-    def execute_uv_detector(self, action, params, component, uv: UVDetector):
+    def execute_uv_detector(self, action: str, params: str, component: str, uv: UVDetector) -> None:
         """Assigns a UV detector action to the UvDetectorExecutor."""
         self._uv_detector.execute(action, params, component, uv)
 
-    def execute_photo_reactor(self, action, params, component, photo_reactor: PhotoReactor):
+    def execute_photo_reactor(self, action: str, params: str, component: str, photo_reactor: PhotoReactor) -> None:
         """Assigns a photo reactor action to the PhotoReactorExecutor."""
         self._photo_reactor.execute(action, params, component, photo_reactor)
 
-    def set_bedlayout(self, bed, rack_layout):
+    def set_bedlayout(self, bed: int, rack_layout: int) -> None:
         """Set the layout for a specific bed with the given rack_layout."""
         bed_layout = BedLayout(bed_number=bed, rack_layout=rack_layout)
         self._bed_layouts[bed] = bed_layout

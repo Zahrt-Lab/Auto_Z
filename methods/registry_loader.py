@@ -8,26 +8,26 @@
 # ------------------------------------------------------------------------------
 
 """
-Registry loader for AUTO_ZAHRT.
+Registry loader for General Methods.
 
 Reads device_registry.toml once at import time and provides accessor
 functions used by InstrumentManager, the GUI, and utils/status.py.
 
-To add a new device: edit device_registry.toml only — no Python changes needed
+To add a new device: edit device_registry.toml only; no Python changes needed
 for devices that fit an existing abstract base class.
 """
 
+from __future__ import annotations
+
 import importlib
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Any
+import tomli as tomllib
 
-try:
-    import tomllib
-except ImportError:
-    import tomli as tomllib  # type: ignore[no-redef]
-
+# Contains the file path to the device registry TOML file
 _REGISTRY_PATH = Path(__file__).parent / "device_registry.toml"
-_registry: Optional[dict] = None
+# Cached registry data loaded from the TOML file, stored as a global variable
+_registry: dict | None = None
 
 
 def _load() -> dict:
@@ -40,24 +40,27 @@ def _load() -> dict:
 
 # ── Device type queries ────────────────────────────────────────────────────────
 
-def get_all_types() -> List[str]:
+
+def get_all_types() -> list[str]:
     """Return all registered instrument type strings (for GUI dropdowns)."""
     return list(_load()["devices"].keys())
 
-
-def get_group(instrument_type: str) -> Optional[str]:
+# For a given instrument type
+# TODO: When is the get_group function needed?
+def get_group(instrument_type: str) -> str | None:
     """Return the executor/GUI group for a given instrument type, or None."""
     return _load()["devices"].get(instrument_type, {}).get("group")
 
 
 # ── GUI metadata ───────────────────────────────────────────────────────────────
 
-def get_actions(group: str) -> List[str]:
+
+def get_actions(group: str) -> list[str]:
     """Return the ordered action list for a group (used by GUI action dropdown)."""
     return _load()["groups"].get(group, {}).get("actions", [])
 
 
-def get_param_fields(group: str, action: str) -> List[Tuple[str, str]]:
+def get_param_fields(group: str, action: str) -> list[tuple[str, str]]:
     """
     Return ordered (key, label) pairs for a group+action combination.
     Returns an empty list if the action takes no parameters.
@@ -68,7 +71,8 @@ def get_param_fields(group: str, action: str) -> List[Tuple[str, str]]:
 
 # ── Default rows ───────────────────────────────────────────────────────────────
 
-def get_default_rows() -> List[Tuple[str, ...]]:
+
+def get_default_rows() -> list[tuple[str, ...]]:
     """
     Return default instrument CSV rows for the GUI's InstrumentCSVBuilder.
     Each row is a tuple of (InstrumentType, DeviceNumber, Name, COMPort, OtherParams).
@@ -85,17 +89,16 @@ def get_default_rows() -> List[Tuple[str, ...]]:
         for d in defaults
     ]
 
-
-# ── Device instantiation ───────────────────────────────────────────────────────
-
-def build_instance(instrument_type: str, csv_row, context: Optional[dict] = None) -> object:
+def build_instance(
+    instrument_type: str, csv_row: Any, context: dict | None = None
+) -> object:
     """
     Instantiate a device from the registry.
 
     Parameters:
      - instrument_type: The InstrumentType string from the instrument config CSV.
      - csv_row: A pandas Series (or dict-like) for the instrument CSV row.
-     - context: Runtime values injected by InstrumentManager, e.g.
+     - context: Runtime values injected by InstrumentManager.
 
     Returns:
      - The device object.
@@ -107,8 +110,10 @@ def build_instance(instrument_type: str, csv_row, context: Optional[dict] = None
     registry = _load()
     entry = registry["devices"].get(instrument_type)
     if entry is None:
-        raise ValueError(f"Unknown instrument type: {instrument_type!r}. "
-                         "Add it to methods/device_registry.toml.")
+        raise ValueError(
+            f"Unknown instrument type: {instrument_type!r}. "
+            "Add it to methods/device_registry.toml."
+        )
 
     # Dynamic import
     module = importlib.import_module(entry["import_path"])
@@ -116,7 +121,9 @@ def build_instance(instrument_type: str, csv_row, context: Optional[dict] = None
 
     # Compute the instrument's attribute name (same logic as the old elif chain)
     device_number = str(csv_row.get("DeviceNumber", "")).strip()
-    attr_name = f"{instrument_type}_{device_number}" if device_number else instrument_type
+    attr_name = (
+        f"{instrument_type}_{device_number}" if device_number else instrument_type
+    )
 
     kwargs: dict = {}
 

@@ -11,21 +11,27 @@
 Executor for valve actions (go_to_position, move_home).
 """
 
+from __future__ import annotations
+
+from typing import Callable
+
 from devices.industry_components.valves.valves import Valves
 from methods.parameter_parser import parse_params
+
+LogCallback = Callable[[str, str, str, str, str], None]
 
 
 class ValveExecutor:
     """Executes CSV method actions for valve devices."""
 
-    def __init__(self, log_callback):
+    def __init__(self, log_callback: LogCallback) -> None:
         """
         Parameters:
             log_callback: Function to log an action row (component, action, params, output).
         """
         self.log_to_csv = log_callback
 
-    def execute(self, action: str, params: str, component: str, valve: Valves):
+    def execute(self, action: str, params: str, component: str, valve: Valves) -> None:
         """Route action string to the appropriate valve method."""
 
         if action == "go_to_position":

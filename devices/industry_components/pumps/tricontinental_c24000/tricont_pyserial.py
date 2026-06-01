@@ -11,11 +11,13 @@
 # TODO : This code is long, once test code is up and running, consider refactoring into a class-based structure
 # with helper methods to reduce repetition and improve readability.
 
+from __future__ import annotations
+
 import serial
 import time
 
 # Open serial communication with the pump
-def connect(port, baudrate=9600, timeout=1):
+def connect(port: str, baudrate: int = 9600, timeout: int = 1) -> serial.Serial:
     ser = serial.Serial(port, baudrate,
                         bytesize=serial.EIGHTBITS,
                         parity=serial.PARITY_NONE,
@@ -25,13 +27,13 @@ def connect(port, baudrate=9600, timeout=1):
     return ser
 
 # Close serial communication with the pump
-def disconnect(ser):
+def disconnect(ser: serial.Serial) -> None:
     ser.close()
 # Functions to be implemented:
 # A general function to send commands to the pump
 
 # Testing function
-def send_DT(ser):
+def send_DT(ser: serial.Serial) -> None:
     """Send a firmware query command to the pump and print the response.
     Used for testing only.
     """
@@ -60,7 +62,7 @@ def send_DT(ser):
         print("No response")
 
 # Compose command string
-def compose_command(pump_addr: int = 1, eeprom_addr: int = None, command: str = "&") -> str:
+def compose_command(pump_addr: int = 1, eeprom_addr: int | None = None, command: str = "&") -> str:
     """Compose a command string for a specific pump and EEPROM address.
     Arguments:
         pump_addr : str
@@ -93,7 +95,7 @@ def pump_letter_to_address(pump: str) -> int:
     else:
         raise ValueError("Invalid pump selection. Choose 'A' or 'B'.")
 
-def store_command(ser, pump="A", eeprom_addr=0, command="&"):
+def store_command(ser: serial.Serial, pump: str = "A", eeprom_addr: int = 0, command: str = "&") -> None:
     """Store a command in the pump's EEPROM.
     Pump A: addr =/1
     PumpB: addr =/2
@@ -121,7 +123,7 @@ def store_command(ser, pump="A", eeprom_addr=0, command="&"):
     print(f"Store: {pump}->{response}")
 
 # Function to execute command stored in eeprom
-def execute_command(ser, pump="A", eeprom_addr=0):
+def execute_command(ser: serial.Serial, pump: str = "A", eeprom_addr: int = 0) -> None:
     """Execute a command stored in the pump's EEPROM.
     Pump A: addr =/1
     PumpB: addr =/2
@@ -148,7 +150,7 @@ def execute_command(ser, pump="A", eeprom_addr=0):
     print(f"Exec: {pump}->{response}")
 
 # Send command to pump
-def send_command(ser, pump="A", command="&"):
+def send_command(ser: serial.Serial, pump: str = "A", command: str = "&") -> None:
     """Send a command to a specific pump (no eeprom involved).
     Pump A: addr =/1
     PumpB: addr =/2
@@ -173,7 +175,7 @@ def send_command(ser, pump="A", command="&"):
     response = read_response(ser)
     print(f"Send: {pump}->{response}")
 
-def stop_command(ser, pump="A"):
+def stop_command(ser: serial.Serial, pump: str = "A") -> None:
     """Send the stop command to a specific pump.
     Arguments:
         ser : serial.Serial
@@ -195,7 +197,7 @@ def stop_command(ser, pump="A"):
     print(f"Stop: {pump}->{response}")
 
 # Command that runs a specific pump
-def run_pump(ser, pump="A", eeprom_addr=None, command="R"):
+def run_pump(ser: serial.Serial, pump: str = "A", eeprom_addr: int | None = None, command: str = "R") -> None:
     """Run a specific pump with send command or store and execute (if eeprom is set).
     Arguments:
         ser : serial.Serial
@@ -218,7 +220,7 @@ def run_pump(ser, pump="A", eeprom_addr=None, command="R"):
         execute_command(ser, pump, eeprom_addr) 
 
 # Listen to responses from the pump
-def read_response(ser, timeout=60):
+def read_response(ser: serial.Serial, timeout: int = 60) -> str:
     """Read the response from the pump.
     Arguments:
         ser : serial.Serial
@@ -255,7 +257,7 @@ def read_response(ser, timeout=60):
     return response_string
 
 
-def stop_pump(ser, pump="A"):
+def stop_pump(ser: serial.Serial, pump: str = "A") -> None:
     """Wrapper for the stop command.
     
     Arguments:
@@ -270,7 +272,7 @@ def stop_pump(ser, pump="A"):
     print(f"Stopping pump {pump}...")
     stop_command(ser, pump)
     
-def input_command():
+def input_command() -> str:
     """Prompt the user to input a command for the pump.
     Returns:
         str
@@ -279,7 +281,7 @@ def input_command():
     command = input("Enter the command to send to the pump: ")
     return command.strip()
 
-def is_initialized(ser, pump="A"):
+def is_initialized(ser: serial.Serial, pump: str = "A") -> bool:
     """Check if the specified pump is initialized.
     
     Arguments:
@@ -311,7 +313,7 @@ def is_initialized(ser, pump="A"):
         print(f"Response: {response}")
         return False
     
-def initialize_pump(ser, pump="A", eeprom_addr=None, command="N2YZR"):
+def initialize_pump(ser: serial.Serial, pump: str = "A", eeprom_addr: int | None = None, command: str = "N2YZR") -> None:
     """Initialize the specified pump with the given command.
     
     Arguments:
@@ -332,7 +334,7 @@ def initialize_pump(ser, pump="A", eeprom_addr=None, command="N2YZR"):
     print(f"Initializing pump {pump}...")
     run_pump(ser, pump=pump, eeprom_addr=eeprom_addr, command=command)
     
-def check_until_initialized(ser, pump="A"):
+def check_until_initialized(ser: serial.Serial, pump: str = "A") -> None:
     """Keep checking the status untill the specified pump is initialized.
     
     Arguments:
@@ -582,8 +584,11 @@ def test_tricontinental_pump():
     is_running(ser, pump="B")
     disconnect(ser)
 
-ser = connect(port='COM15', baudrate=9600)
-send_command(ser, pump="A", command="ZR")
-#send_command(ser, pump="B", command="ZR")
-is_initialized(ser, pump="B")
-is_valve_output(ser, pump="B")
+"""
+if __name__ == "__main__":
+    ser = connect(port='COM15', baudrate=9600)
+    send_command(ser, pump="A", command="ZR")
+    #send_command(ser, pump="B", command="ZR")
+    is_initialized(ser, pump="B")
+    is_valve_output(ser, pump="B")
+"""

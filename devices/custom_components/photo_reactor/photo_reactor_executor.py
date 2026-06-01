@@ -12,14 +12,20 @@ Executor for PhotoReactor (MirrorBox365nm) actions.
 Actions: set_dimmer, status, read_temperature.
 """
 
+from __future__ import annotations
+
+from typing import Callable
+
 from devices.custom_components.photo_reactor.photo_reactor_base import PhotoReactor
 from methods.parameter_parser import parse_params
+
+LogCallback = Callable[[str, str, str, str, str], None]
 
 
 class PhotoReactorExecutor:
     """Executes General Methods actions for PhotoReactor devices."""
 
-    def __init__(self, log_callback):
+    def __init__(self, log_callback: LogCallback) -> None:
         """
         Parameters:
             - log_callback: Function to log an action row (component, action, params, output).

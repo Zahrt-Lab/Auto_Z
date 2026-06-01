@@ -12,14 +12,21 @@ Executor for liquid handler actions.
 Handles move_xy, move_z, move_z_height, move_home, and set_bedlayout.
 """
 
+from __future__ import annotations
+
 import time
+from typing import Callable
+
+from devices.industry_components.liquid_handlers.bed_layout import BedLayout
 from devices.industry_components.liquid_handlers.liquid_handlers import LiquidHandler
+
+LogCallback = Callable[[str, str, str, str, str], None]
 
 
 class LiquidHandlerExecutor:
     """Executes CSV method actions for liquid handler devices."""
 
-    def __init__(self, bed_layouts: dict, log_callback):
+    def __init__(self, bed_layouts: dict[int, BedLayout], log_callback: LogCallback) -> None:
         """
         Parameters:
             bed_layouts: Shared dict of {bed_number: BedLayout} managed by the experiment.
