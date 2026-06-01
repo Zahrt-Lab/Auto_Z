@@ -29,6 +29,10 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
+# Imports utils function
+# TODO: Need to update the uv_plot_gui code to a function can be called within the UV detector class
+# from utils.uv_plot_gui import 
+
 # References
 # 1) http://www.sciencedirect.com/science/article/pii/S0959152412002661
 

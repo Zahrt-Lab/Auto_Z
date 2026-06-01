@@ -16,6 +16,8 @@ import time
 
 from ..valves import Valves
 
+# TODO: Issue with Home command not working properly for 10-way valve. move_position(1) is working as expected though,
+# Potentially just use move_position(1) as the home position for all valve types to avoid this issue
 class ViciValve(Valves):
     """
     Unified driver for VICI selector valves (6-, 10-, 24-way or any even 2-40 positions).
@@ -156,7 +158,7 @@ class ViciValve(Valves):
     def safe_shutdown(self, success: bool) -> None:
         pass
 
-
+# TODO: Should delete this class since it's never used elsewhere in the code
 class Multi_VICIValveController:
     """Helper to broadcast the same command to multiple valves."""
 
@@ -185,3 +187,23 @@ class Multi_VICIValveController:
 
     def close(self) -> list[Any]:
         return self._broadcast('close')
+
+'''
+def main() -> None:
+    # Example usage
+    valve = ViciValve(port='COM14', valve_type='10-way')
+    valve.connect()
+    print(valve.go_to_position(4))
+    print(valve.get_position())
+    time.sleep(2)
+    print(valve.go_to_position(3))
+    print(valve.get_position())
+    time.sleep(2)
+    print(valve.go_to_position(1))
+    print(valve.get_position())
+    valve.close()
+
+
+if __name__ == "__main__":
+    main()
+'''
