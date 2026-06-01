@@ -6,6 +6,10 @@
 # All rights reserved.
 # ------------------------------------------------------------------------------
 
+from __future__ import annotations
+
+from typing import Any
+
 import time
 import serial
 
@@ -24,14 +28,14 @@ class MirrorBox365nm(PhotoReactor):
     TC1 and TC2 are nonfunctional hardware and are not used.
     """
 
-    def __init__(self, port: str, baudrate: int = 9600, timeout: float = 2.0):
-        self.port = port
-        self.baudrate = baudrate
-        self.timeout = timeout
-        self.name = "MirrorBox365nm"
-        self.ser = None
+    def __init__(self, port: str, baudrate: int = 9600, timeout: float = 2.0) -> None:
+        self.port: str = port
+        self.baudrate: int = baudrate
+        self.timeout: float = timeout
+        self.name: str = "MirrorBox365nm"
+        self.ser: serial.Serial | None = None
 
-    def connect(self):
+    def connect(self) -> None:
         try:
             self.ser = serial.Serial(self.port, baudrate=self.baudrate, timeout=self.timeout)
         except Exception as e:
@@ -39,7 +43,7 @@ class MirrorBox365nm(PhotoReactor):
         time.sleep(2.0)  # Wait for Arduino reset
         self.drain(1.0)  # Clear startup messages
 
-    def close(self):
+    def close(self) -> None:
         try:
             if self.ser:
                 self.ser.close()
@@ -94,7 +98,7 @@ class MirrorBox365nm(PhotoReactor):
     
     # TODO: I want to work on a cleaner way to return data from the status() alongside other approaches
     # This will due for now but future I want to standardize this across all instruments
-    def status(self) -> dict:
+    def status(self) -> dict[str, Any]:
         """Request status from Arduino.
 
         Returns:
@@ -148,7 +152,7 @@ class MirrorBox365nm(PhotoReactor):
         #self.set_dimmer(255)
         self.close()
 
-    def read_temperature_stream(self, timeout: float = 2.0) -> dict:
+    def read_temperature_stream(self, timeout: float = 2.0) -> dict[str, Any]:
         """Read one temperature CSV line from the Arduino stream.
 
         Returns:

@@ -359,11 +359,11 @@ class Ocean_Optics_UV_vis(UVDetector):
 
     #This will set nonlinearity corrections within the spectrum to be True
     #Default is True
-    def set_nonlinearity_correction(self):
+    def set_nonlinearity_correction(self) -> None:
         self.device.set_nonlinearity_correction_usage(True)
 
     #This will measure the absorbance of our blank with solvent but no product
-    def generate_and_record_blank_spectrum(self, blank_light_intensity_threshold, wavelength_for_blank_light_intensity_check, attempts=3, delay_between_attempts=5):
+    def generate_and_record_blank_spectrum(self, blank_light_intensity_threshold: float, wavelength_for_blank_light_intensity_check: float, attempts: int = 3, delay_between_attempts: int | float = 5) -> None:
         """Measure the solvent (blank) to use as I0 for absorbance."""
 
         for _ in range(attempts):
@@ -390,7 +390,7 @@ class Ocean_Optics_UV_vis(UVDetector):
             raise RuntimeError("Failed to record valid blank spectrum")
 
     # This records the dark spectrum as a csv file within a specific directory
-    def save_dark_spectrum(self, output_dir, filename=None):
+    def save_dark_spectrum(self, output_dir: str | Path, filename: str | None = None) -> None:
         """
         Save the last-measured dark spectrum to CSV and PNG.
         Requires: self.dark_spectrum and self.wavelengths.

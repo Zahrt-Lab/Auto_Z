@@ -369,7 +369,7 @@ def check_until_initialized(ser: serial.Serial, pump: str = "A") -> None:
             print(f"Response: {response}")
             time.sleep(5)
 
-def run_continuous_flow(ser, pump="A", eeprom_addr=None, command="R"):
+def run_continuous_flow(ser: serial.Serial, pump: str = "A", eeprom_addr: int | None = None, command: str = "R") -> None:
     """Start continuous flow on the specified pump at the given rate.
     
     Arguments:
@@ -385,13 +385,13 @@ def run_continuous_flow(ser, pump="A", eeprom_addr=None, command="R"):
     print(f"Starting continuous flow on pump {pump}...")
     run_pump(ser, pump=pump, eeprom_addr=eeprom_addr, command=command)
 
-def compose_command_continuous_flow_A(resolution = 2,
-                                      initial_speed = 26000,
-                                      aspirate_speed = None,
-                                        dispense_speed = 1000,
-                                        initial_count = 0,
-                                        final_count = 192000,
-                                        j_value = 1000) -> str:
+def compose_command_continuous_flow_A(resolution: int = 2,
+                                      initial_speed: int = 26000,
+                                      aspirate_speed: int | None = None,
+                                      dispense_speed: int = 1000,
+                                      initial_count: int = 0,
+                                      final_count: int = 192000,
+                                      j_value: int = 1000) -> str:
     """Compose a command string for continuous flow for pump A at the specified rate.
     Arguments:
         rate_counts_s : int
@@ -410,13 +410,13 @@ def compose_command_continuous_flow_A(resolution = 2,
     
     return command
 
-def compose_command_continuous_flow_B(resolution = 2,
-                                      initial_speed = 26000,
-                                      aspirate_speed = None,
-                                      dispense_speed = 1000, 
-                                      initial_count = 0, 
-                                      final_count = 192000, 
-                                      j_value = 1000) -> str:
+def compose_command_continuous_flow_B(resolution: int = 2,
+                                      initial_speed: int = 26000,
+                                      aspirate_speed: int | None = None,
+                                      dispense_speed: int = 1000,
+                                      initial_count: int = 0,
+                                      final_count: int = 192000,
+                                      j_value: int = 1000) -> str:
     """Compose a command string for continuous flow for pump B at the specified rate.
     
     Arguments:
@@ -437,7 +437,7 @@ def compose_command_continuous_flow_B(resolution = 2,
     return command
    
 
-def check_status(ser, pump)-> str:
+def check_status(ser: serial.Serial, pump: str) -> str:
     """Check the status of the specified pump.
     
     Arguments:
@@ -459,7 +459,7 @@ def check_status(ser, pump)-> str:
     
     return response
 
-def is_running(ser, pump="A"):
+def is_running(ser: serial.Serial, pump: str = "A") -> bool:
     """Check if the specified pump is running.
     
     Arguments:
@@ -492,7 +492,7 @@ def is_running(ser, pump="A"):
 # Example usage of the above functions
 # Continuous flow start
 # Complete stop
-def is_valve_output(ser, pump="A"):
+def is_valve_output(ser: serial.Serial, pump: str = "A") -> bool:
     """Check if the valve output of the specified pump is enabled.
     
     Arguments:

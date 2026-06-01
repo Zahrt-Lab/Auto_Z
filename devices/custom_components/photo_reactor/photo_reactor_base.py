@@ -7,7 +7,10 @@
 
 """Abstract base class for photoreactor light source components."""
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
+from typing import Any
 
 class PhotoReactor(ABC):
     """Abstract interface for custom light source components."""
@@ -25,11 +28,11 @@ class PhotoReactor(ABC):
         """Sets the dimmer value for the light source."""
 
     @abstractmethod
-    def status(self) -> dict:
+    def status(self) -> dict[str, Any]:
         """Returns the status of the photoreactor."""
 
     @abstractmethod
-    def read_temperature_stream(self) -> dict:
+    def read_temperature_stream(self) -> dict[str, Any]:
         """Reads the temperature stream from the photoreactor."""
 
     @abstractmethod

@@ -6,19 +6,22 @@
 # All rights reserved.
 # ------------------------------------------------------------------------------
 
+from __future__ import annotations
+
+from typing import Any
+
 import serial
 import time
-from typing import Optional, Dict, Union
 
 from ..temperature_controller import TemperatureController
 
 class TC720(TemperatureController):
-    def __init__(self, port='COM12', baudrate=230400, timeout=1, name: str = "TC720"):
-        self.name = name
-        self.port = port
-        self.baudrate = baudrate
-        self.timeout = timeout
-        self.ser: Optional[serial.Serial] = None
+    def __init__(self, port: str = 'COM12', baudrate: int = 230400, timeout: int = 1, name: str = "TC720") -> None:
+        self.name: str = name
+        self.port: str = port
+        self.baudrate: int = baudrate
+        self.timeout: int = timeout
+        self.ser: serial.Serial | None = None
         self._connected: bool = False
 
     # ---- Device lifecycle ----------------------------------------------------
@@ -31,7 +34,7 @@ class TC720(TemperatureController):
         self._connected = True
         print(f"Connected to TC-720 on {self.port}")
 
-    def stop(self):
+    def stop(self) -> None:
         """Stop the temperature controller device."""
         set_temp = 25.0  # Default safe temperature
         print(f"Stopping TC-720, setting temperature to {set_temp}°C")
@@ -43,7 +46,7 @@ class TC720(TemperatureController):
 
     # ---- TemperatureController interface --------------------------------------
 
-    def calculate_checksum(self, char_list):
+    def calculate_checksum(self, char_list: list[str]) -> list[str]:
         """
         Calculates the checksum based on the TC-720 command protocol.
         """
@@ -54,7 +57,7 @@ class TC720(TemperatureController):
         result_list = ['*'] + first_6_chars + list(last_two_digits) + ['\r']
         return result_list
 
-    def convert_temp_to_bstc(self, temp_celsius):
+    def convert_temp_to_bstc(self, temp_celsius: float) -> list[str]:
         """
         Converts temperature to the bstc command with checksum for the TC-720 controller.
         """
@@ -63,7 +66,7 @@ class TC720(TemperatureController):
         bstc = ['*', '1', 'c'] + list(hex_temp) + ['XX', 'XX', '\r']
         return self.calculate_checksum(bstc)
 
-    def set_temperature(self, temp_celsius):
+    def set_temperature(self, temp_celsius: float) -> None:
         """
         Sets the temperature on the TC-720 temperature controller.
         
@@ -91,10 +94,10 @@ class TC720(TemperatureController):
         
         print(f"[TC720 {self.name}] Temperature set command sent successfully!")
 
-    def _build_query(self, cc):  # cc: '01' (INPUT1) or '04' (INPUT2)
+    def _build_query(self, cc: str) -> list[str]:  # cc: '01' (INPUT1) or '04' (INPUT2)
         return self.calculate_checksum(['*'] + list(cc) + list('0000') + ['XX', 'XX', '\r'])
 
-    def get_temperature(self, sensor=1):
+    def get_temperature(self, sensor: int = 1) -> float:
         cc = '01' if sensor == 1 else '04'
         cmd = self._build_query(cc)
         self.ser.reset_input_buffer()
@@ -130,7 +133,7 @@ class TC720(TemperatureController):
             val -= 0x10000
         return val / 100.0  # °C
     
-    def close(self):
+    def close(self) -> None:
         """
         Closes the serial connection.
         """
@@ -144,7 +147,7 @@ class TC720(TemperatureController):
         self.close()
 
     # ---- Status monitoring ---------------------------------------------------
-    def status(self) -> dict:
+    def status(self) -> dict[str, Any]:
         if not self._connected or not self.ser or not self.ser.is_open:
             return {"ok": False, "code": "disconnected", "msg": "Not connected"}
 

@@ -7,7 +7,10 @@
 
 """Abstract base class for UV-Vis detector light source controllers."""
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
+from typing import Any
 
 
 class uv_detector_light_source_base(ABC):
@@ -38,7 +41,7 @@ class uv_detector_light_source_base(ABC):
         """Toggles the deuterium light source on/off."""
 
     @abstractmethod
-    def status(self) -> dict:
+    def status(self) -> dict[str, Any]:
         """Returns the status of the light source controller."""
 
     @abstractmethod

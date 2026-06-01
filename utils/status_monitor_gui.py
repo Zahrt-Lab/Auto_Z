@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Status Monitor GUI utilities for AUTO_ZAHRT
 """
@@ -5,7 +7,7 @@ import tkinter as tk
 from tkinter import ttk
 import threading
 import time
-from typing import Dict, List, Any
+from typing import Any
 
 
 def group_for_instrument_type(instrument_type: str) -> str:

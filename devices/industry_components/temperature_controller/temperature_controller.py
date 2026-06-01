@@ -9,7 +9,9 @@
 """Abstract base class for temperature controller components."""
 
 from __future__ import annotations
+
 import abc
+from typing import Any
 
 
 class TemperatureController(abc.ABC):
@@ -34,8 +36,8 @@ class TemperatureController(abc.ABC):
         """Stop any ongoing temperature control operation promptly."""
 
     @abc.abstractmethod
-    def status(self) -> str:
-        """Return a string representing the current status of the temperature controller."""
+    def status(self) -> Any:
+        """Return the current status of the temperature controller (str or dict)."""
 
     @abc.abstractmethod
     def close(self) -> None:

@@ -62,13 +62,13 @@ class StatusMonitor:
         Returns:
             None
         """
-        self.instruments = instruments
-        self.status_log_filename = status_log_filename
-        self.status_interval = status_interval
-        self.start_time = start_time
-        self.instrument_control_file = instrument_control_file
-        self.log_callback = log_callback
-        self.continue_flag_callback = continue_flag_callback
+        self.instruments: dict[str, Any] = instruments
+        self.status_log_filename: str = status_log_filename
+        self.status_interval: int | float = status_interval
+        self.start_time: datetime = start_time
+        self.instrument_control_file: str = instrument_control_file
+        self.log_callback: LogCallback = log_callback
+        self.continue_flag_callback: Callable[[bool], None] = continue_flag_callback
 
         # Status monitoring thread and control flag
         self._status_monitor_thread: threading.Thread | None = None

@@ -14,7 +14,7 @@ import pandas as pd
 import time
 from datetime import datetime
 from pathlib import Path
-
+from typing import Any
 
 # Import helper modules
 from .experiment_logger import ExperimentLogger
@@ -23,6 +23,7 @@ from .instrument_manager import InstrumentManager
 from .device_executors import DeviceExecutor
 
 # Import abstract base classes
+from devices.industry_components.liquid_handlers.bed_layout import BedLayout
 from devices.industry_components.liquid_handlers.liquid_handlers import LiquidHandler
 from devices.industry_components.pumps.pumps import Pump
 from devices.industry_components.valves.valves import Valves
@@ -46,15 +47,15 @@ class GeneralExperimentMethod:
     ) -> None:
         
         # Load the CSV file
-        self.input_file = input_file
-        self.method = pd.read_csv(input_file)
-        self.delay = delay  # Global delay parameter
-        self.status_interval = status_interval  # Status check interval in seconds
-        self.instrument_control_file = instrument_control_file  # File path to check for continue/stop signal
-        self.dh2000_light_source_control_file = dh2000_light_source_control_file  # File path for DH2000 light source control
+        self.input_file: str = input_file
+        self.method: pd.DataFrame = pd.read_csv(input_file)
+        self.delay: float = delay  # Global delay parameter
+        self.status_interval: int | float = status_interval  # Status check interval in seconds
+        self.instrument_control_file: str = instrument_control_file  # File path to check for continue/stop signal
+        self.dh2000_light_source_control_file: str = dh2000_light_source_control_file  # File path for DH2000 light source control
 
         # Initialize experiment logger
-        self.logger = ExperimentLogger(input_file, output_dir, output_file)
+        self.logger: ExperimentLogger = ExperimentLogger(input_file, output_dir, output_file)
 
         # Initialize control files to True at the start of each experiment run
         ExperimentLogger.initialize_control_file(self.instrument_control_file)
@@ -62,10 +63,10 @@ class GeneralExperimentMethod:
 
 
         # Dictionary to store bed layouts for each bed (1-6)
-        self.bed_layouts = {}
+        self.bed_layouts: dict[int, BedLayout] = {}
 
         # Initialize instrument manager and get instruments
-        self.instrument_manager = InstrumentManager(
+        self.instrument_manager: InstrumentManager = InstrumentManager(
             instrument_config_file=instrument_config_file,
             experiment_subdir=self.logger.experiment_subdir
         )
@@ -89,11 +90,11 @@ class GeneralExperimentMethod:
                 device.convergence_stop_callback = self._set_convergence_triggered
 
         # Control flag for experiment execution
-        self._continue_experiment = True
-        self._convergence_triggered = False
-        
+        self._continue_experiment: bool = True
+        self._convergence_triggered: bool = False
+
         # Initialize device executor
-        self.executor = DeviceExecutor(
+        self.executor: DeviceExecutor = DeviceExecutor(
             bed_layouts=self.bed_layouts,
             log_callback=self.log_to_csv,
             start_time=self.logger.start_time,
@@ -101,7 +102,7 @@ class GeneralExperimentMethod:
         )
         
         # Initialize status monitor
-        self.status_monitor = StatusMonitor(
+        self.status_monitor: StatusMonitor = StatusMonitor(
             instruments=self.instrument_manager.instruments,
             status_log_filename=self.logger.status_log_filename,
             status_interval=self.status_interval,

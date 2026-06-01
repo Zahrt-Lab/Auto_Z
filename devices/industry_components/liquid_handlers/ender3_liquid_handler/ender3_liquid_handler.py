@@ -11,29 +11,34 @@ The purpose of this code is to feed into our liquid handler ender 3 class
 which we can use as a 3D printer to control the xyz coordinates of our 3D printer
 '''
 
+from __future__ import annotations
+
 from devices.industry_components.liquid_handlers.ender3_liquid_handler.ender3 import ender3
 from ..liquid_handlers import LiquidHandler
 from ..bed_layout import BedLayout
 
 class Ender3LiquidHandler(ender3, LiquidHandler):
-    def __init__(self, port="COM26", baud=115200, timeout=2, verbose=False, name="Ender3_LH"):
+    def __init__(self, port: str = "COM26", baud: int = 115200, timeout: int = 2, verbose: bool = False, name: str = "Ender3_LH") -> None:
         # Initialize the ender3 base class (opens serial connection)
         ender3.__init__(self, port=port, baud=baud, timeout=timeout, verbose=verbose)
-        
+
         # Store name for identification
-        self.name = name
-        
+        self.name: str = name
+
         # Track connection state
-        self._connected = bool(getattr(self, "s", None) and self.s.is_open)
+        self._connected: bool = bool(getattr(self, "s", None) and self.s.is_open)
 
         # Define physical limits for Ender3
-        self.XMIN, self.XMAX = 0, 235
-        self.YMIN, self.YMAX = 0, 235
-        self.ZMIN, self.ZMAX = 0, 250
-        self.SAFE_Z = 245  # safe travel height
-        
+        self.XMIN: int = 0
+        self.XMAX: int = 235
+        self.YMIN: int = 0
+        self.YMAX: int = 235
+        self.ZMIN: int = 0
+        self.ZMAX: int = 250
+        self.SAFE_Z: int = 245  # safe travel height
+
         # Bed layout storage
-        self.bed_layouts = {}  # bed_number -> BedLayout instance
+        self.bed_layouts: dict[int, BedLayout] = {}  # bed_number -> BedLayout instance
     
     @property
     def connected(self) -> bool:

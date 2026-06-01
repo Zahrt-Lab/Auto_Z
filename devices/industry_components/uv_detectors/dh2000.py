@@ -12,6 +12,10 @@ Commands to control the DH2000 light source via Arduino TTL controller.
 - Allows us to turn on and off lamps to extend their lifetimes if any failures occur during the experiment. 
 '''
 
+from __future__ import annotations
+
+from typing import Any
+
 import serial
 import time
 import threading
@@ -36,8 +40,8 @@ class DH2000LightSource(uv_detector_light_source_base):
         self.name = "DH2000"
 
 
-        self.ser = None
-        self.control_file_path: str = None  # Set by GeneralExperimentMethod after construction
+        self.ser: serial.Serial | None = None
+        self.control_file_path: str | None = None  # Set by GeneralExperimentMethod after construction
 
         # TODO: A coarser lock like this prevents races between the StatusMonitor thread and
         # main-thread commands, but a smarter approach would be a dedicated serial I/O thread
@@ -46,12 +50,12 @@ class DH2000LightSource(uv_detector_light_source_base):
         self._lock = threading.RLock()
 
     # --- lifecycle ---
-    def connect(self):
+    def connect(self) -> None:
         self.ser = serial.Serial(self.port, baudrate=self.baudrate, timeout=self.timeout)
         time.sleep(self.boot_delay_s)
         self._drain(seconds=3.0)  # Give Arduino time to send startup messages and clear buffer
 
-    def close(self):
+    def close(self) -> None:
         try:
             if self.ser:
                 self.ser.close()
@@ -130,12 +134,12 @@ class DH2000LightSource(uv_detector_light_source_base):
             raise RuntimeError(f"Timed out waiting for OK after '{command}' command. Received: {received_lines}")
 
     # --- public control ---
-    def shutter_open(self):   self.dh2000_command("o", expect_ok=True)
-    def shutter_close(self):  self.dh2000_command("c", expect_ok=True)
-    def halogen_toggle(self): self.dh2000_command("h", expect_ok=True)
-    def deuterium_toggle(self): self.dh2000_command("d", expect_ok=True)
+    def shutter_open(self) -> None:   self.dh2000_command("o", expect_ok=True)
+    def shutter_close(self) -> None:  self.dh2000_command("c", expect_ok=True)
+    def halogen_toggle(self) -> None: self.dh2000_command("h", expect_ok=True)
+    def deuterium_toggle(self) -> None: self.dh2000_command("d", expect_ok=True)
 
-    def status(self) -> dict:
+    def status(self) -> dict[str, Any]:
         """
         Returns dict:
           {'shutter_open': bool|None, 'halogen_on': bool|None, 'deuterium_on': bool|None, 'raw': [lines]}
@@ -149,7 +153,7 @@ class DH2000LightSource(uv_detector_light_source_base):
                 if dh2000_component_status:
                     dh2000_components_status.append(dh2000_component_status)
 
-        def _parse_bool(dh2000_component_status: str, key: str):
+        def _parse_bool(dh2000_component_status: str, key: str) -> bool | None:
             if key.lower() in dh2000_component_status.lower():
                 if "OPEN" in dh2000_component_status.upper() or "ON" in dh2000_component_status.upper():
                     return True

@@ -6,9 +6,13 @@
 # All rights reserved.
 # ------------------------------------------------------------------------------
 
+from __future__ import annotations
+
+import time
+import serial
+
 from devices.industry_components.pumps.pumps import Pump
 from . import tricont_pyserial as tri
-import time
 
 '''
 The purpose of this code is to control the Tricontinental C24000 dual syringe pump 
@@ -56,30 +60,30 @@ class TricontinentalC24000(Pump):
     }
     DEFAULT_COUNTS_PER_UL = 196.82  # Default if flow rate not in calibration table (1 / 0.005107)
 
-    def __init__(self, port: str, baudrate: int = 9600, name: str = "Tricontinental_C24000"):
+    def __init__(self, port: str, baudrate: int = 9600, name: str = "Tricontinental_C24000") -> None:
         """
         Initialize Tricontinental C24000 dual pump.
-        
+
         Args:
             port: Serial port (e.g., 'COM5' or '/dev/ttyUSB0')
             baudrate: Serial baud rate (default 9600)
             name: Friendly name for logging
         """
-        self.port = port
-        self.baudrate = baudrate
-        self.name = name
-        self.serial = None
-        self._connected = False
-        self._pump_a_position = 0  # Track syringe A position
-        self._pump_b_position = 0  # Track syringe B position
-        
+        self.port: str = port
+        self.baudrate: int = baudrate
+        self.name: str = name
+        self.serial: serial.Serial | None = None
+        self._connected: bool = False
+        self._pump_a_position: int = 0  # Track syringe A position
+        self._pump_b_position: int = 0  # Track syringe B position
+
         # Calibration parameters
-        self.uL_per_count = 0.005107  # Based on calibration (µL dispensed per count)
-        self.counts_per_uL = 1 / self.uL_per_count  
-        
+        self.uL_per_count: float = 0.005107  # Based on calibration (µL dispensed per count)
+        self.counts_per_uL: float = 1 / self.uL_per_count
+
         # Current operation state
-        self.flow_rate_ul_min = 0.0
-        self.flow_rate_ul_sec = 0.0 
+        self.flow_rate_ul_min: float = 0.0
+        self.flow_rate_ul_sec: float = 0.0
 
     def connect(self) -> None:
         """Connect to the pump via serial port."""
@@ -309,7 +313,7 @@ class TricontinentalC24000(Pump):
         total_counts = abs(volume_ul) * self.counts_per_uL
         return int(total_counts)
     
-    def _calculate_pump_time(self, volume_ul: float, flow_rate_ul_min: float, buffer_sec: float = 2.0) -> tuple:
+    def _calculate_pump_time(self, volume_ul: float, flow_rate_ul_min: float, buffer_sec: float = 2.0) -> tuple[float, float]:
         """Calculate the pump time in seconds based on volume and flow rate.
         
         Uses the formula: time = volume / (flow_rate / 60)

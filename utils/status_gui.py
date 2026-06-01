@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import os
 import tkinter as tk
 from status import open_status_monitor
-from typing import Dict 
 
 if __name__ == "__main__":
     """

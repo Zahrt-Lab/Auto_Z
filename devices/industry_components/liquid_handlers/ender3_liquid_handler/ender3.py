@@ -14,6 +14,8 @@ which we can use as a 3D printer to control the xyz coordinates of our 3D printe
 
 '''
 
+from __future__ import annotations
+
 import time
 import serial
 import re

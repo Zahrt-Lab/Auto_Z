@@ -16,6 +16,8 @@ To add a new device: edit methods/device_registry.toml, no code changes needed.
 
 from __future__ import annotations
 
+from typing import Any
+
 import pandas as pd
 
 from .registry_loader import build_instance
@@ -35,17 +37,17 @@ class InstrumentManager:
         Returns:
          - None
         """
-        self.instrument_config_file = instrument_config_file
-        self.experiment_subdir = experiment_subdir
+        self.instrument_config_file: str = instrument_config_file
+        self.experiment_subdir: str | None = experiment_subdir
 
-        self.instruments = (
+        self.instruments: dict[str, Any] = (
             {}
         )  # {attr_name: device_instance} # e.g. {"Pump1": <VICI M6 Pump object>, "Pump2": <VICI M6 Pump object>)}
-        self.instrument_types = (
+        self.instrument_types: dict[str, str] = (
             {}
         )  # {attr_name: InstrumentType} # e.g. {"Pump1": "Pump", "Pump2": "Pump"}
 
-        self.instrument_config = self.load_instrument_config(
+        self.instrument_config: pd.DataFrame | None = self.load_instrument_config(
             self.instrument_config_file
         )
         self.initialize_instruments(self.instrument_config)

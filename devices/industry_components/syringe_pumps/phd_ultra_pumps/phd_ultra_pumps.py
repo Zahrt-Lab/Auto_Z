@@ -6,8 +6,10 @@
 # All rights reserved.
 # ------------------------------------------------------------------------------
 
-import serial, time
-from typing import Optional
+from __future__ import annotations
+
+import serial
+import time
 
 from ..syringe_pumps import SyringePump  # import the abstract base class from parent package
 
@@ -33,11 +35,12 @@ class PhdUltraPump(SyringePump):
         address: int = 0,
         pause: float = 0.10,
         name: str = "PhdUltraPump",
-    ):
+    ) -> None:
         # Keep original behavior: open serial port immediately
-        self.name = name
-        self.address, self.pause = address, pause
-        self.ser = serial.Serial(
+        self.name: str = name
+        self.address: int = address
+        self.pause: float = pause
+        self.ser: serial.Serial = serial.Serial(
             port,
             baudrate,
             parity=serial.PARITY_NONE,
@@ -48,11 +51,11 @@ class PhdUltraPump(SyringePump):
             dsrdtr=False,
             xonxoff=False,
         )
-        self.syringe_size_ml: Optional[float] = None  # record current syringe
+        self.syringe_size_ml: float | None = None  # record current syringe
 
         # NEW: for SyringePump lifecycle
         self._connected: bool = False
-        self._default_flow_ul_min: Optional[float] = None
+        self._default_flow_ul_min: float | None = None
         self._last_status_msg: str = "Not connected"
 
     # ---------- SyringePump ABC: lifecycle ----------
@@ -211,7 +214,7 @@ class PhdUltraPump(SyringePump):
     def get_version(self) -> str:
         return self.send("ver")
     
-    def get_current_flow_rate_ul_min(self) -> Optional[float]:
+    def get_current_flow_rate_ul_min(self) -> float | None:
         """
         Query the pump for its current flow rate (µL/min).
 

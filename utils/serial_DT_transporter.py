@@ -18,9 +18,9 @@ class SerialDTTransport():
 
     def __init__(self, port: str = 'COM16', baud_rate: int = 9600, timeout: int | float = 1) -> None:
 
-        self.port = port
-        self.baud_rate = baud_rate
-        self.timeout = timeout
+        self.port: str = port
+        self.baud_rate: int = baud_rate
+        self.timeout: int | float = timeout
         self.ser: serial.Serial | None = None
 
     @property

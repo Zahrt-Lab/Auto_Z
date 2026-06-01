@@ -32,7 +32,7 @@ class UvDetectorExecutor:
         Parameters:
             log_callback: Function to log an action row (component, action, params, output).
         """
-        self.log_to_csv = log_callback
+        self.log_to_csv: LogCallback = log_callback
 
     def execute(self, action: str, params: str, component: str, uv: UVDetector) -> None:
         """Route action string to the appropriate UV detector method."""

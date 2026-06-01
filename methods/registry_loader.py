@@ -25,12 +25,12 @@ from typing import Any
 import tomli as tomllib
 
 # Contains the file path to the device registry TOML file
-_REGISTRY_PATH = Path(__file__).parent / "device_registry.toml"
+_REGISTRY_PATH: Path = Path(__file__).parent / "device_registry.toml"
 # Cached registry data loaded from the TOML file, stored as a global variable
-_registry: dict | None = None
+_registry: dict[str, Any] | None = None
 
 
-def _load() -> dict:
+def _load() -> dict[str, Any]:
     global _registry
     if _registry is None:
         with open(_REGISTRY_PATH, "rb") as f:
@@ -90,7 +90,7 @@ def get_default_rows() -> list[tuple[str, ...]]:
     ]
 
 def build_instance(
-    instrument_type: str, csv_row: Any, context: dict | None = None
+    instrument_type: str, csv_row: Any, context: dict[str, Any] | None = None
 ) -> object:
     """
     Instantiate a device from the registry.
@@ -125,7 +125,7 @@ def build_instance(
         f"{instrument_type}_{device_number}" if device_number else instrument_type
     )
 
-    kwargs: dict = {}
+    kwargs: dict[str, Any] = {}
 
     # COM port
     if "port_kwarg" in entry:

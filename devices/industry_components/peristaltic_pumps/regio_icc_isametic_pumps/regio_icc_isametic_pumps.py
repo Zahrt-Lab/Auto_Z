@@ -15,9 +15,12 @@ This class serves
 # in the methods.py file, so that it would show up as four separate pumps when working in methods.py
 # need to brainstorm how to implment in this code
 
+from __future__ import annotations
+
 import time
 import serial
 import math
+
 from devices.industry_components.peristaltic_pumps.peristaltic_pumps import PeristalticPump
 
 # TODO: I think the best way to implement this is to make a new peristaltic pump class
@@ -26,16 +29,16 @@ from devices.industry_components.peristaltic_pumps.peristaltic_pumps import Peri
 
 class Regio_ICC_Isametic_Pump(PeristalticPump):
 
-    def __init__(self,  port='COM16', baud_rate=9600, timeout=1):
-        self.port = port
-        self.baud_rate = baud_rate
-        self.timeout = timeout
-        self.ser = None
-        self._connected = False
-        
-        self._number_of_channels = 4
-        self._channel = 1
-        self._tubing_size_mm = 0.76  
+    def __init__(self, port: str = 'COM16', baud_rate: int = 9600, timeout: int = 1) -> None:
+        self.port: str = port
+        self.baud_rate: int = baud_rate
+        self.timeout: int = timeout
+        self.ser: serial.Serial | None = None
+        self._connected: bool = False
+
+        self._number_of_channels: int = 4
+        self._channel: int = 1
+        self._tubing_size_mm: float = 0.76
     
     # ----------------------------------
     # Helper Functions
@@ -115,14 +118,14 @@ class Regio_ICC_Isametic_Pump(PeristalticPump):
         run_time_str = f"{run_time_sec:08d}"
         self.ser.write(f"{channel}xT{run_time_str}\r\n".encode())
 
-    def _start(self, channel: int):
+    def _start(self, channel: int) -> None:
         """Implement logic to start the pump"""
         # Currently it's only set to channel 1, need to implement for all channels
         self.ser.write(f"{channel}H\r\n".encode())  # Example command to start the pump
         if "*" == self.ser.readline().decode().strip():
             print("Pump started successfully.")
 
-    def _stop(self, channel: int):
+    def _stop(self, channel: int) -> None:
         """Implement logic to stop the pump"""
         # Currently it's only set to channel 1, need to implement for all channels
         self.ser.write(f"{channel}I\r\n".encode())  # Example command to stop the pump
@@ -197,7 +200,7 @@ class Regio_ICC_Isametic_Pump(PeristalticPump):
         self._start(channel)
         time.sleep(self._calculate_pump_time(flow_rate_ul_min, volume_ul))
 
-    def set_flow_rate(self, flow_rate_ul_min):
+    def set_flow_rate(self, flow_rate_ul_min: float) -> None:
         """Implement logic to set flow rate for the Regio ICC Isametic Pump"""
         self._set_flow_rate(flow_rate_ul_min)
 

@@ -8,7 +8,10 @@
 
 """Abstract base class for UV-Vis spectrometer detector components."""
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
+from typing import Any
 
 
 class UVDetector(ABC):
@@ -39,7 +42,7 @@ class UVDetector(ABC):
         """Stops continuous spectrum acquisition for the UV-Vis spectrometer detector."""
 
     @abstractmethod
-    def status(self) -> dict:
+    def status(self) -> dict[str, Any]:
         """Returns the status of the UV-Vis spectrometer detector."""
 
     @abstractmethod

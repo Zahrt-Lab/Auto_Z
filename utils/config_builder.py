@@ -5,6 +5,8 @@
 #   pip install pyserial
 # ------------------------------------------------------------------------------
 
+from __future__ import annotations
+
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import csv
@@ -35,9 +37,9 @@ class InstrumentRow:
     Represents one editable row in the table.
     Widgets are placed directly into the shared `rows_frame` to keep columns aligned.
     """
-    def __init__(self, parent, row_index, available_ports, prefill_port="", description=""):
-        self.parent = parent
-        self.row_index = row_index
+    def __init__(self, parent: ttk.Frame, row_index: int, available_ports: list[str], prefill_port: str = "", description: str = "") -> None:
+        self.parent: ttk.Frame = parent
+        self.row_index: int = row_index
 
         # Tk variables
         self.com_var = tk.StringVar(value=prefill_port)
@@ -99,16 +101,14 @@ class InstrumentRow:
 
 
 class ConfigBuilderGUI(tk.Tk):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.title("Instrument Config Builder - AUTO_ZAHRT")
         self.geometry("1200x600")
 
-        self.available_ports = []
-        self.port_descriptions = {}
-
-        # list[InstrumentRow]
-        self.rows = []
+        self.available_ports: list[str] = []
+        self.port_descriptions: dict[str, str] = {}
+        self.rows: list[InstrumentRow] = []
 
         self._build_widgets()
         self.scan_ports()

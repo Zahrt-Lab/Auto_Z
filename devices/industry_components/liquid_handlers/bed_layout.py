@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 try:
     import tomllib
@@ -17,10 +18,10 @@ except ImportError:
 from devices.industry_components.liquid_handlers.wells import Well
 
 _OFFSETS_PATH = Path(__file__).parent / "bed_offsets.toml"
-_offsets_cache: dict | None = None
+_offsets_cache: dict[str, Any] | None = None
 
 
-def _load_offsets() -> dict:
+def _load_offsets() -> dict[str, Any]:
     """Load bed_offsets.toml once and cache the result."""
     global _offsets_cache
     if _offsets_cache is None:
@@ -37,24 +38,24 @@ class BedLayout():
 
         #Sets the location bed number on the GX271 liquid handler
         # The far left is labeled 1 and far right is labeled 6
-        self.bed_number=bed_number
+        self.bed_number: int = bed_number
 
         #Determines the layout of the racks, to feed into
-        self.rack_layout=rack_layout
+        self.rack_layout: int = rack_layout
 
-        self.device_type = device_type
+        self.device_type: str = device_type
 
-        self.wells={}
-        self.X=[]
-        self.Y=[]
-        self.Z = None
+        self.wells: dict[int, Well] = {}
+        self.X: list[float] = []
+        self.Y: list[float] = []
+        self.Z: float | None = None
 
-        self.coordinates=[]
+        self.coordinates: list[list[float]] = []
 
-        self.x_offset = []
-        self.y_offset = 0.0
+        self.x_offset: list[float] = []
+        self.y_offset: float = 0.0
 
-        self.num_wells=None
+        self.num_wells: int | None = None
 
         # Load device-specific offsets from TOML (Ender3 rack 301 manages its own offsets)
         if rack_layout != 301:

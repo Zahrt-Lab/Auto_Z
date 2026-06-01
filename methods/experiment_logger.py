@@ -63,7 +63,7 @@ class ExperimentLogger:
         )
 
         # Set log filename with timestamp
-        self.log_filename = os.path.join(
+        self.log_filename: str = os.path.join(
             self.experiment_subdir,
             f"{self.start_time.strftime('%Y_%m_%d_%H-%M-%S')}_{output_file}.csv",
         )
@@ -76,7 +76,7 @@ class ExperimentLogger:
             )
 
         # Set status log filename
-        self.status_log_filename = os.path.join(
+        self.status_log_filename: str = os.path.join(
             self.experiment_subdir,
             f"{self.start_time.strftime('%Y_%m_%d_%H-%M-%S')}_Status_Log.csv",
         )

@@ -7,6 +7,8 @@
 # ------------------------------------------------------------------------------
 
 
+from __future__ import annotations
+
 import time
 
 from devices.industry_components.pumps.pumps import Pump
@@ -19,13 +21,13 @@ class Tecan_pump(Pump):
   required methods. It uses the Tecan_driver to communicate with 
   the pump hardware.'''
 
-  def __init__(self, port='COM16', baud_rate=9600, timeout=1, name="Tecan_pump_1"):
-    self.name = name
-    self.flow_rate_ul_min = 0
-    self._stop_flag = False
+  def __init__(self, port: str = 'COM16', baud_rate: int = 9600, timeout: int = 1, name: str = "Tecan_pump_1") -> None:
+    self.name: str = name
+    self.flow_rate_ul_min: float = 0
+    self._stop_flag: bool = False
 
     try:
-      self.driver = driver(port=port, baud_rate=baud_rate, timeout=timeout)
+      self.driver: driver = driver(port=port, baud_rate=baud_rate, timeout=timeout)
     except Exception as e:
       print(f"Error initializing Tecan pump driver: {e}")
     

@@ -26,42 +26,42 @@ class VICI_M6_Pumps(Pump):
         except serial.SerialException as e:
             print(f"Failed to initialize serial connection with VICI M6 pump: {e}")
             self.ser = None
-        self.direction = "aspirating"
-        self.direction_multiplier = -1  # Default to aspirating
+        self.direction: str = "aspirating"
+        self.direction_multiplier: int = -1  # Default to aspirating
         self._initialize_parameters()
 
     def _initialize_parameters(self) -> None:
         """Initialize all pump parameters and math constants."""
         # Communication and motor control parameters
-        self.MS = 256  # Microsteps per step
-        self.P = 0  # Motor position
-        self.VI = 1000  # Initial velocity (steps/sec)
-        self.VM = 76800  # Maximum velocity (steps/sec)
-        self.A = 1000000  # Acceleration (steps/sec^2)
-        self.D = 1000000  # Deceleration (steps/sec^2)
-        self.MA = None  # Absolute movement (steps/sec)
-        self.MR = None  # Relative movement (step/sec)
-        self.SL = None  # Speed override (steps/sec)
-        self.SL_units = "steps/sec"
+        self.MS: int = 256  # Microsteps per step
+        self.P: int = 0  # Motor position
+        self.VI: int = 1000  # Initial velocity (steps/sec)
+        self.VM: int = 76800  # Maximum velocity (steps/sec)
+        self.A: int = 1000000  # Acceleration (steps/sec^2)
+        self.D: int = 1000000  # Deceleration (steps/sec^2)
+        self.MA: int | None = None  # Absolute movement (steps/sec)
+        self.MR: int | None = None  # Relative movement (step/sec)
+        self.SL: float | None = None  # Speed override (steps/sec)
+        self.SL_units: str = "steps/sec"
 
         # Math and volume calculations
-        self.volume = 1000  # Total volume (uL)
-        self.volume_units = "uL"
-        self.flow_rate_min = 100  # Default flow rate (uL/min)
-        self.flow_rate_sec = self.flow_rate_min / 60  # Convert to uL/sec
-        self.flow_rate_units_min = "uL/min"
-        self.flow_rate_units_sec = "uL/sec"
+        self.volume: int = 1000  # Total volume (uL)
+        self.volume_units: str = "uL"
+        self.flow_rate_min: float = 100  # Default flow rate (uL/min)
+        self.flow_rate_sec: float = self.flow_rate_min / 60  # Convert to uL/sec
+        self.flow_rate_units_min: str = "uL/min"
+        self.flow_rate_units_sec: str = "uL/sec"
 
         # Motor and pump specifics
-        self.micro_steps = 256
-        self.motor_steps = 200
-        self.gearbox_ratio = 9.87
-        self.micro_steps_per_rev = self.micro_steps * self.motor_steps * self.gearbox_ratio
-        self.pump_head_volume = 99.771  # Pump head volume (uL/rev)
-        self.steps_per_ul = self.micro_steps_per_rev / self.pump_head_volume  # Steps per uL
-        self.steps_per_ul_units = "steps/uL"
+        self.micro_steps: int = 256
+        self.motor_steps: int = 200
+        self.gearbox_ratio: float = 9.87
+        self.micro_steps_per_rev: float = self.micro_steps * self.motor_steps * self.gearbox_ratio
+        self.pump_head_volume: float = 99.771  # Pump head volume (uL/rev)
+        self.steps_per_ul: float = self.micro_steps_per_rev / self.pump_head_volume  # Steps per uL
+        self.steps_per_ul_units: str = "steps/uL"
 
-        self._stop_flag = False
+        self._stop_flag: bool = False
 
     def set_flow_rate(self, flow_rate_min: float, direction: str) -> None:
         try:

@@ -6,8 +6,11 @@
 # All rights reserved.
 # ------------------------------------------------------------------------------
 
-from utils.serial_DT_transporter import SerialDTTransport as serial_DT
+from __future__ import annotations
+
 import time
+
+from utils.serial_DT_transporter import SerialDTTransport as serial_DT
 
 class Tecan_driver():
 
@@ -15,15 +18,15 @@ class Tecan_driver():
     It handles serial communication and direct control of the pump hardware.
   '''      
 
-  def __init__(self,port='COM16', baud_rate=9600, timeout=1):
+  def __init__(self, port: str = 'COM16', baud_rate: int = 9600, timeout: int = 1) -> None:
 
-    self.port = port
-    self.baud_rate = baud_rate
-    self.timeout = timeout
-    self.ser = serial_DT(port=self.port, baud_rate=self.baud_rate, timeout=self.timeout)
-    self.is_connected = False
-    self.address_A  = 1
-    self.address_B = 2
+    self.port: str = port
+    self.baud_rate: int = baud_rate
+    self.timeout: int = timeout
+    self.ser: serial_DT = serial_DT(port=self.port, baud_rate=self.baud_rate, timeout=self.timeout)
+    self.is_connected: bool = False
+    self.address_A: int = 1
+    self.address_B: int = 2
 
   def decode_pump_address(self, pump: str) -> int:
 

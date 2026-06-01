@@ -12,6 +12,8 @@ This code provides a basic TCP client for communicating with the GX-271
 liquid handler. 
 '''
 
+from __future__ import annotations
+
 import socket
 import time
 import xml.etree.ElementTree as ET
@@ -41,29 +43,32 @@ class GX271(LiquidHandler):
                  device_name: str = "GX-27x",
                  timeout: float = 5.0,
                  debug: bool = True,
-                 ):
+                 ) -> None:
 
-        self.name = name
-        self.uid = uid
-        self.XMIN, self.XMAX = 0, 100
-        self.YMIN, self.YMAX = 0, 100
-        self.ZMIN, self.ZMAX = 0, 100
-        self.SAFE_Z = 110
+        self.name: str = name
+        self.uid: int = uid
+        self.XMIN: int = 0
+        self.XMAX: int = 100
+        self.YMIN: int = 0
+        self.YMAX: int = 100
+        self.ZMIN: int = 0
+        self.ZMAX: int = 100
+        self.SAFE_Z: int = 110
 
-        self.rack1 = 204
-        self.rack2 = 204
-        self.rack3 = 204
+        self.rack1: int = 204
+        self.rack2: int = 204
+        self.rack3: int = 204
 
-        self.handshake_port = handshake_port
-        self.command_port = command_port
-        self.host = host
-        self.device_name = device_name
-        self.device_id = uid
-        self.timeout = timeout
-        self.debug = debug
-        self._sock = None
-        self._seq = 0
-        self._connected = False
+        self.handshake_port: int = handshake_port
+        self.command_port: int = command_port
+        self.host: str = host
+        self.device_name: str = device_name
+        self.device_id: int = uid
+        self.timeout: float = timeout
+        self.debug: bool = debug
+        self._sock: socket.socket | None = None
+        self._seq: int = 0
+        self._connected: bool = False
 
     # ---- Connection ----------------------------------------------------------------
 

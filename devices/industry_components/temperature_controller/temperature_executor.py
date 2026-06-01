@@ -35,8 +35,8 @@ class TemperatureExecutor:
             log_callback: Function to log an action row (component, action, params, output).
             continue_flag_getter: Callable returning bool. False triggers an abort.
         """
-        self.log_to_csv = log_callback
-        self._continue_experiment_getter = continue_flag_getter
+        self.log_to_csv: LogCallback = log_callback
+        self._continue_experiment_getter: Callable[[], bool] = continue_flag_getter
 
     def execute(
         self,

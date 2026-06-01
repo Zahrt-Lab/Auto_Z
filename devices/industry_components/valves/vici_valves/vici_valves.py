@@ -7,9 +7,13 @@
 # All rights reserved.
 # ------------------------------------------------------------------------------
 
+from __future__ import annotations
+
+from typing import Any
+
 import serial
 import time
-from typing import Optional, Union
+
 from ..valves import Valves
 
 class ViciValve(Valves):
@@ -24,7 +28,7 @@ class ViciValve(Valves):
         '24-way': {'positions': 24},
     }
 
-    def __init__(self, port: str, valve_type: Union[str, int], baudrate: int = 9600, timeout: float = 1):
+    def __init__(self, port: str, valve_type: str | int, baudrate: int = 9600, timeout: float = 1) -> None:
         # Determines the type of VICI Valve being used
         if isinstance(valve_type, str):
             key = valve_type.lower().replace(' ', '').replace('-', '')
@@ -32,14 +36,14 @@ class ViciValve(Valves):
                            if k.replace('-', '') == key), None)
             if preset is None:
                 raise ValueError(f"Unknown valve_type '{valve_type}'")
-            self.positions = preset['positions']
+            self.positions: int = preset['positions']
         else:
             self.positions = int(valve_type)
             if self.positions % 2 or not (2 <= self.positions <= 40):
                 raise ValueError('positions must be an even number between 2 and 40')
 
         # Serial link
-        self.ser = serial.Serial(
+        self.ser: serial.Serial = serial.Serial(
             port=port,
             baudrate=baudrate,
             parity=serial.PARITY_NONE,
@@ -76,11 +80,11 @@ class ViciValve(Valves):
         """Moves the actuator to the HOME position."""
         return self.send_command("HM")
 
-    def move_clockwise(self, pos: Optional[int] = None) -> str:
+    def move_clockwise(self, pos: int | None = None) -> str:
         cmd = f"CW{pos:02}" if pos is not None else "CW"
         return self.send_command(cmd)
 
-    def move_counterclockwise(self, pos: Optional[int] = None) -> str:
+    def move_counterclockwise(self, pos: int | None = None) -> str:
         cmd = f"CC{pos:02}" if pos is not None else "CC"
         return self.send_command(cmd)
 
@@ -123,7 +127,7 @@ class ViciValve(Valves):
         if len(new_id) != 1 or not (new_id.isdigit() or new_id.isalpha()):
             raise ValueError('device_id must be a single digit (0-9) or letter (A-Z)')
         resp = self.send_command(f"ID{new_id}")
-        self.device_id = new_id
+        self.device_id: str | None = new_id
         return resp
 
     def reset_device_id(self) -> str:
@@ -156,28 +160,28 @@ class ViciValve(Valves):
 class Multi_VICIValveController:
     """Helper to broadcast the same command to multiple valves."""
 
-    def __init__(self, *valves: ViciValve):
+    def __init__(self, *valves: ViciValve) -> None:
         if not valves:
             raise ValueError('At least one ViciValve required')
-        self.valves = valves
+        self.valves: tuple[ViciValve, ...] = valves
 
-    def _broadcast(self, method: str, *args, **kwargs):
+    def _broadcast(self, method: str, *args: Any, **kwargs: Any) -> list[Any]:
         return [getattr(v, method)(*args, **kwargs) for v in self.valves]
 
-    def go_to_position(self, pos: int):
+    def go_to_position(self, pos: int) -> list[Any]:
         return self._broadcast('go_to_position', pos)
 
-    def move_home(self):
+    def move_home(self) -> list[Any]:
         return self._broadcast('move_home')
 
-    def move_clockwise(self, pos: Optional[int] = None):
+    def move_clockwise(self, pos: int | None = None) -> list[Any]:
         return self._broadcast('move_clockwise', pos)
 
-    def move_counterclockwise(self, pos: Optional[int] = None):
+    def move_counterclockwise(self, pos: int | None = None) -> list[Any]:
         return self._broadcast('move_counterclockwise', pos)
 
-    def check_current_position(self):
+    def check_current_position(self) -> list[Any]:
         return self._broadcast('check_current_position')
 
-    def close(self):
+    def close(self) -> list[Any]:
         return self._broadcast('close')

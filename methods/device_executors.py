@@ -55,15 +55,15 @@ class DeviceExecutor:
             start_time: Experiment start time (datetime), used for future sub-executor use.
             continue_flag_getter: Callable returning bool, passed to the TemperatureExecutor.
         """
-        self._bed_layouts = bed_layouts
-        self._log_callback = log_callback
-        self._liquid_handler = LiquidHandlerExecutor(bed_layouts, log_callback)
-        self._pump = PumpExecutor(log_callback)
-        self._valve = ValveExecutor(log_callback)
-        self._temperature = TemperatureExecutor(log_callback, continue_flag_getter)
-        self._uv_detector_light_source = UvDetectorLightSourceExecutor(log_callback)
-        self._uv_detector = UvDetectorExecutor(log_callback)
-        self._photo_reactor = PhotoReactorExecutor(log_callback)
+        self._bed_layouts: dict[int, BedLayout] = bed_layouts
+        self._log_callback: LogCallback = log_callback
+        self._liquid_handler: LiquidHandlerExecutor = LiquidHandlerExecutor(bed_layouts, log_callback)
+        self._pump: PumpExecutor = PumpExecutor(log_callback)
+        self._valve: ValveExecutor = ValveExecutor(log_callback)
+        self._temperature: TemperatureExecutor = TemperatureExecutor(log_callback, continue_flag_getter)
+        self._uv_detector_light_source: UvDetectorLightSourceExecutor = UvDetectorLightSourceExecutor(log_callback)
+        self._uv_detector: UvDetectorExecutor = UvDetectorExecutor(log_callback)
+        self._photo_reactor: PhotoReactorExecutor = PhotoReactorExecutor(log_callback)
 
     # ------------------------------------------------------------------
     # Public delegation methods (interface unchanged for methods.py)
