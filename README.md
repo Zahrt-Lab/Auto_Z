@@ -33,7 +33,3 @@ To contribute to this repository follow these steps
 ## Contact
 
 ## License
-
-
-
-Test
