@@ -12,6 +12,7 @@ from __future__ import annotations
 from typing import Any
 
 import serial
+import threading
 import time
 
 from ..valves import Valves
@@ -54,6 +55,8 @@ class ViciValve(Valves):
             timeout=timeout
         )
 
+        self._lock = threading.Lock()
+
         # Ensure firmware knows the stator size
         self.set_number_of_positions(self.positions)
 
@@ -68,9 +71,9 @@ class ViciValve(Valves):
         """
         Send a command to the valve and return the response.
         """
-        command_str = f"{command}\r"
-        self.ser.write(command_str.encode())
-        return self.ser.readline().decode().strip()
+        with self._lock:
+            self.ser.write(f"{command}\r".encode())
+            return self.ser.readline().decode().strip()
 
     def go_to_position(self, pos: int) -> str:
         """Move to absolute position (1-N)."""

@@ -41,9 +41,9 @@ class ValveExecutor:
                     component, action, params, "Error: position parameter missing"
                 )
                 return
-            valve.go_to_position(position)
+            valve.go_to_position(int(position))
             self.log_to_csv(
-                component, action, params, f"Moved valve to position {position}"
+                component, action, params, f"Moved valve to position {int(position)}"
             )
             current = valve.get_position()
             self.log_to_csv(
