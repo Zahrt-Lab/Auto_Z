@@ -15,7 +15,17 @@ For developers we recommend reading the manual under docs of this respository un
 To install this software on Windows 11 computers please follow these steps.
 
 '''
-pip install .
+git clone https://github.com/scottlaverty1/Auto_Zahrt_v3.git
+
+# How to install from the directory
+pip install /path/to/Auto_Zahrt_v3
+'''
+
+'''
+git clone https://github.com/scottlaverty1/Auto_Zahrt_v3.git
+
+# Create a distribution and install
+
 '''
 
 ## Using <Project_Name>
