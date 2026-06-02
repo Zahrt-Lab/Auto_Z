@@ -6,15 +6,17 @@ This is a python package developed by the Zahrt Lab to program lab instruments f
 
 install the latest version of 
 
-This software has been developed and tested on Windows 11 computers
+This software has been developed and tested on Windows 11 computers.
 
-For developers we recommend reading the manual under docs of this repository
+For developers we recommend reading the manual under docs of this respository under docs/manual.md
 
 ## Installing
 
 To install this software on Windows 11 computers please follow these steps.
 
+'''
 pip install .
+'''
 
 ## Using <Project_Name>
 
