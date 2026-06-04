@@ -90,6 +90,7 @@ class Ocean_Optics_UV_vis(UVDetector):
         reference_wavelength: float = 700,
         blank_light_intensity_threshold: float = 1000,
         wavelength_for_blank_light_intensity_check: float = 600,
+        convergence_time: float = 120,
         save_file_path: str = "UV_detection.csv",
         measurement_interval: float = 5.0,
     ) -> None:
@@ -170,8 +171,8 @@ class Ocean_Optics_UV_vis(UVDetector):
         # Convergence monitoring
         self.convergence_enabled = False
         self.spike_level = 0.2
-        self.convergence_time = 2 * 60  # 2 minutes in seconds
-        self.window_size = int(self.convergence_time / self.measurement_interval)  # Number of points in the convergence window
+        self._convergence_time = float(convergence_time)
+        self.window_size = int(self._convergence_time / self.measurement_interval)
         self.ssd_min_probability = 0.95 # Minimum probability for the SSD to be considered converged
         self.ssd_t_crit = 2.0 # t-crit value for the SSD convergence test.
         self.max_convergence_wait = None  # Optional timeout in seconds (None = no limit)
@@ -203,6 +204,15 @@ class Ocean_Optics_UV_vis(UVDetector):
               - "averaged_spectrum": the averaged intensity spectrum,
 
     """
+
+    @property
+    def convergence_time(self) -> float:
+        return self._convergence_time
+
+    @convergence_time.setter
+    def convergence_time(self, value: float) -> None:
+        self._convergence_time = float(value)
+        self.window_size = int(self._convergence_time / self.measurement_interval)
 
     def connect(self) -> None:
         self.initialize_Ocean_Optics_UV_VIS()

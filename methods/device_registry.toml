@@ -278,6 +278,7 @@ target_wavelengths = "Targets (e.g., 409;450)"
 reference_wavelength = "Reference (e.g., 700)"
 blank_light_intensity_threshold = "Blank light intensity threshold (e.g. 500)" 
 wavelength_for_blank_light_intensity_check = "Wavelength for blank light intensity check (e.g. 400)"
+convergence_time = "Convergence time (s)"
 
 
 [groups.MirrorBox]

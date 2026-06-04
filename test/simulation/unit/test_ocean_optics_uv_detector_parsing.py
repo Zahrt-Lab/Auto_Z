@@ -71,14 +71,10 @@ class TestOceanOpticsInitialization:
 
         assert uv.convergence_enabled is False
         assert uv.spike_level == 0.2
-        assert uv.convergence_threshold == 0.05
-        assert uv.convergence_time == 5 * 60
-        assert uv.max_outliers == 2
+        assert uv.convergence_time == 120
         assert uv._convergence_state == {
             "previous": None,
             "spike_seen": False,
-            "converged_start": None,
-            "outliers": [],
             "done": False,
         }
 
