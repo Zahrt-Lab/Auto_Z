@@ -310,7 +310,8 @@ class Ocean_Optics_UV_vis(UVDetector):
     #This sets how frequently things are being recorded on the device
     def set_measurement_interval(self, measurement_interval: float | str) -> None:
         try:
-            self.measurement_interval =float(measurement_interval)
+            self.measurement_interval = float(measurement_interval)
+            self.window_size = int(self._convergence_time / self.measurement_interval)
             print(f"Set measurement interval to {self.measurement_interval}")
         except:
             print(f"Failed to set measurement interval to {measurement_interval}")

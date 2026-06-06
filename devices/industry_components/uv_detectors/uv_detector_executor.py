@@ -104,17 +104,10 @@ class UvDetectorExecutor:
                     str(uv_params["convergence_enabled"]).lower() == "true"
                 )
 
-            # TODO: I don't think all of these parameters are actually used in the
-            # current convergence implementation.
-            # Need to review and clearn up convergence parameters and implementation.
             if "spike_level" in uv_params:
                 uv.spike_level = float(uv_params["spike_level"])
-            if "convergence_threshold" in uv_params:
-                uv.convergence_threshold = float(uv_params["convergence_threshold"])
             if "convergence_time" in uv_params:
                 uv.convergence_time = float(uv_params["convergence_time"])
-            if "max_outliers" in uv_params:
-                uv.max_outliers = int(uv_params["max_outliers"])
             if "max_convergence_wait" in uv_params:
                 uv.max_convergence_wait = float(uv_params["max_convergence_wait"])
             if "reference_wavelength" in uv_params:
