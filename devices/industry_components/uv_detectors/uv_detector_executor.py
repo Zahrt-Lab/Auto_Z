@@ -103,7 +103,6 @@ class UvDetectorExecutor:
                 uv.convergence_enabled = (
                     str(uv_params["convergence_enabled"]).lower() == "true"
                 )
-
             if "spike_level" in uv_params:
                 uv.spike_level = float(uv_params["spike_level"])
             if "convergence_time" in uv_params:
