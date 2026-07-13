@@ -2,349 +2,210 @@
 # Software: AUTO_ZAHRT
 # Copyright: (C) 2024 by Professor Andrew Zahrt
 # This software is the intellectual property of Professor Andrew Zahrt
-# Contributions by graduate students Scott Laverty and Joao Luiz Albuquerque are acknowledged.
+# Contributions by graduate students Scott Laverty and Joao Albuquerque are acknowledged.
 # All rights reserved.
 # ------------------------------------------------------------------------------
+
 
 from __future__ import annotations
 
 import time
-import serial
 
 from devices.industry_components.pumps.pumps import Pump
-from . import tricont_pyserial as tri
+from devices.industry_components.pumps.tecan_pumps.tricontinental_c24000_driver import Tricontinental_c2400_driver as driver
 
-'''
-The purpose of this code is to control the Tricontinental C24000 dual syringe pump 
-via its serial interface.
-'''
-
-# TODO: After testing, consider refactoring this code to reduce repetition and improve readability.
 
 class TricontinentalC24000(Pump):
-    """Driver for Tricontinental C24000 Dual Syringe Pump.
-    
-    Uses a VICI-style approach for volume control:
-    - Converts flow rate and volume to device-specific units
-    - Calculates pump time based on volume and flow rate
-    - Blocks until the calculated time has elapsed
-    - Stops the pump after completion
-    """
+  '''This class serves as an abstraction layer for the Tricontinental C24000 pump.
+  It inherits from the abstract Pump class and implements the 
+  required methods. It uses the Tecan_driver to communicate with 
+  the pump hardware.'''
 
-    # Calibration values: maps flow_rate (µL/min) to counts_per_uL
-    # TODO: Populate with actual calibration data for your specific pump
-    # TODO: Should make the calibration function necessary in the pumps.py 
-    # but that can be in a future develops version, not urgent
-    '''Calibration values for 25mL syringe, 0.06376 µL/count (1 / 15.6835 counts/µL)
-    CALIBRATION_VALUES = {
-        # flow_rate_ul_min: counts_per_uL
-        100: 15.6835,      # Example calibration at 100 µL/min
-        200: 15.6835,      # Example calibration at 200 µL/min
-        500: 15.6835,      # Example calibration at 500 µL/min
-        1000: 15.6835,     # Example calibration at 1000 µL/min
-        1500: 15.6835,     # Example calibration at 1500 µL/min
-        2000: 15.6835,     # Example calibration at 2000 µL/min
-    }
-    DEFAULT_COUNTS_PER_UL = 15.6835  # Default if flow rate not in calibration table (1 / 0.10675)
+  def __init__(self, port: str = 'COM16', baud_rate: int = 9600, timeout: int = 1, name: str = "TricontinentalC24000_1") -> None:
+    self.name: str = name
+    self.flow_rate_ul_min: float = 0
+    self._stop_flag: bool = False
+
+    try:
+      self.driver: driver = driver(port=port, baud_rate=baud_rate, timeout=timeout)
+    except Exception as e:
+      print(f"Error initializing Tricontinental C24000 pump driver: {e}")
+    
+  def connect(self) -> None:       
+    try:
+      self.driver.connect()
+    except Exception as e:
+      print(f"Error connecting to Tricontinental C24000 pump: {e}")
+
+    #Joao made the decision to initialize the pumps during the connect phase. This could also be moved to its own method.
+    if self.driver.is_initialized("A"):
+      print("Pump A is already initialized.")
+    else:
+      self.driver.initialize_pump(pump="A", resolution=0)
+      print("Initializing pump A.")
+    if self.driver.is_initialized("B"):
+      print("Pump B is already initialized.")
+    else:
+      self.driver.initialize_pump(pump="B", resolution=0)
+      print("Initializing pump B.")
+    
+    self.driver.check_until_initialized(pump="A", timeout=60) #Check until pump A is initialized before proceeding
+    self.driver.check_until_initialized(pump="B", timeout=60) #Check until pump B is initialized before proceeding
+    self._stop_flag = False
+
+  def aspirate(self, flow_rate_ul_min: float, volume_ul: float) -> None:
+    #Aspirate command is not implemented in the Tricontinental C24000 pump
+    print("Aspirate command is not supported by Tricontinental C24000 pump.")
+    pass
+
     '''
-    # Calibration values for 1mL syringe, 0.005107 µL/count (1 / 196.82 counts/µL)
-    # Is this even needed? The pumps have the same calibration value across all flow rates
-    CALIBRATION_VALUES = {
-        # flow_rate_ul_min: counts_per_uL
-        100: 196.82,      # Example calibration at 100 µL/min
-        200: 196.82,      # Example calibration at 200 µL/min
-        500: 196.82,      # Example calibration at 500 µL/min
-        1000: 196.82,     # Example calibration at 1000 µL/min
-        1500: 196.82,     # Example calibration at 1500 µL/min
-        2000: 196.82,     # Example calibration at 2000 µL/min
-    }
-    DEFAULT_COUNTS_PER_UL = 196.82  # Default if flow rate not in calibration table (1 / 0.005107)
+  def dispense(self, flow_rate_ul_min: float, volume_ul: float) -> None:
+    self.set_flow_rate(flow_rate_ul_min) # Set the flow rate for the pump
+    #The dispense command in the Tricontinental C24000 Pump is the continuous flow command
+    time_sec = self._calculate_time_for_volume(volume_ul)
+    speed = int (self._calculate_speed_for_flow_rate())
+    print(f"Time (s): {time_sec}")
+    print(f"Speed: {speed}")
+    self.driver.run_continuous_flow(dispense_speed=speed)
+    #The time should only start after the pump has filled its barrel and moved the valve to the output position.
+    #This is why we need check untill the valve is in the output mode
+    print("Waiting for pump A valve to be in output position...")
+    while not self.driver.is_valve_in_output_position(pump="A"):
+      time.sleep(0.1)  # Wait for 0.1 seconds before checking again
+    print("Pump A valve is in output position. Starting dispense timer.")
+    start_time = time.monotonic()
+    while True:
+      elapsed_time = time.monotonic() - start_time
+      dispensed_volume = min(volume_ul, (elapsed_time / time_sec) * volume_ul) if time_sec > 0 else volume_ul
+      print(f"Dispensed: {dispensed_volume:.2f} uL / {volume_ul:.2f} uL")
 
-    def __init__(self, port: str, baudrate: int = 9600, name: str = "Tricontinental_C24000") -> None:
-        """
-        Initialize Tricontinental C24000 dual pump.
+      remaining_time = time_sec - elapsed_time
+      if remaining_time <= 0:
+        break
+      time.sleep(min(10, remaining_time))
 
-        Args:
-            port: Serial port (e.g., 'COM5' or '/dev/ttyUSB0')
-            baudrate: Serial baud rate (default 9600)
-            name: Friendly name for logging
-        """
-        self.port: str = port
-        self.baudrate: int = baudrate
-        self.name: str = name
-        self.serial: serial.Serial | None = None
-        self._connected: bool = False
-        self._pump_a_position: int = 0  # Track syringe A position
-        self._pump_b_position: int = 0  # Track syringe B position
+    self.stop()  # Stop the pump after dispensing the desired volume
+  '''
+  
+  def dispense(self, flow_rate_ul_min: float, volume_ul: float) -> None:
+    # Set the stop flag false
+    self._stop_flag = False
+    print(f"Stop flag in dispense set to: {self._stop_flag}")
+    self.set_flow_rate(flow_rate_ul_min) # Set the flow rate for the pump
+    #The dispense command in the Tricontinental C24000 Pump is the continuous flow command
+    time_sec = self._calculate_time_for_volume(volume_ul)
+    dispense_speed = int (self._calculate_speed_for_flow_rate())
+    print(f"Time (s): {time_sec}")
+    print(f"Speed: {dispense_speed}")
+    aspirate_speed = dispense_speed * 2
+    initial_aspirate_speed = 4000 #This is faster so the pump can reach the position to begin quickly
+    self.driver.run_aspirate(pump="A", resolution=2, aspirate_speed=initial_aspirate_speed, final_position=24000) # Start aspirating at a high speed to quickly reach the position
+    time.sleep(0.1) # Wait for a short time to allow the pump to start aspirating
+    self.driver.run_aspirate(pump="B", resolution=2, aspirate_speed=initial_aspirate_speed, final_position=24000) # Aspirate pump B
+    time.sleep(0.1) # Wait for a short time to allow the pump to start aspirating
+    while not self.driver.is_valve_in_output_position(pump="A"):
+      time.sleep(0.2)  # Wait for 0.2 seconds before checking again
+    print("Pump A valve is in output position. Starting dispense timer.")    
+    #The continuous flow control starts now
+    time_now = time.monotonic()
+    mode = 1 # 1: Pump A dispensing and B aspirating; 2: Pump A aspirating and B dispensing
+    while time.monotonic() - time_now < time_sec and not self._stop_flag:
+      if mode == 1:
+        time.sleep(0.2) # Wait for a short time to allow the pump to start dispensing
+        self.driver.run_dispense(pump="A", resolution=2, dispense_speed=dispense_speed, final_position=0) # Start dispensing from pump A
+        time.sleep(0.2) # Wait for a short time to allow the pump to start dispensing
+        self.driver.run_aspirate(pump="B", resolution=2, aspirate_speed=aspirate_speed, final_position=24000) # Start aspirating from pump B
+        time.sleep(0.2) # Wait for a short time to allow the pump to start aspirating
+        while self.driver.is_valve_in_output_position(pump="A") and time.monotonic() - time_now < time_sec and not self._stop_flag:
+          time.sleep(0.2)  # Wait for 0.2 seconds before checking again
+        mode = 2
+      else:
+        time.sleep(0.2) # Wait for a short time to allow the pump to start aspirating
+        self.driver.run_aspirate(pump="A", resolution=2, aspirate_speed=aspirate_speed, final_position=24000) # Start aspirating from pump A
+        time.sleep(0.2) # Wait for a short time to allow the pump to start aspirating
+        self.driver.run_dispense(pump="B", resolution=2, dispense_speed=dispense_speed, final_position=0) # Start dispensing from pump B
+        time.sleep(0.2) # Wait for a short time to allow the pump to start dispensing
+        while self.driver.is_valve_in_output_position(pump="B") and time.monotonic() - time_now < time_sec and not self._stop_flag:
+          time.sleep(0.2)  # Wait for 0.2 seconds before checking again
+        mode = 1
+      elapsed_time = time.monotonic() - time_now
+      dispensed_volume = min(volume_ul, (elapsed_time / time_sec) * volume_ul) if time_sec > 0 else volume_ul
+      print(f"Dispensed: {dispensed_volume:.2f} uL / {volume_ul:.2f} uL")
 
-        # Calibration parameters
-        self.uL_per_count: float = 0.005107  # Based on calibration (µL dispensed per count)
-        self.counts_per_uL: float = 1 / self.uL_per_count
-
-        # Current operation state
-        self.flow_rate_ul_min: float = 0.0
-        self.flow_rate_ul_sec: float = 0.0
-
-    def connect(self) -> None:
-        """Connect to the pump via serial port."""
-        try:
-            self.serial = tri.connect(port=self.port, baudrate=self.baudrate)
-            
-            time.sleep(2)  # Wait for pump to initialize
-            
-            # Read and discard all startup messages
-            startup_data = b""
-            while self.serial.in_waiting:
-                startup_data += self.serial.read(self.serial.in_waiting)
-                time.sleep(2)  # Small delay to let more data arrive
-            
-            if startup_data:
-                print(f"{self.name}: Cleared {len(startup_data)} bytes of startup data")
-            
-            self._connected = True
-            print(f"{self.name}: Connected on {self.port}")
-            
-        except Exception as e:
-            raise ConnectionError(f"Failed to connect to {self.name}: {e}")
-        
-        # Check initialization status
-        print(f"{self.name}: Checking pump initialization status...")
-        is_A_initialized = tri.is_initialized(self.serial, pump="A")
-        is_B_initialized = tri.is_initialized(self.serial, pump="B")
-        
-        if is_A_initialized is None or is_B_initialized is None:
-            raise RuntimeError(f"{self.name}: Failed to get initialization status. Are the pumps connected?")
-        
-        if is_A_initialized:
-            print(f"{self.name}: Pump A is already initialized.")
-        else:
-            print(f"{self.name}: Pump A is not initialized.")
-            print(f"{self.name}: Initializing Pump A...")
-            tri.initialize_pump(self.serial, pump="A")        
-        if is_B_initialized:
-            print(f"{self.name}: Pump B is already initialized.")
-        else:
-            print(f"{self.name}: Pump B is not initialized.")
-            print(f"{self.name}: Initializing Pump B...")
-            tri.initialize_pump(self.serial, pump="B")
-
-        tri.check_until_initialized(self.serial, pump="A")
-        tri.check_until_initialized(self.serial, pump="B")
-        print(f"{self.name}: Both pumps initialized successfully.")
-        
-    def dispense(self, flow_rate_ul_min: float, volume_ul: float) -> None:
-        """Dispense specified volume at specified flow rate.
-        
-        Uses VICI-style approach:
-        1. Calculate the pump time based on volume and flow rate
-        2. Set the flow rate on the device
-        3. Start pumping
-        4. Wait for the calculated time + buffer
-        5. Stop the pump
-        
-        Args:
-            flow_rate_ul_min: Flow rate in µL/min
-            volume_ul: Volume to dispense in µL
-        """
-        if not self._connected:
-            raise RuntimeError(f"{self.name}: Not connected")
-        
-        if flow_rate_ul_min <= 0:
-            raise ValueError(f"{self.name}: Flow rate must be > 0, got {flow_rate_ul_min}")
-        if volume_ul <= 0:
-            raise ValueError(f"{self.name}: Volume must be > 0, got {volume_ul}")
-        
-        # Store current flow rate
-        self.flow_rate_ul_min = abs(flow_rate_ul_min)
-        # TODO : Does self.flow_rate_ul_sec be set to abs() if self.flow_rate_ul_min is set to absolute?
-        self.flow_rate_ul_sec = self.flow_rate_ul_min / 60.0
-        
-        # Get calibration value for this flow rate (or use default)
-        self.counts_per_uL = self.CALIBRATION_VALUES.get(
-            self.flow_rate_ul_min, 
-            self.DEFAULT_COUNTS_PER_UL
-        )
-        
-        # Calculate pump time using helper function
-        pump_time_sec, total_wait_time = self._calculate_pump_time(volume_ul, self.flow_rate_ul_min)
-        
-        print(f"{self.name}: Dispensing {volume_ul} µL at {flow_rate_ul_min} µL/min")
-        print(f"{self.name}: Calculated pump time: {pump_time_sec:.2f} s (total wait: {total_wait_time:.2f} s)")
-        
-        # Clear any pending data in buffer
-        if self.serial.in_waiting:
-            self.serial.read(self.serial.in_waiting)
-        
-        # Stop the pump before starting new command
-        self.stop()
-        print(f"{self.name}: Pump stopped before dispensing")
-        self.serial.flush()
-        time.sleep(2)  # Small delay to ensure pump is stopped
-
-        # Set the flow rate
-        dispense_speed = self._convert_flow_rate(flow_rate_ul_min)
-        continuous_flow_cmd_A = tri.compose_command_continuous_flow_A(dispense_speed=dispense_speed)
-        continuous_flow_cmd_B = tri.compose_command_continuous_flow_B(dispense_speed=dispense_speed)
-        
-        #Run continuos flow on both pumps
-        tri.run_continuous_flow(self.serial,pump="A", command=continuous_flow_cmd_A)
-        tri.run_continuous_flow(self.serial,pump="B", command=continuous_flow_cmd_B)
-        
-        time.sleep(1)  # Give time for the valves to change position
-        is_output_valve_A = tri.is_valve_output(self.serial, pump="A")
-        is_output_valve_B = tri.is_valve_output(self.serial, pump="B")        
-
-        while (not is_output_valve_A) and (not is_output_valve_B):
-            print(f"{self.name}: Waiting for pumps to start dispensing...")
-            time.sleep(0.5)
-            is_output_valve_A = tri.is_valve_output(self.serial, pump="A")
-            time.sleep(0.5)
-            is_output_valve_B = tri.is_valve_output(self.serial, pump="B")
-
-        start_time = time.time()
-
-        while time.time() - start_time < pump_time_sec:
-            elapsed = time.time() - start_time
-            print(f"{self.name}: Pumping... {elapsed:.2f}/{pump_time_sec:.2f} s elapsed")
-            time.sleep(60)  # Update every 60 seconds
-
-        # Stop the pump after dispensing
-        self.stop()
-        print(f"{self.name}: Dispense complete - {volume_ul} µL dispensed")
-
-    def aspirate(self, flow_rate_ul_min: float, volume_ul: float) -> None:
-        """For the tricontinental pump, there is no aspirate function."""
-        print(f"{self.name}: Aspirate function not implemented for this pump model.")
-        pass
-
-    def set_flow_rate(self, flow_rate_ul_min: float) -> None:
-        """Set default flow rate for subsequent operations."""
-        if not self._connected:
-            raise RuntimeError(f"{self.name}: Not connected")
-        
-        if flow_rate_ul_min <= 0:
-            raise ValueError(f"{self.name}: Flow rate must be > 0, got {flow_rate_ul_min}")
-        if type(flow_rate_ul_min) not in [int, float]:
-            raise ValueError(f"{self.name}: Flow rate must be a numeric value, got {type(flow_rate_ul_min).__name__}") 
-
-        self.flow_rate_ul_min = abs(flow_rate_ul_min)
-        device_rate = self._convert_flow_rate(flow_rate_ul_min)
-        cmd = f"output_speed {device_rate}\r\n"
-        self.serial.write(cmd.encode())
-
-    def stop(self) -> None:
-        """Stop any ongoing pump operation."""
-        if not self._connected or not self.serial or not self.serial.is_open:
-            return
-        
-        try:
-            tri.stop_pump(self.serial, pump="A")
-            print(f"{self.name}: Stopped pump A")
-            time.sleep(0.5)  # Small delay between stops
-            tri.stop_pump(self.serial, pump="B")
-            print(f"{self.name}: Stopped pump B")
-            time.sleep(0.5)  # Allow time for pump to stop
-        except Exception as e:
-            print(f"{self.name}: Error during stop: {e}")
-
-    def status(self) -> str:
-        """Return current pump status."""
-        if not self._connected:
-            return f"{self.name}: Not connected"
-        
-        try:
-            response_A = tri.check_status(self.serial, pump="A")
-            response_B = tri.check_status(self.serial, pump="B") 
-            return f"{self.name}: Pump A status: {response_A}, Pump B status: {response_B}"
-        except Exception as e:
-            return f"{self.name}: Error getting status - {e}"
-
-    def close(self) -> None:
-        """Close serial connection."""
-        if self.serial and self.serial.is_open:
-            try:
-                self.stop()  # Ensure pump is stopped
-            except Exception:
-                pass
-            self.serial.close()
-            self._connected = False
-            print(f"{self.name}: Closed")
-
-    def safe_shutdown(self, success: bool) -> None:
-        """Safe shutdown procedure."""
-        self.stop()
-        self.close()
-
-    # Helper methods (device-specific)
-    def _convert_flow_rate(self, ul_min: float) -> int:
-        """Convert µL/min to device-specific rate units (counts/second).
-        
-        The device expects a speed in counts per second.
-        Formula: output_speed = (µL/sec) / (µL/count) = (µL/sec) * (counts/µL)
-        
-        Args:
-            ul_min: Flow rate in µL/min
-            
-        Returns:
-            Device speed in counts/second
-        """
-        # Get calibration value for this flow rate (or use default)
-        counts_per_uL = self.CALIBRATION_VALUES.get(
-            abs(ul_min), 
-            self.DEFAULT_COUNTS_PER_UL
-        )
-        
-        uL_per_second = abs(ul_min) / 60.0
-        # TODO : Does the manual call it output_speed, is their a more descriptive name to give this variable?
-        output_speed = uL_per_second * counts_per_uL  # counts/second
-        
-        return int(output_speed)
+      remaining_time = time_sec - elapsed_time
+      if remaining_time <= 0:
+        break
     
-    def _convert_volume_to_counts(self, volume_ul: float) -> int:
-        """Convert µL to device-specific volume units (counts).
-        
-        Args:
-            volume_ul: Volume in µL
-            
-        Returns:
-            Volume in device counts
-        """
-        # TODO : Is there a more descriptive name we can use besides total_counts for this part
-        total_counts = abs(volume_ul) * self.counts_per_uL
-        return int(total_counts)
+    self.stop()  # Stop the pump after dispensing the desired volume
+    self.set_flow_rate(0) # Reset the flow rate to 0 after dispensing is complete
     
-    def _calculate_pump_time(self, volume_ul: float, flow_rate_ul_min: float, buffer_sec: float = 2.0) -> tuple[float, float]:
-        """Calculate the pump time in seconds based on volume and flow rate.
-        
-        Uses the formula: time = volume / (flow_rate / 60)
-        Similar to VICI M6 approach.
-        
-        Parameters:
-            volume_ul: Volume to pump in µL
-            flow_rate_ul_min: Flow rate in µL/min
-            buffer_sec: Safety buffer time in seconds (default 2.0)
-            
-        Returns:
-            Tuple of (pump_time_sec, total_wait_time) where:
-                - pump_time_sec: Raw calculated pump time in seconds
-                - total_wait_time: pump_time_sec + buffer_sec
-        """
-        if flow_rate_ul_min <= 0:
-            raise ValueError("Flow rate must be > 0")
-        if volume_ul <= 0:
-            raise ValueError("Volume must be > 0")
-        
-        flow_rate_ul_sec = abs(flow_rate_ul_min) / 60.0
-        pump_time_sec = abs(volume_ul) / flow_rate_ul_sec
-        total_wait_time = pump_time_sec + buffer_sec
-        
-        return pump_time_sec, total_wait_time
-    
-    def get_pump_parameters(self) -> None:
-        """Print current pump parameters (similar to VICI M6)."""
-        print(f"Pump parameters for {self.name}:")
-        print(f"  Flow rate: {self.flow_rate_ul_min} µL/min ({self.flow_rate_ul_sec:.4f} µL/sec)")
-        print(f"  µL per count: {self.uL_per_count}")
-        print(f"  Counts per µL: {self.counts_per_uL:.4f}")
-        print(f"  Connected: {self._connected}")
-        print(f"  Port: {self.port} @ {self.baudrate} baud")
+  def _calculate_time_for_volume(self, volume_ul: float) -> float:
+    """Helper method to calculate the time required to dispense a given volume at a specified flow rate."""
+    time_min = volume_ul / self.flow_rate_ul_min  # time in minutes
+    return time_min * 60  # convert to seconds
+  
+  def _calculate_speed_for_flow_rate(self) -> float:
+    """Helper method to calculate the pump speed setting for a given flow rate.
+    Calibration was performed by Joao on 2026-04-21, and found that speed (pulses/sec) = flow_rate (uL/min) * 15.6835"""
+    speed = self.flow_rate_ul_min * 15.6835
+    #todo: find another way to constrain the speed. The speed should not be smaller that 5
+    if speed < 5:
+      speed = 5
+    return speed 
+
+  def set_flow_rate(self, flow_rate_ul_min: float) -> None:
+    self.flow_rate_ul_min = flow_rate_ul_min
+
+  def stop(self) -> None:
+    if not self.driver.is_connected:
+      return
+    self._stop_flag = True
+    self.driver.stop_pump(pump="A")
+    self.driver.stop_pump(pump="B")
+    print(f"Stop flag in stop set to: {self._stop_flag}")
+
+  def status(self) -> str:
+    '''The Status method queries the TricontinentalC24000 class for the current flowrate and returns a string with the status information.'''
+    flow_rate_ul_min = self.flow_rate_ul_min
+    return f"Current flow rate: {flow_rate_ul_min:.2f} uL/min"
+
+  def close(self) -> None:
+    if not self.driver.is_connected:
+      return
+    self.stop()  # Ensure the pump is stopped before closing the connection
+    self.driver.disconnect()
+
+  def safe_shutdown(self, success: bool) -> None:
+    if not self.driver.is_connected:
+      return
+    self.stop()  # Ensure the pump is stopped before closing the connection
+    self.driver.disconnect()
+
+  def calibrate(self, speed: float = 1000, time_sec: float = 60) -> None:
+    '''Method to calibrate the pump. It takes volume, speed and time as input
+    the experimentalist should runt the calibration method and measure the amount of water
+    dispensed by the pump at different speeds. This will allow the experimentalist to create 
+    a relationship between speed and uL/min
+    '''
+    self.driver.run_continuous_flow(dispense_speed=speed)
+
+    while not self.driver.is_valve_in_output_position(pump="A"):
+      print("Waiting for pump A valve to be in output position...")
+      time.sleep(0.1)  # Wait for 0.1 seconds before checking again
+    start_time = time.monotonic()
+    while True:
+      elapsed_time = time.monotonic() - start_time
+      print(f"Elapsed Time: {elapsed_time:.2f} seconds / {time_sec:.2f} seconds")
+
+      remaining_time = time_sec - elapsed_time
+      if remaining_time <= 0:
+        break
+      time.sleep(min(10, remaining_time))
+
+    self.driver.stop_pump(pump="A")
+    self.driver.stop_pump(pump="B")
+
+    print(f"Calibration complete. Speed: {speed} pulses/s, Time: {time_sec} seconds")
+    print(f"Measure the actual volume dispensed and use this information to create a calibration curve relating speed to flow rate.")
+
+
