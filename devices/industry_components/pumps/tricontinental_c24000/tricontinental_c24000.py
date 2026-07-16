@@ -12,13 +12,13 @@ from __future__ import annotations
 import time
 
 from devices.industry_components.pumps.pumps import Pump
-from devices.industry_components.pumps.tecan_pumps.tricontinental_c24000_driver import Tricontinental_c2400_driver as driver
+from devices.industry_components.pumps.tricontinental_c24000.tricontinental_c24000_driver import Tricontinental_c24000_driver as driver
 
 
 class TricontinentalC24000(Pump):
   '''This class serves as an abstraction layer for the Tricontinental C24000 pump.
   It inherits from the abstract Pump class and implements the 
-  required methods. It uses the Tecan_driver to communicate with 
+  required methods. It uses the Tricontinental_c24000_driver to communicate with 
   the pump hardware.'''
 
   def __init__(self, port: str = 'COM16', baud_rate: int = 9600, timeout: int = 1, name: str = "TricontinentalC24000_1") -> None:
@@ -41,12 +41,12 @@ class TricontinentalC24000(Pump):
     if self.driver.is_initialized("A"):
       print("Pump A is already initialized.")
     else:
-      self.driver.initialize_pump(pump="A", resolution=0)
+      self.driver.initialize_pump(pump="A")
       print("Initializing pump A.")
     if self.driver.is_initialized("B"):
       print("Pump B is already initialized.")
     else:
-      self.driver.initialize_pump(pump="B", resolution=0)
+      self.driver.initialize_pump(pump="B")
       print("Initializing pump B.")
     
     self.driver.check_until_initialized(pump="A", timeout=60) #Check until pump A is initialized before proceeding
@@ -98,10 +98,10 @@ class TricontinentalC24000(Pump):
     print(f"Time (s): {time_sec}")
     print(f"Speed: {dispense_speed}")
     aspirate_speed = dispense_speed * 2
-    initial_aspirate_speed = 4000 #This is faster so the pump can reach the position to begin quickly
-    self.driver.run_aspirate(pump="A", resolution=2, aspirate_speed=initial_aspirate_speed, final_position=24000) # Start aspirating at a high speed to quickly reach the position
+    initial_aspirate_speed = 10000 # Determined experimentally by checking the pocket of air formed at different speeds.
+    self.driver.run_aspirate(pump="A", resolution=2, aspirate_speed=initial_aspirate_speed, final_position=192000) # Start aspirating at a high speed to quickly reach the position
     time.sleep(0.1) # Wait for a short time to allow the pump to start aspirating
-    self.driver.run_aspirate(pump="B", resolution=2, aspirate_speed=initial_aspirate_speed, final_position=24000) # Aspirate pump B
+    self.driver.run_aspirate(pump="B", resolution=2, aspirate_speed=initial_aspirate_speed, final_position=192000) # Aspirate pump B
     time.sleep(0.1) # Wait for a short time to allow the pump to start aspirating
     while not self.driver.is_valve_in_output_position(pump="A"):
       time.sleep(0.2)  # Wait for 0.2 seconds before checking again
@@ -114,14 +114,14 @@ class TricontinentalC24000(Pump):
         time.sleep(0.2) # Wait for a short time to allow the pump to start dispensing
         self.driver.run_dispense(pump="A", resolution=2, dispense_speed=dispense_speed, final_position=0) # Start dispensing from pump A
         time.sleep(0.2) # Wait for a short time to allow the pump to start dispensing
-        self.driver.run_aspirate(pump="B", resolution=2, aspirate_speed=aspirate_speed, final_position=24000) # Start aspirating from pump B
+        self.driver.run_aspirate(pump="B", resolution=2, aspirate_speed=aspirate_speed, final_position=192000) # Start aspirating from pump B
         time.sleep(0.2) # Wait for a short time to allow the pump to start aspirating
         while self.driver.is_valve_in_output_position(pump="A") and time.monotonic() - time_now < time_sec and not self._stop_flag:
           time.sleep(0.2)  # Wait for 0.2 seconds before checking again
         mode = 2
       else:
         time.sleep(0.2) # Wait for a short time to allow the pump to start aspirating
-        self.driver.run_aspirate(pump="A", resolution=2, aspirate_speed=aspirate_speed, final_position=24000) # Start aspirating from pump A
+        self.driver.run_aspirate(pump="A", resolution=2, aspirate_speed=aspirate_speed, final_position=192000) # Start aspirating from pump A
         time.sleep(0.2) # Wait for a short time to allow the pump to start aspirating
         self.driver.run_dispense(pump="B", resolution=2, dispense_speed=dispense_speed, final_position=0) # Start dispensing from pump B
         time.sleep(0.2) # Wait for a short time to allow the pump to start dispensing
@@ -146,8 +146,11 @@ class TricontinentalC24000(Pump):
   
   def _calculate_speed_for_flow_rate(self) -> float:
     """Helper method to calculate the pump speed setting for a given flow rate.
-    Calibration was performed by Joao on 2026-04-21, and found that speed (pulses/sec) = flow_rate (uL/min) * 15.6835"""
-    speed = self.flow_rate_ul_min * 15.6835
+    For the tricontnental pump, the speed is calculated in increments per second. In resolution 2, and with the 12.5 mL syringe, the total in crements is 192000.
+    That means that 192000 increments correspond to 12500 uL. Therefore, the speed in increments/sec is calculated as follows:
+    speed (increments/sec) = flow_rate (uL/min) * 192000 / 12500 / 60 = flow_rate (uL/min) * 0.256
+   """
+    speed = self.flow_rate_ul_min * 0.265
     #todo: find another way to constrain the speed. The speed should not be smaller that 5
     if speed < 5:
       speed = 5
@@ -209,3 +212,11 @@ class TricontinentalC24000(Pump):
     print(f"Measure the actual volume dispensed and use this information to create a calibration curve relating speed to flow rate.")
 
 
+if __name__ == "__main__":
+  # Basic manual test - only run when executed as a script, not on import
+  pump = TricontinentalC24000(port='COM15', baud_rate=9600, timeout=1)
+  pump.connect()
+  pump.close()
+  pump.connect()
+  pump.dispense(flow_rate_ul_min=24000, volume_ul=24000)
+  pump.close()

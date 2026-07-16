@@ -54,14 +54,16 @@ class Tricontinental_c24000_driver():
       self.ser.disconnect()
       self.is_connected = False
     
-  def initialize_pump(self, pump: str = "A", resolution: int = 0) -> None:
+  def initialize_pump(self, pump: str = "A", resolution: int = 2) -> None:
 
     if not self.is_connected:
       print("Serial connection not established. Cannot initialize pump.")
       return
     try:
       addr = self.decode_pump_address(pump)
-      self.ser.send_command(f"/{addr}N{resolution}ZR")
+      self.ser.send_command(f"/{addr}Z10R")
+      time.sleep(90) # Wait for 30 seconds to allow the pump to initialize
+      self.ser.send_command(f"/{addr}zR") # To make sure that even with errors, the pumps initialize
     except Exception as e:
       print(f"Error initializing pump: {e}")
 
@@ -130,17 +132,19 @@ class Tricontinental_c24000_driver():
     for i in range(2): # Try up to 2 times to check initialization status
       try:
         addr = self.decode_pump_address(pump)
-        self.ser.send_command(f"/{addr}S14D1R") # For some reason, the command must be sent twice
+        self.ser.send_command(f"/{addr}?19") # For some reason, the command must be sent twice
         time.sleep(0.1) # Small delay to allow device to process command
         response = self.ser.read_response()
         decoded_response = self.ser.parse_dt_response(response)
-        status_char = decoded_response["status"]
-        error_code = ord(status_char) & 0x0F # Extract the error code from the status character
+        #print(f"Pump {pump} initialization response: {decoded_response}")
+        status_char = decoded_response["data"]
+        #print(f"Pump {pump} initialization status: {status_char}")
         #return status_char, error_code
-        if error_code != 7 and status_char != "O":
-           #According to the Tecan documentation, error code 7 indicates "Pump not initialized"
-           is_initialized = True
-           
+        if status_char == '0': 
+           #According to the Tricontinent documentation, if status_char = 0, then the pump is not initialized. If status_char != 0, then the pump is initialized.
+           is_initialized = False
+        else:
+           is_initialized = True         
     
       except Exception as e:
         print(f"Error checking initialization status: {e}")
@@ -246,7 +250,7 @@ class Tricontinental_c24000_driver():
       response = self.ser.read_response()
       decoded_response = self.ser.parse_dt_response(response)
       valve_position = decoded_response["data"] # Assuming the valve position is in the "data" field of the response
-      return valve_position == str(3) # Return True if valve is in output position, False otherwise
+      return valve_position == 'o' # Return True if valve is in output position, False otherwise
     except Exception as e:
       print(f"Error checking valve position: {e}")
       return False
@@ -331,3 +335,11 @@ class Tricontinental_c24000_driver():
         self.send_command(command)
       except Exception as e:
         print(f"Error running dispense: {e}")
+
+#test code
+
+# driver = Tricontinental_c24000_driver(port='COM15', baud_rate=9600, timeout=1)
+# driver.connect()
+# print(driver.is_initialized("A"))
+# driver.send_command("/1V5000OA0R")
+# driver.disconnect()
