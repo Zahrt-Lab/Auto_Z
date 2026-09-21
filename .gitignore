@@ -61,3 +61,5 @@ Thumbs.db
 simulated_uv_data.csv
 demo_uv_data.csv
 !README.md
+*.bak
+monkeytype.sqlite3
