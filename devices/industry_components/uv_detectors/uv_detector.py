@@ -20,7 +20,6 @@ import time
 from typing import Any, Callable
 import traceback
 from math import erfc, sqrt
-from scipy.special import erfcinv
 
 
 # set headless backend before pyplot
