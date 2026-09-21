@@ -110,8 +110,7 @@ For each run, `ExperimentLogger` creates a timestamped subdirectory under
 
 ## Emergency stop
 
-Two plain-text control files are written to the output directory at the start
-of every run, both containing `True`:
+Two plain-text control files are written to their configured paths at the start of every run. If relative paths are used, they are resolved relative to the process working directory. `True`:
 
 - `instrument_control.txt`
 - `dh2000_light_source_control.txt`
@@ -153,7 +152,7 @@ class and a matching sub-executor — follow any existing category as a template
 pip install -e ".[dev]"
 
 # Run all simulation tests (no hardware required)
-pytest test/unit/ test/simulation/ -v
+pytest test/simulation -q
 
 # Run everything including hardware tests (lab only)
 pytest test/ -v

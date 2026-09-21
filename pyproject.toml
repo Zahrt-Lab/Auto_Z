@@ -44,6 +44,7 @@ auto-gui = "user_interface.methods_gui:main"
 license-files = ["LICENSE"]
 include-package-data = true
 
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = [
@@ -55,3 +56,4 @@ include = [
 
 [tool.setuptools.package-data]
 methods = ["device_registry.toml"]
+"devices.industry_components.liquid_handlers" = ["bed_offsets.toml"]

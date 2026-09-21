@@ -1,3 +1,4 @@
 include README.md
 include LICENSE
 recursive-include docs *.png *.md
+include devices/industry_components/liquid_handlers/bed_offsets.toml

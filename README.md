@@ -30,7 +30,9 @@ Auto-Z requires Python 3.9 or later.
 Clone the repository:
 
 ```bash
-git clone https://github.com```
+git clone https://github.com/Zahrt-Lab/Auto_Z.git
+cd Auto_Z
+
 
 Create and activate a virtual environment, then install the package:
 
