@@ -1,5 +1,5 @@
 # ==============================================================================
-# AUTO_ZAHRT — Device Registry
+# AUTO_Z — Device Registry
 # ==============================================================================
 # Add a new device by copying an existing [devices.XXX] block and editing it.
 # No Python changes required for devices that fit an existing abstract class.

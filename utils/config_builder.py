@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------
-# Instrument Config Builder GUI for AUTO_ZAHRT (aligned columns)
+# Instrument Config Builder GUI for AUTO_Z (aligned columns)
 # ------------------------------------------------------------------------------
 # Requirements:
 #   pip install pyserial
@@ -103,7 +103,7 @@ class InstrumentRow:
 class ConfigBuilderGUI(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
-        self.title("Instrument Config Builder - AUTO_ZAHRT")
+        self.title("Instrument Config Builder - AUTO_Z")
         self.geometry("1200x600")
 
         self.available_ports: list[str] = []

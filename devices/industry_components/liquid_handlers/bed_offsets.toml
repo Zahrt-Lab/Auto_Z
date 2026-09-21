@@ -1,5 +1,5 @@
 # ==============================================================================
-# AUTO_ZAHRT — Bed Offsets
+# AUTO_Z — Bed Offsets
 # ==============================================================================
 # x_offset: list of per-bed X offsets in mm (index 0 = bed 1, index 1 = bed 2, etc.)
 # y_offset: single scalar Y offset in mm applied uniformly to all wells on all beds

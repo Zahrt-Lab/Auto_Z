@@ -1,6 +1,6 @@
 # status_monitor_gui.py
 # ------------------------------------------------------------------------------
-# Standalone live status monitor window for AUTO_ZAHRT
+# Standalone live status monitor window for AUTO_Z
 # ------------------------------------------------------------------------------
 
 from __future__ import annotations
@@ -34,7 +34,7 @@ class StatusMonitorWindow(tk.Toplevel):
         update_interval_ms: int = 60_000,  # 1 minute default
     ) -> None:
         super().__init__(master)
-        self.title("AUTO_ZAHRT – Live Status Monitor")
+        self.title("AUTO_Z – Live Status Monitor")
         self.geometry("800x500")
 
         self.status_log_path = status_log_path

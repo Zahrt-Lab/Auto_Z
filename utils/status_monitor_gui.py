@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 """
-Status Monitor GUI utilities for AUTO_ZAHRT
+Status Monitor GUI utilities for AUTO_Z
 """
 import tkinter as tk
 from tkinter import ttk
@@ -38,7 +38,7 @@ def open_status_monitor(instruments: Dict[str, Any], interval: int = 5):
         interval: Update interval in seconds
     """
     monitor_window = tk.Toplevel()
-    monitor_window.title("AUTO_ZAHRT - Instrument Status Monitor")
+    monitor_window.title("AUTO_Z - Instrument Status Monitor")
     monitor_window.geometry("800x600")
     
     # Create main frame

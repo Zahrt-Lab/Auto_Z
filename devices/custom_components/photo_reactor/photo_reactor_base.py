@@ -1,8 +1,10 @@
 # ------------------------------------------------------------------------------
-# Software: AUTO_ZAHRT
-# Copyright: (C) 2025 by Professor Andrew Zahrt
-# This software is the intellectual property of Professor Andrew Zahrt
-# All rights reserved.
+# Software: Auto_Z
+# Copyright (c) 2026 Andrew Zahrt
+#
+# Contributions by Scott Laverty and Joao Albuquerque are acknowledged.
+#
+# Licensed under the MIT License. See the LICENSE file in the repository root.
 # ------------------------------------------------------------------------------
 
 """Abstract base class for photoreactor light source components."""

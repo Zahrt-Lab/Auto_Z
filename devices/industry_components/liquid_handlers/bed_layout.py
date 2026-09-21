@@ -1,9 +1,10 @@
 # ------------------------------------------------------------------------------
-# Software: AUTO_ZAHRT
-# Copyright: (C) 2024 by Professor Andrew Zahrt
-# This software is the intellectual property of Professor Andrew Zahrt
-# Contributions by graduate students Scott Laverty and David Polefrone are acknowledged.
-# All rights reserved.
+# Software: Auto_Z
+# Copyright (c) 2026 Andrew Zahrt
+#
+# Contributions by Scott Laverty and Joao Albuquerque are acknowledged.
+#
+# Licensed under the MIT License. See the LICENSE file in the repository root.
 # ------------------------------------------------------------------------------
 from __future__ import annotations
 

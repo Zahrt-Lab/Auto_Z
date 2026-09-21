@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Tecan pump module provides control for dual-syringe Tecan pumps (models with A/B pump addressing) used in the AUTO_ZAHRT laboratory automation system. It implements a three-layer architecture:
+The Tecan pump module provides control for dual-syringe Tecan pumps (models with A/B pump addressing) used in the Auto_Z laboratory automation system. It implements a three-layer architecture:
 
 1. **High-level abstraction** (`tecan_pump.py`) — implements the `Pump` interface
 2. **Mid-level driver** (`tecan_pump_driver.py`) — Tecan protocol and hardware control
@@ -14,7 +14,7 @@ The Tecan pump module provides control for dual-syringe Tecan pumps (models with
 
 ### Layer 1: `Tecan_pump` Class (tecan_pump.py)
 
-The top-level API that conforms to the AUTO_ZAHRT `Pump` abstract interface. This is what the rest of the system interacts with.
+The top-level API that conforms to the Auto_Z `Pump` abstract interface. This is what the rest of the system interacts with.
 
 **Key Methods:**
 - `connect()` — Establishes serial connection and initializes both pump A and B

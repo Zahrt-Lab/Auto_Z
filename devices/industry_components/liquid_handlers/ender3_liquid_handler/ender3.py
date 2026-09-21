@@ -1,11 +1,10 @@
-# TODO : Should probably move this to the same folder as the ender3 liquid handler folder
-
-
 # ------------------------------------------------------------------------------
-# Software: AUTO_ZAHRT 
-# Copyright: (C) 2025 by Professor Andrew Zahrt
-# Contributions by graduate student Scott Laverty are acknowledged.
-# All rights reserved.
+# Software: Auto_Z
+# Copyright (c) 2026 Andrew Zahrt
+#
+# Contributions by Scott Laverty and Joao Albuquerque are acknowledged.
+#
+# Licensed under the MIT License. See the LICENSE file in the repository root.
 # ------------------------------------------------------------------------------
 
 '''

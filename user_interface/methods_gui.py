@@ -1,13 +1,12 @@
 # methods_gui.py
 # ------------------------------------------------------------------------------
-# Software: AUTO_ZAHRT
-# Copyright: (C) 2025 by Professor Andrew Zahrt
-# This software is the intellectual property of Professor Andrew Zahrt
-# Contributions by graduate students Scott Laverty are acknowledged.
-# Do not replicate or redistribute without permission
-# All rights reserved.
+# Software: Auto_Z
+# Copyright (c) 2026 Andrew Zahrt
+#
+# Contributions by Scott Laverty and Joao Albuquerque are acknowledged.
+#
+# Licensed under the MIT License. See the LICENSE file in the repository root.
 # ------------------------------------------------------------------------------
-
 from __future__ import annotations
 
 # Force the non-interactive Agg backend before any other import can initialize matplotlib.
@@ -42,7 +41,7 @@ from user_interface.log_panel import LogPanel
 class AutoZahrtGUI(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
-        self.title("AUTO_ZAHRT – Scheduler & Runner")
+        self.title("AUTO_Z – Scheduler & Runner")
         self.geometry("1100x860")
 
         # ── Shared data state ──────────────────────────────────────────────

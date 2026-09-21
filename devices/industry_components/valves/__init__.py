@@ -1,3 +1,3 @@
-"""AUTO_ZAHRT Valves Module"""
+"""AUTO_Z Valves Module"""
 
 __all__ = ['valves']

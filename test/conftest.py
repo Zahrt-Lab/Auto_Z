@@ -1,5 +1,5 @@
 """
-Shared pytest fixtures for AUTO_ZAHRT test suite.
+Shared pytest fixtures for AUTO_Z test suite.
 
 Hardware fixtures auto-detect connected devices by scanning COM ports.
 If a device is not found, hardware tests are skipped automatically —

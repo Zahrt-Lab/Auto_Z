@@ -1,9 +1,10 @@
 # ------------------------------------------------------------------------------
-# Software: AUTO_ZAHRT
-# Copyright: (C) 2025 by Professor Andrew Zahrt
-# This software is the intellectual property of Professor Andrew Zahrt
-# Contributions by graduate students Scott Laverty are acknowledged.
-# All rights reserved.
+# Software: Auto_Z
+# Copyright (c) 2026 Andrew Zahrt
+#
+# Contributions by Scott Laverty and Joao Albuquerque are acknowledged.
+#
+# Licensed under the MIT License. See the LICENSE file in the repository root.
 # ------------------------------------------------------------------------------
 
 from __future__ import annotations
@@ -17,7 +18,7 @@ from ..syringe_pumps import SyringePump  # import the abstract base class from p
 class PhdUltraPump(SyringePump):
     """Minimal driver for a Harvard-Apparatus PHD-Ultra syringe pump (µL units).
 
-    Now implements the SyringePump ABC used by AUTO_ZAHRT.
+    Now implements the SyringePump ABC used by AUTO_Z.
 
     Units:
         - flow_rate: µL/min

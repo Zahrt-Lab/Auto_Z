@@ -1,6 +1,6 @@
-# How Auto_Zahrt Works
+# How Auto_Z Works
 
-Auto_Zahrt is a Python-based laboratory automation platform. You describe an
+Auto_Z is a Python-based laboratory automation platform. You describe an
 experiment as two CSV files — one listing your instruments, one listing the
 actions to perform — and the software connects to every device over serial/USB,
 executes each action in order, and writes a timestamped log of everything that

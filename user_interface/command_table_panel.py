@@ -1,11 +1,11 @@
 # command_table_panel.py
 # ------------------------------------------------------------------------------
-# Software: AUTO_ZAHRT
-# Copyright: (C) 2025 by Professor Andrew Zahrt
-# This software is the intellectual property of Professor Andrew Zahrt
-# Contributions by graduate students Scott Laverty are acknowledged.
-# Do not replicate or redistribute without permission
-# All rights reserved.
+# Software: Auto_Z
+# Copyright (c) 2026 Andrew Zahrt
+#
+# Contributions by Scott Laverty and Joao Albuquerque are acknowledged.
+#
+# Licensed under the MIT License. See the LICENSE file in the repository root.
 # ------------------------------------------------------------------------------
 
 from __future__ import annotations
