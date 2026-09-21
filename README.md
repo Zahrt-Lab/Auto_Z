@@ -1,47 +1,115 @@
-# Project name
+# Auto-Z
 
-This is a python package developed by the Zahrt Lab to program lab instruments for lab automation.
+Auto-Z is a Python-based laboratory automation framework developed by the
+Zahrt Lab for controlling and coordinating laboratory instrumentation.
 
-## Prerequisites
+The platform uses instrument-configuration and experimental-method CSV files
+to define automated experiments. During execution, Auto-Z initializes the
+specified hardware, dispatches experimental commands, monitors instrument
+status, and records experimental and status logs.
 
-install the latest version of 
+Auto-Z was developed to support automated and autonomous chemistry workflows,
+including the continuous-flow photochemistry platform described in our
+associated manuscript.
 
-This software has been developed and tested on Windows 11 computers.
+## Documentation
 
-For developers we recommend reading the manual under docs of this respository under docs/manual.md
+Detailed documentation is available in the `docs/` directory:
 
-## Installing
+- [`how_it_works.md`](docs/how_it_works.md) — overview of the software
+  architecture, experimental workflow, input files, logging, device registry,
+  and instrument control.
+- [`usb_port_identification.md`](docs/usb_port_identification.md) — notes and
+  proposed approach for robust USB instrument identification using VID/PID
+  and physical USB-port information.
 
-To install this software on Windows 11 computers please follow these steps.
+## Installation
 
-'''
-git clone https://github.com/scottlaverty1/Auto_Zahrt_v3.git
+Auto-Z requires Python 3.9 or later.
 
-# How to install from the directory
-pip install /path/to/Auto_Zahrt_v3
-'''
+Clone the repository:
 
-'''
-git clone https://github.com/scottlaverty1/Auto_Zahrt_v3.git
+```bash
+git clone https://github.com```
 
-# Create a distribution and install
+Create and activate a virtual environment, then install the package:
 
-'''
+```bash
+pip install -e .
+```
 
-## Using <Project_Name>
+For development and testing:
 
-To access the GUI please use the name autozahrt_gui.exe which generates a tkinter GUI to load instrument config file, then the user can use the GUI to state what commands they wish to perform.
+```bash
+pip install -e ".[dev]"
+```
 
-## Contributing to <Project_Name>
+The package dependencies are defined in `pyproject.toml`. A pinned
+`requirements.txt` is also provided to document the software environment used
+during development and experimental work.
 
-To contribute to this repository follow these steps
+## Usage
 
-1. Fork this repository
-2. Create a branch git checkout -b <branch_name>
-3. Make your changes and commit to 
+Experiments are defined using two CSV files:
 
-## Contributers
+1. An **instrument configuration file**, which specifies the instruments and
+   their communication settings.
+2. A **method file**, which specifies the sequence of experimental commands.
 
-## Contact
+Auto-Z can then execute the method through the laboratory-control framework and
+write timestamped experimental and status logs.
+
+For a detailed description of this workflow, see
+[`docs/how_it_works.md`](docs/how_it_works.md).
+
+The graphical interface can be launched after installation with:
+
+```bash
+auto-gui
+```
+
+## Testing
+
+Simulation tests that do not require physical laboratory hardware can be run
+with:
+
+```bash
+pytest test/simulation -q
+```
+
+Pump timing tests that depend on real elapsed-time behavior are excluded from
+the default simulation test suite. Hardware tests require the corresponding
+laboratory instruments and should only be run on an appropriately configured
+system.
+
+## Manuscript Data and Optimization Code
+
+Auto-Z provides the laboratory hardware-control and experiment-execution
+framework.
+
+The experiment-specific Bayesian optimization workflow, methods, experimental
+data, and analysis associated with the manuscript are maintained separately in
+the `dead_mans_fingers` repository.
+
+[dead_mans_fingers](https://github.com/Zahrt-Lab/dead_mans_fingers)
+
+## Platform-Specific Dependencies
+
+Some instrument drivers require vendor software or hardware-specific libraries
+that are not distributed through PyPI. In particular, Ocean Optics
+spectrometers require the appropriate OceanDirect installation, and some
+instrument communication interfaces may require vendor-provided Windows
+libraries.
+
+These dependencies are only required when using the corresponding hardware.
+
+## Citation
+
+Citation information will be added with the publication release.
 
 ## License
+
+License information is provided in [`LICENSE`](LICENSE).
+he publication release.
+License
+License information is provided in LICENSE.
