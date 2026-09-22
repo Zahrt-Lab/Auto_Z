@@ -1,6 +1,6 @@
 // ------------------------------------------------------------------------------
 // Software: Auto_Z
-// Copyright (c) 2026 Andrew Zahrt
+// Copyright (c) 2026 Zahrt Research Group
 //
 // Contributions by Scott Laverty and Joao Albuquerque are acknowledged.
 //
