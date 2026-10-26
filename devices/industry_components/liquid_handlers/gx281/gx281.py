@@ -2,7 +2,7 @@
 # Software: Auto_Z
 # Copyright (c) 2026 Zahrt Research Group
 #
-# Contributions by Scott Laverty and Joao Albuquerque are acknowledged.
+# Contributions by Scott Laverty are acknowledged.
 #
 # Licensed under the MIT License. See the LICENSE file in the repository root.
 # ------------------------------------------------------------------------------
