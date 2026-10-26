@@ -32,9 +32,16 @@ Clone the repository:
 ```bash
 git clone https://github.com/Zahrt-Lab/Auto_Z.git
 cd Auto_Z
+```
 
+Create and activate a virtual environment:
 
-Create and activate a virtual environment, then install the package:
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+```
+
+Install the package:
 
 ```bash
 pip install -e .
@@ -112,6 +119,3 @@ Citation information will be added with the publication release.
 ## License
 
 License information is provided in [`LICENSE`](LICENSE).
-he publication release.
-License
-License information is provided in LICENSE.
