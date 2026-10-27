@@ -2,8 +2,9 @@ name: CI
 
 on:
   push:
+    branches: [ develop ]
   schedule:
-    - cron: '0 6 * * *'  # 6 AM UTC daily
+    # - cron: '0 6 * * *'  # 6 AM UTC daily
 
 jobs:
   test:
